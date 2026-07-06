@@ -34,6 +34,21 @@ JUDGE_TMP_HOST_PATH="$ROOT_DIR/oj-backend/judge-tmp"
 mkdir -p "$JUDGE_TMP_HOST_PATH"
 echo "==> judge-tmp 디렉토리: $JUDGE_TMP_HOST_PATH"
 
+# judge-worker는 Docker-outside-of-Docker라서 언어별 채점 이미지가 워커
+# 컨테이너 안이 아니라 "호스트" 도커 데몬에 있어야 한다. 미리 안 받아두면
+# 첫 제출에서 "no such image" 에러가 난다.
+if command -v docker >/dev/null 2>&1; then
+  echo "==> 채점용 언어 이미지 pull 중 (호스트 기준, 시간이 좀 걸릴 수 있음)..."
+  docker pull gcc:13-bookworm
+  docker pull python:3.12-slim
+  docker pull eclipse-temurin:21-jdk-jammy
+  docker pull node:20-slim
+  docker pull golang:1.22-bookworm
+else
+  echo "==> docker 명령을 못 찾아서 채점용 이미지 pull은 건너뜀. 직접 pull할 것:"
+  echo "    docker pull gcc:13-bookworm python:3.12-slim eclipse-temurin:21-jdk-jammy node:20-slim golang:1.22-bookworm"
+fi
+
 set_env_var() {
   # set_env_var <file> <key> <value>  -- 없으면 추가, 있으면 교체
   local file="$1" key="$2" value="$3"
