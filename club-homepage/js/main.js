@@ -22,7 +22,10 @@ const authArea = document.getElementById("auth-area");
 function renderLoggedOut() {
   authArea.innerHTML = "";
   const login = document.createElement("a");
-  login.href = "/login";
+  // 로그인 후 다시 이 페이지로 돌아올 수 있게 현재 위치를 redirect 파라미터로 넘긴다
+  login.href =
+    "/login?redirect=" +
+    encodeURIComponent(window.location.pathname + window.location.search);
   login.textContent = "로그인";
   const signup = document.createElement("a");
   signup.href = "/signup";

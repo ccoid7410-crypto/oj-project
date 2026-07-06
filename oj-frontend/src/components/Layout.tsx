@@ -67,7 +67,11 @@ export function Layout() {
               </>
             ) : (
               <>
-                <Link to="/login" className="hover:text-[var(--color-brand)]">
+                <Link
+                  // 로그인 후 지금 보던 페이지로 돌아올 수 있게 현재 위치를 redirect로 넘긴다
+                  to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
+                  className="hover:text-[var(--color-brand)]"
+                >
                   로그인
                 </Link>
                 <Link to="/signup" className="hover:text-[var(--color-brand)]">

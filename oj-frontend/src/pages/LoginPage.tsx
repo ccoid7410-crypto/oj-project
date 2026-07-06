@@ -1,15 +1,28 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 로그인 후 돌아갈 위치 (?redirect=...). 외부 사이트로 튕기는 open redirect를 막기 위해
+  // 사이트 내부 경로(/로 시작)만 허용하고, //(프로토콜 생략 주소)와 로그인/가입 페이지는 제외한다.
+  const rawRedirect = searchParams.get('redirect');
+  const redirect =
+    rawRedirect &&
+    rawRedirect.startsWith('/') &&
+    !rawRedirect.startsWith('//') &&
+    !rawRedirect.startsWith('/login') &&
+    !rawRedirect.startsWith('/signup')
+      ? rawRedirect
+      : null;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -17,7 +30,16 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate('/problems');
+      if (redirect) {
+        if (redirect.startsWith('/home')) {
+          // 동아리 홈페이지는 React 앱 밖의 정적 사이트라 전체 페이지 이동이 필요하다
+          window.location.assign(redirect);
+        } else {
+          navigate(redirect, { replace: true });
+        }
+      } else {
+        navigate('/problems');
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '로그인에 실패했습니다.');
     } finally {
