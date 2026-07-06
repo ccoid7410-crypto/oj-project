@@ -4,12 +4,14 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
+import { QueuePriorityService } from '../judge/queue-priority.service';
 
 @Injectable()
 export class SubmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(JUDGE_QUEUE) private readonly judgeQueue: Queue<JudgeJobData>,
+    private readonly queuePriority: QueuePriorityService,
   ) {}
 
   async create(userId: string, userRole: string, dto: CreateSubmissionDto) {
@@ -58,6 +60,10 @@ export class SubmissionsService {
       },
     });
 
+    // 동아리 학번 명단에 있는 사용자는 큐에서 10개 처리 시 6:4 비율로 조금 더 우선 처리된다
+    // (QueuePriorityService의 Stride Scheduling; 완전한 선점이 아니라 장기 비율 배분).
+    const priority = await this.queuePriority.nextPriority(userId);
+
     await this.judgeQueue.add(
       'judge',
       { submissionId: submission.id },
@@ -65,6 +71,7 @@ export class SubmissionsService {
         attempts: 1, // 채점은 재시도하면 부작용(중복 실행)이 있어서 기본 1회. 실패 시 INTERNAL_ERROR로 마킹
         removeOnComplete: 1000,
         removeOnFail: 1000,
+        priority,
       },
     );
 

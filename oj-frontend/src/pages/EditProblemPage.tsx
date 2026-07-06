@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { Difficulty, ProblemDetail } from '../api/types';
+import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 
@@ -22,6 +22,13 @@ export function EditProblemPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [tcError, setTcError] = useState<string | null>(null);
+  const [newInput, setNewInput] = useState('');
+  const [newOutput, setNewOutput] = useState('');
+  const [newIsSample, setNewIsSample] = useState(false);
+  const [savingTc, setSavingTc] = useState(false);
+
   const level = (TIER_OPTIONS.find((t) => t.difficulty === tier)?.base ?? 0) + subRank;
 
   function load() {
@@ -37,11 +44,63 @@ export function EditProblemPage() {
         setTimeLimitMs(p.timeLimitMs);
         setMemoryLimitMb(p.memoryLimitMb);
         setTags(p.tags.join(', '));
+        return api.get<TestCase[]>(`/problems/${p.id}/testcases`);
       })
+      .then((tcs) => setTestCases(tcs))
       .catch(() => setError('문제를 찾을 수 없습니다.'));
   }
 
   useEffect(load, [slug]);
+
+  async function reloadTestCases() {
+    if (!problem) return;
+    setTestCases(await api.get<TestCase[]>(`/problems/${problem.id}/testcases`));
+  }
+
+  async function onAddTestCase(e: FormEvent) {
+    e.preventDefault();
+    if (!problem) return;
+    setSavingTc(true);
+    setTcError(null);
+    try {
+      await api.post(`/problems/${problem.id}/testcases`, {
+        input: newInput,
+        output: newOutput,
+        isSample: newIsSample,
+      });
+      setNewInput('');
+      setNewOutput('');
+      setNewIsSample(false);
+      await reloadTestCases();
+    } catch (err) {
+      setTcError(err instanceof ApiError ? err.message : '테스트케이스 추가에 실패했습니다.');
+    } finally {
+      setSavingTc(false);
+    }
+  }
+
+  async function onToggleSample(tc: TestCase) {
+    if (!problem) return;
+    setTcError(null);
+    try {
+      await api.patch(`/problems/${problem.id}/testcases/${tc.id}`, { isSample: !tc.isSample });
+      await reloadTestCases();
+    } catch (err) {
+      setTcError(err instanceof ApiError ? err.message : '수정에 실패했습니다.');
+    }
+  }
+
+  async function onDeleteTestCase(tc: TestCase) {
+    if (!problem) return;
+    if (!confirm('이 테스트케이스를 삭제할까요?')) return;
+    setTcError(null);
+    try {
+      await api.delete(`/problems/${problem.id}/testcases/${tc.id}`);
+      await reloadTestCases();
+    } catch (err) {
+      setTcError(err instanceof ApiError ? err.message : '삭제에 실패했습니다.');
+    }
+  }
 
   const canEdit = !!user && !!problem && (user.role === 'ADMIN' || user.id === problem.authorId);
 
@@ -192,6 +251,91 @@ export function EditProblemPage() {
           {submitting ? '저장 중...' : '저장'}
         </button>
       </form>
+
+      <div className="mt-10 border-t border-ink-500 pt-6">
+        <h2 className="text-lg font-bold">테스트케이스 관리</h2>
+        <p className="mt-1 text-xs text-fg-muted">
+          샘플로 표시한 테스트케이스는 문제 페이지에 공개되고, 아닌 것은 채점에만 쓰이는 히든 케이스입니다.
+        </p>
+
+        {tcError && <p className="mt-2 text-xs text-[var(--color-wa)]">{tcError}</p>}
+
+        <ul className="mt-4 flex flex-col gap-2">
+          {testCases.map((tc, idx) => (
+            <li key={tc.id} className="rounded border border-ink-500 p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-bold">
+                  #{idx + 1} {tc.isSample && <span className="text-[var(--color-ac)]">(샘플)</span>}
+                </span>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => onToggleSample(tc)}
+                    className="rounded border border-ink-500 px-2 py-1 hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+                  >
+                    {tc.isSample ? '샘플 해제' : '샘플로 표시'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteTestCase(tc)}
+                    className="rounded border border-ink-500 px-2 py-1 hover:border-[var(--color-wa)] hover:text-[var(--color-wa)]"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-fg-muted">입력</p>
+                  <pre className="mt-1 overflow-x-auto rounded bg-ink-700 p-2 text-xs whitespace-pre-wrap">{tc.input}</pre>
+                </div>
+                <div>
+                  <p className="text-xs text-fg-muted">출력</p>
+                  <pre className="mt-1 overflow-x-auto rounded bg-ink-700 p-2 text-xs whitespace-pre-wrap">{tc.output}</pre>
+                </div>
+              </div>
+            </li>
+          ))}
+          {testCases.length === 0 && <p className="text-sm text-fg-muted">아직 테스트케이스가 없습니다.</p>}
+        </ul>
+
+        <form onSubmit={onAddTestCase} className="mt-6 flex flex-col gap-3 rounded border border-ink-500 p-4">
+          <p className="text-sm font-bold">새 테스트케이스 추가</p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-sm">
+              입력
+              <textarea
+                required
+                rows={4}
+                value={newInput}
+                onChange={(e) => setNewInput(e.target.value)}
+                className={`${inputClass} font-mono`}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              출력
+              <textarea
+                required
+                rows={4}
+                value={newOutput}
+                onChange={(e) => setNewOutput(e.target.value)}
+                className={`${inputClass} font-mono`}
+              />
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={newIsSample} onChange={(e) => setNewIsSample(e.target.checked)} />
+            샘플로 공개(문제 페이지에 노출)
+          </label>
+          <button
+            type="submit"
+            disabled={savingTc}
+            className="self-start rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+          >
+            {savingTc ? '추가 중...' : '테스트케이스 추가'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

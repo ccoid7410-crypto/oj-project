@@ -19,6 +19,7 @@ import type { RequestUser } from '../auth/jwt.strategy';
 import { ProblemsService } from './problems.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
+import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 
 class VoteDifficultyDto {
   @IsInt()
@@ -125,5 +126,44 @@ export class ProblemsController {
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.problemsService.remove(id, user.userId, user.role);
+  }
+
+  // ---- 테스트케이스 관리 (작성자/어드민 전용) ----
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/testcases')
+  listTestCases(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.problemsService.listTestCases(id, user.userId, user.role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/testcases')
+  addTestCase(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateTestCaseDto,
+  ) {
+    return this.problemsService.addTestCase(id, user.userId, user.role, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/testcases/:testCaseId')
+  updateTestCase(
+    @Param('id') id: string,
+    @Param('testCaseId') testCaseId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateTestCaseDto,
+  ) {
+    return this.problemsService.updateTestCase(id, testCaseId, user.userId, user.role, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/testcases/:testCaseId')
+  deleteTestCase(
+    @Param('id') id: string,
+    @Param('testCaseId') testCaseId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.problemsService.deleteTestCase(id, testCaseId, user.userId, user.role);
   }
 }

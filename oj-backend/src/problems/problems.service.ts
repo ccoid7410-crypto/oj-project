@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
+import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 import { clampLevel, labelOfLevel, tierOfLevel } from '../common/difficulty';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -338,5 +339,59 @@ export class ProblemsService {
       where: { problemId },
       orderBy: { order: 'asc' },
     });
+  }
+
+  /** 작성자/어드민만 테스트케이스를 관리할 수 있다(문제 존재 확인 겸 권한 체크). */
+  private async assertCanManageTestCases(problemId: string, requesterId: string, requesterRole: string) {
+    const problem = await this.prisma.problem.findUnique({ where: { id: problemId } });
+    if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
+    if (problem.authorId !== requesterId && requesterRole !== 'ADMIN') {
+      throw new ForbiddenException('이 문제의 테스트케이스를 관리할 권한이 없습니다.');
+    }
+    return problem;
+  }
+
+  /** 작성자/어드민: 테스트케이스 전체 목록(히든 포함) 조회. */
+  async listTestCases(problemId: string, requesterId: string, requesterRole: string) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    return this.prisma.testCase.findMany({ where: { problemId }, orderBy: { order: 'asc' } });
+  }
+
+  /** 작성자/어드민: 테스트케이스 추가(맨 뒤에 붙는다). */
+  async addTestCase(problemId: string, requesterId: string, requesterRole: string, dto: CreateTestCaseDto) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const count = await this.prisma.testCase.count({ where: { problemId } });
+    return this.prisma.testCase.create({
+      data: {
+        problemId,
+        input: dto.input,
+        output: dto.output,
+        isSample: dto.isSample ?? false,
+        order: count,
+      },
+    });
+  }
+
+  /** 작성자/어드민: 테스트케이스 수정. */
+  async updateTestCase(
+    problemId: string,
+    testCaseId: string,
+    requesterId: string,
+    requesterRole: string,
+    dto: UpdateTestCaseDto,
+  ) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const tc = await this.prisma.testCase.findUnique({ where: { id: testCaseId } });
+    if (!tc || tc.problemId !== problemId) throw new NotFoundException('테스트케이스를 찾을 수 없습니다.');
+    return this.prisma.testCase.update({ where: { id: testCaseId }, data: dto });
+  }
+
+  /** 작성자/어드민: 테스트케이스 삭제. */
+  async deleteTestCase(problemId: string, testCaseId: string, requesterId: string, requesterRole: string) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const tc = await this.prisma.testCase.findUnique({ where: { id: testCaseId } });
+    if (!tc || tc.problemId !== problemId) throw new NotFoundException('테스트케이스를 찾을 수 없습니다.');
+    await this.prisma.testCase.delete({ where: { id: testCaseId } });
+    return { success: true };
   }
 }

@@ -298,3 +298,17 @@ model StudentIdEditWindow {
 
   @@map("student_id_edit_window")
 }
+
+/// 채점 큐 우선순위 배분용 단일 행 상태(Stride Scheduling).
+/// 동아리 학번 명단에 있는 사용자의 제출은 clubPass, 그 외는 generalPass를 각각
+/// stride(2 / 3)만큼 증가시키며 그 "이전" 값을 BullMQ job priority로 쓴다.
+/// pass가 작을수록 먼저 처리되므로, 이 값들이 자라는 속도 비율(stride의 역수, 6:4)만큼
+/// 장기적으로 동아리:일반 제출이 10개 중 6:4 비율로 섞여서 채점된다.
+model QueuePassState {
+  id         Int      @id @default(1)
+  clubPass   Int      @default(0)
+  generalPass Int     @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@map("queue_pass_state")
+}
