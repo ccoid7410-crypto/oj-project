@@ -1,0 +1,300 @@
+// Prisma schema for Online Judge backend
+// Run `npx prisma generate` and `npx prisma migrate dev` on a machine
+// with internet access to prisma binaries (this sandbox blocks that host).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Language {
+  C
+  CPP
+  JAVA
+  PYTHON3
+  JAVASCRIPT
+  GO
+}
+
+enum SubmissionStatus {
+  PENDING
+  JUDGING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  INTERNAL_ERROR
+}
+
+/// 굵은 단위의 티어. 실제 세분화된 표시/연산은 Problem.level(1~30)을 기준으로 한다.
+enum Difficulty {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  RUBY
+}
+
+enum ProblemStatus {
+  DRAFT           // 작성 중 (작성자만 봄)
+  PENDING_REVIEW  // 어드민 승인 대기(제안됨)
+  PUBLISHED       // 공개됨
+  REJECTED        // 반려됨
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  username     String       @unique
+  passwordHash String
+  role         Role         @default(USER)
+  rating       Int          @default(0) // 상위 100문제(AC) 레이팅 합. RatingService가 재계산한다.
+  banned       Boolean      @default(false)
+  bannedReason String?
+  bannedAt     DateTime?
+  studentId    String?      @unique // 학번. 가입 시 자유 입력, 이후 수정은 관리자가 연 기간에만 가능. (NULL은 여러 개 허용, 값이 있으면 유일해야 함)
+  emailVerified Boolean     @default(false) // 이메일 인증 전에는 로그인 불가(auth.service 참고)
+  mustChangePassword Boolean @default(false) // 어드민이 대량 생성한 계정은 최초 로그인 후 비밀번호 변경을 강제한다
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  problems             Problem[]                 @relation("ProblemAuthor")
+  reviewedProblems     Problem[]                 @relation("ProblemReviewer")
+  submissions          Submission[]
+  apiKeys              ApiKey[]                  @relation("ApiKeyCreator")
+  contests             Contest[]                 @relation("ContestCreator")
+  contestEntries       ContestParticipant[]      @relation("ContestParticipation")
+  difficultyVotes      ProblemDifficultyVote[]
+  triggeredAlerts      AdminNotification[]       @relation("NotificationVoter")
+  emailVerifications   EmailVerificationToken[]
+
+  @@map("users")
+}
+
+/// 회원가입 시 발급되는 이메일 인증 토큰. 원문은 저장하지 않고 sha256 해시만 보관한다(ApiKey와 동일한 방식).
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("email_verification_tokens")
+}
+
+/// 관리자 알림함. 지금은 "난이도 투표가 기존 난이도와 크게 어긋남" 이벤트만 쌓인다.
+model AdminNotification {
+  id        String   @id @default(uuid())
+  type      String // 예: 'DIFFICULTY_VOTE_SPIKE'
+  message   String
+  problemId String?
+  problem   Problem? @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  voterId   String?
+  voter     User?    @relation("NotificationVoter", fields: [voterId], references: [id])
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("admin_notifications")
+}
+
+model Problem {
+  id           String      @id @default(uuid())
+  displayId    Int         @unique @default(autoincrement()) // BOJ처럼 보이는 고정 문제 번호(1000번대부터)
+  title        String
+  slug         String      @unique
+  description  String
+  difficulty   Difficulty  @default(BRONZE) // level로부터 파생되는 굵은 티어(하위호환/필터용)
+  level        Int         @default(1) // 1(브론즈 V) ~ 30(루비 I). 세분화된 난이도의 기준값.
+  timeLimitMs  Int         @default(2000)
+  memoryLimitMb Int        @default(256)
+  isPublished  Boolean     @default(false)
+  status       ProblemStatus @default(DRAFT)
+  reviewNote   String?
+  reviewedById String?
+  reviewedBy   User?       @relation("ProblemReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  allowedLanguages Language[] @default([]) // 비어있으면 전체 허용
+  tags         String[]    @default([])
+  authorId     String
+  author       User        @relation("ProblemAuthor", fields: [authorId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  testCases       TestCase[]
+  submissions     Submission[]
+  contestProblems ContestProblem[]
+  difficultyVotes ProblemDifficultyVote[]
+  notifications   AdminNotification[]
+
+  @@map("problems")
+}
+
+/// 문제를 실제로 푼(ACCEPTED) 사용자만 남길 수 있는 체감 난이도 투표. 유저당 문제당 1표.
+model ProblemDifficultyVote {
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  level     Int // 1~30
+  createdAt DateTime @default(now())
+
+  @@id([problemId, userId])
+  @@map("problem_difficulty_votes")
+}
+
+model TestCase {
+  id         String   @id @default(uuid())
+  problemId  String
+  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input      String
+  output     String
+  isSample   Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  results    SubmissionTestResult[]
+
+  @@map("test_cases")
+}
+
+model Submission {
+  id          String            @id @default(uuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  problemId   String
+  problem     Problem           @relation(fields: [problemId], references: [id])
+  contestId   String?
+  contest     Contest?          @relation(fields: [contestId], references: [id])
+  language    Language
+  sourceCode  String
+  status      SubmissionStatus  @default(PENDING)
+  runtimeMs   Int?
+  memoryKb    Int?
+  errorMessage String?
+  createdAt   DateTime          @default(now())
+  judgedAt    DateTime?
+
+  testResults SubmissionTestResult[]
+
+  @@index([userId])
+  @@index([problemId])
+  @@index([contestId])
+  @@map("submissions")
+}
+
+model SubmissionTestResult {
+  id            String            @id @default(uuid())
+  submissionId  String
+  submission    Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCaseId    String
+  testCase      TestCase          @relation(fields: [testCaseId], references: [id])
+  status        SubmissionStatus
+  runtimeMs     Int?
+  memoryKb      Int?
+  output        String?
+
+  @@map("submission_test_results")
+}
+
+/// 외부 서비스가 계정 데이터를 조회할 때 쓰는 API 키. 원문 키는 저장하지 않고 sha256 해시만 보관한다.
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  keyHash     String    @unique
+  prefix      String    // 표시용 앞 8자리 (ojk_xxxx)
+  scopes      String[]  @default(["users:read"])
+  createdById String
+  createdBy   User      @relation("ApiKeyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  revoked     Boolean   @default(false)
+
+  @@map("api_keys")
+}
+
+/// 채점기 컴파일 옵션/방식을 UI에서 수정할 수 있도록 저장하는 단일 행 설정.
+/// config 예: { "CPP": { "compileArgs": ["-O2","-std=c++17","-fno-if-conversion"] }, ... }
+model JudgeConfig {
+  id        Int      @id @default(1)
+  config    Json
+  updatedById String?
+  updatedAt DateTime @updatedAt
+
+  @@map("judge_config")
+}
+
+model Contest {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String   @default("")
+  startsAt    DateTime
+  endsAt      DateTime
+  createdById String
+  createdBy   User     @relation("ContestCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  problems     ContestProblem[]
+  participants ContestParticipant[]
+  submissions  Submission[]
+
+  @@map("contests")
+}
+
+model ContestProblem {
+  contestId String
+  contest   Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problemId String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  label     String  @default("A") // 대회 내 문제 표기 (A, B, C...)
+  order     Int     @default(0)
+  points    Int     @default(100)
+
+  @@id([contestId, problemId])
+  @@map("contest_problems")
+}
+
+model ContestParticipant {
+  contestId    String
+  contest      Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation("ContestParticipation", fields: [userId], references: [id])
+  registeredAt DateTime @default(now())
+
+  @@id([contestId, userId])
+  @@map("contest_participants")
+}
+
+/// 동아리 회원 학번 명단(화이트리스트). 관리자가 등록/삭제한다.
+model ClubRosterEntry {
+  id        String   @id @default(uuid())
+  studentId String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@map("club_roster")
+}
+
+/// 학번 "수정"이 허용되는 기간(단일 행 설정). 최초 가입 시 입력은 이 기간과 무관하게 항상 가능하다.
+model StudentIdEditWindow {
+  id          Int       @id @default(1)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  updatedById String?
+  updatedAt   DateTime  @updatedAt
+
+  @@map("student_id_edit_window")
+}

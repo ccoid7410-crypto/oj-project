@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      # 기본값은 로컬 개발용. 운영 배포 시에는 .env에 POSTGRES_PASSWORD 등을 반드시 실제 값으로 지정할 것.
+      POSTGRES_USER: ${POSTGRES_USER:-oj_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oj_password}
+      POSTGRES_DB: ${POSTGRES_DB:-oj_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oj_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-bookworm
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    command: ["node", "dist/main.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      REDIS_HOST: redis
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  judge-worker:
+    build: .
+    command: ["node", "dist/main-worker.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      REDIS_HOST: redis
+      JUDGE_DOCKER_SOCK: /var/run/docker.sock
+    volumes:
+      # Docker-outside-of-Docker: 워커가 형제 컨테이너(채점용)를 직접 띄우기 위함.
+      # 이 소켓 마운트가 곧 호스트 root 권한과 동급이므로, 반드시 이 워커만 격리된
+      # 전용 서버/VM에서 돌리고 API 서버와는 네트워크도 분리하는 걸 권장합니다.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 채점 코드/실행 결과를 담는 디렉토리를 호스트와 공유. 형제 컨테이너(채점용)를
+      # 띄울 때 바인드 마운트 소스는 "호스트 경로"여야 하므로, 워커 컨테이너 내부 경로와
+      # 호스트 경로가 이 볼륨을 통해 동일한 디렉토리를 가리키게 맞춰준다 (.env의
+      # JUDGE_TMP_DIR / HOST_JUDGE_TMP_DIR 참고).
+      - ${HOST_JUDGE_TMP_DIR}:/judge-tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pg_data:

@@ -1,0 +1,21 @@
+# env / secrets
+.env
+!.env.example
+oj-backend/.env
+oj-frontend/.env
+!oj-backend/.env.example
+!oj-frontend/.env.example
+
+# node
+node_modules/
+dist/
+
+# judge runtime data (host bind-mount target, machine-specific)
+oj-backend/judge-tmp/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+
+# claude code local state
+.claude/

@@ -1,0 +1,83 @@
+name: durunuri-oj
+
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oj_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oj_password}
+      POSTGRES_DB: ${POSTGRES_DB:-oj_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oj_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-bookworm
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./oj-backend
+    command: ["node", "dist/main.js"]
+    env_file: ./oj-backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      REDIS_HOST: redis
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # 컨테이너에는 스키마만 들어있고 실제 마이그레이션 적용은 기동 시 한 번 실행한다.
+    # (여러 인스턴스를 띄워도 prisma migrate deploy는 안전하게 반복 실행 가능)
+    entrypoint: ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+
+  judge-worker:
+    build: ./oj-backend
+    command: ["node", "dist/main-worker.js"]
+    env_file: ./oj-backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      REDIS_HOST: redis
+      JUDGE_DOCKER_SOCK: /var/run/docker.sock
+    volumes:
+      # Docker-outside-of-Docker: 워커가 형제 컨테이너(채점용)를 직접 띄우기 위함.
+      # 이 소켓 마운트가 곧 호스트 root 권한과 동급이므로, 반드시 이 워커만 격리된
+      # 전용 서버/VM에서 돌리고 API 서버와는 네트워크도 분리하는 걸 권장합니다.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 채점 코드/실행 결과를 담는 디렉토리를 호스트와 공유. 형제 컨테이너(채점용)를
+      # 띄울 때 바인드 마운트 소스는 "호스트 경로"여야 하므로, 워커 컨테이너 내부 경로와
+      # 호스트 경로가 이 볼륨을 통해 동일한 디렉토리를 가리키게 맞춰준다.
+      # HOST_JUDGE_TMP_DIR은 이 저장소를 내려받은 절대경로 기준으로 setup.sh가 자동으로 채워준다.
+      - ${HOST_JUDGE_TMP_DIR:?run ./setup.sh first to set this}:/judge-tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./oj-frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  pg_data:
