@@ -22,15 +22,15 @@ else
   echo "==> 루트 .env 이미 존재, 건너뜀"
 fi
 
-if [ ! -f "oj-backend/.env" ]; then
-  cp "oj-backend/.env.example" "oj-backend/.env"
-  echo "==> oj-backend/.env 생성됨"
+if [ ! -f "online-judge/oj-backend/.env" ]; then
+  cp "online-judge/oj-backend/.env.example" "online-judge/oj-backend/.env"
+  echo "==> online-judge/oj-backend/.env 생성됨"
 else
-  echo "==> oj-backend/.env 이미 존재, 건너뜀"
+  echo "==> online-judge/oj-backend/.env 이미 존재, 건너뜀"
 fi
 
 # 2. judge-tmp 디렉토리 생성 + 이 머신에서의 절대경로 계산
-JUDGE_TMP_HOST_PATH="$ROOT_DIR/oj-backend/judge-tmp"
+JUDGE_TMP_HOST_PATH="$ROOT_DIR/online-judge/oj-backend/judge-tmp"
 mkdir -p "$JUDGE_TMP_HOST_PATH"
 echo "==> judge-tmp 디렉토리: $JUDGE_TMP_HOST_PATH"
 
@@ -61,14 +61,14 @@ set_env_var() {
 }
 
 set_env_var ".env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
-set_env_var "oj-backend/.env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
+set_env_var "online-judge/oj-backend/.env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 echo "==> HOST_JUDGE_TMP_DIR을 두 .env 파일에 채워 넣었다"
 
 # 3. JWT_SECRET이 예시 값 그대로면 무작위로 생성
-current_secret="$(grep '^JWT_SECRET=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+current_secret="$(grep '^JWT_SECRET=' "online-judge/oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
 if [ -z "$current_secret" ] || [ "$current_secret" = "changeme-run-setup-sh" ]; then
   new_secret="$(openssl rand -hex 48)"
-  set_env_var "oj-backend/.env" "JWT_SECRET" "\"$new_secret\""
+  set_env_var "online-judge/oj-backend/.env" "JWT_SECRET" "\"$new_secret\""
   echo "==> JWT_SECRET을 무작위로 새로 생성했다"
 else
   echo "==> JWT_SECRET이 이미 설정되어 있어 건너뜀"
@@ -99,17 +99,17 @@ if [ -n "$LAN_IP" ]; then
     echo "==> VITE_API_URL이 이미 커스텀 값이라 건너뜀"
   fi
 
-  current_cors="$(grep '^CORS_ORIGIN=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  current_cors="$(grep '^CORS_ORIGIN=' "online-judge/oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
   if [ -z "$current_cors" ] || [ "$current_cors" = "http://localhost:5173" ]; then
-    set_env_var "oj-backend/.env" "CORS_ORIGIN" "\"http://$LAN_IP:8080,http://localhost:8080\""
+    set_env_var "online-judge/oj-backend/.env" "CORS_ORIGIN" "\"http://$LAN_IP:8080,http://localhost:8080\""
     echo "==> CORS_ORIGIN을 이 머신의 IP 기준으로 채웠다"
   else
     echo "==> CORS_ORIGIN이 이미 커스텀 값이라 건너뜀"
   fi
 
-  current_frontend_url="$(grep '^FRONTEND_URL=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  current_frontend_url="$(grep '^FRONTEND_URL=' "online-judge/oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
   if [ -z "$current_frontend_url" ] || [ "$current_frontend_url" = "http://localhost:5173" ]; then
-    set_env_var "oj-backend/.env" "FRONTEND_URL" "\"http://$LAN_IP:8080\""
+    set_env_var "online-judge/oj-backend/.env" "FRONTEND_URL" "\"http://$LAN_IP:8080\""
     echo "==> FRONTEND_URL을 이 머신의 IP 기준으로 채웠다"
   else
     echo "==> FRONTEND_URL이 이미 커스텀 값이라 건너뜀"
@@ -121,10 +121,10 @@ fi
 cat <<EOF
 
 ==> 세팅 완료. 다음 단계:
-    1. 실제 도메인이나 HTTPS로 배포한다면 oj-backend/.env의 CORS_ORIGIN,
+    1. 실제 도메인이나 HTTPS로 배포한다면 online-judge/oj-backend/.env의 CORS_ORIGIN,
        FRONTEND_URL과 .env(루트)의 VITE_API_URL을 그 도메인으로 바꾼다
        (지금은 감지된 이 머신 IP인 ${LAN_IP:-<감지 실패>} 기준으로 채워져 있음).
-    2. oj-backend/.env의 SIGNUP_EMAIL_DOMAIN, SMTP_* 값도 이 배포 환경에 맞게 확인한다.
+    2. online-judge/oj-backend/.env의 SIGNUP_EMAIL_DOMAIN, SMTP_* 값도 이 배포 환경에 맞게 확인한다.
     3. docker compose build
     4. docker compose up -d
        (api 컨테이너가 기동 시 자동으로 prisma migrate deploy를 실행한다)
