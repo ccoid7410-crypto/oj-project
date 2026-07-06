@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 const TABS = [
   { to: '/admin/problems/new', label: '문제 추가' },
   { to: '/admin/proposals', label: '제안 검토' },
+  { to: '/admin/contests', label: '대회 관리' },
   { to: '/admin/accounts', label: '계정 관리' },
   { to: '/admin/student-id', label: '학번 관리' },
   { to: '/admin/users/bulk', label: '대량 계정 생성' },

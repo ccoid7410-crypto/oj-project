@@ -29,6 +29,7 @@ import { ApiKeysPage } from './pages/admin/ApiKeysPage';
 import { AccountsPage } from './pages/admin/AccountsPage';
 import { NotificationsPage } from './pages/admin/NotificationsPage';
 import { StudentIdAdminPage } from './pages/admin/StudentIdAdminPage';
+import { ContestsAdminPage } from './pages/admin/ContestsAdminPage';
 
 export default function App() {
   return (
@@ -68,6 +69,7 @@ export default function App() {
                 <Route path="/admin/accounts" element={<AccountsPage />} />
                 <Route path="/admin/notifications" element={<NotificationsPage />} />
                 <Route path="/admin/student-id" element={<StudentIdAdminPage />} />
+                <Route path="/admin/contests" element={<ContestsAdminPage />} />
               </Route>
             </Route>
           </Route>
