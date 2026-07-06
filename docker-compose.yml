@@ -62,9 +62,9 @@ services:
     logging: *default-logging
 
   api:
-    build: ./online-judge/oj-backend
+    build: ./oj-backend
     command: ["node", "dist/main.js"]
-    env_file: ./online-judge/oj-backend/.env
+    env_file: ./oj-backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
@@ -89,9 +89,9 @@ services:
     logging: *default-logging
 
   judge-worker:
-    build: ./online-judge/oj-backend
+    build: ./oj-backend
     command: ["node", "dist/main-worker.js"]
-    env_file: ./online-judge/oj-backend/.env
+    env_file: ./oj-backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
@@ -125,7 +125,7 @@ services:
 
   frontend:
     build:
-      context: ./online-judge/oj-frontend
+      context: ./oj-frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     ports:
@@ -144,7 +144,7 @@ services:
   # /home/ 경로로 프록시한다. OJ와 같은 origin을 유지해야 localStorage의 로그인
   # 토큰(oj_token)이 공유되어 두 페이지 간 로그인 상태가 이어지기 때문이다.
   homepage:
-    build: ./homepage/frontend
+    build: ./club-homepage
     deploy:
       resources:
         limits:
