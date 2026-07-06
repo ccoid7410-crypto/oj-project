@@ -14,10 +14,10 @@ docker compose up -d
 
 - `api` 컨테이너는 기동 시 자동으로 `prisma migrate deploy`를 실행하므로 DB가 완전히 비어 있어도 알아서 스키마를 만든다.
 - 모든 Dockerfile은 `FROM`에 `--platform`을 고정하지 않는다. 사용하는 베이스 이미지(node, postgres, redis, gcc, python, eclipse-temurin, golang, nginx)가 전부 amd64/arm64 공식 멀티아키텍처 이미지라서, 빌드/실행하는 호스트 아키텍처에 맞는 이미지가 자동으로 선택된다. 에뮬레이션 없이 ARM 서버에서도 네이티브로 동작한다.
-- `setup.sh`가 채워주지 못하는 값(도메인, 이메일 발송 도메인, SMTP 등)은 `online-judge/oj-backend/.env`를 직접 열어 확인해야 한다 — 아래 "배포 전 확인할 값" 참고.
+- `setup.sh`가 채워주지 못하는 값(도메인, 이메일 발송 도메인, SMTP 등)은 `oj-backend/.env`를 직접 열어 확인해야 한다 — 아래 "배포 전 확인할 값" 참고.
 - 배포 도메인이 `localhost`가 아니라면 루트 `.env`의 `VITE_API_URL`을 실제 API 도메인으로 바꾸고 프론트 이미지를 다시 빌드해야 한다(`docker compose build frontend`). Vite는 이 값을 빌드 시점에 정적 파일에 박아 넣기 때문에 컨테이너 실행 중에는 바꿀 수 없다.
 
-### 배포 전 확인할 값 (`online-judge/oj-backend/.env`)
+### 배포 전 확인할 값 (`oj-backend/.env`)
 
 - `JWT_SECRET` — setup.sh가 무작위 생성. 절대 예시값을 그대로 쓰지 말 것.
 - `CORS_ORIGIN`, `FRONTEND_URL` — 실제 프론트엔드 도메인으로.
@@ -31,7 +31,7 @@ docker compose up -d
 - `api` (`dist/main.js`) — REST API + WebSocket 게이트웨이
 - `judge-worker` (`dist/main-worker.js`) — BullMQ 워커. `docker.sock`을 마운트해서 언어별 컴파일/실행용 컨테이너를 직접 띄운다(Docker-outside-of-Docker). **이 소켓 마운트는 사실상 호스트 root 권한과 동급**이므로, 운영 환경에서는 이 워커를 API 서버와 분리된 전용 서버/VM에 두는 걸 권장한다.
 - `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함). `/home/`은 homepage 컨테이너로, `/api/`는 api 컨테이너로 프록시한다.
-- `homepage` — 동아리 홈페이지(`homepage/frontend/`, 정적 HTML/CSS/JS)를 nginx로 서빙. 외부 포트는 열지 않고 frontend를 통해서만 접근한다. OJ와 같은 origin을 유지해 localStorage의 `oj_token`을 공유하므로 두 페이지 간 로그인 상태가 이어진다.
+- `homepage` — 동아리 홈페이지(`club-homepage/`, 정적 HTML/CSS/JS)를 nginx로 서빙. 외부 포트는 열지 않고 frontend를 통해서만 접근한다. OJ와 같은 origin을 유지해 localStorage의 `oj_token`을 공유하므로 두 페이지 간 로그인 상태가 이어진다.
 
 ## 지금까지 만든 것 (요약)
 
