@@ -141,6 +141,14 @@ export function Layout() {
               )}
             </Link>
           )}
+          {/* 동아리 홈페이지로 이동 — 홈페이지의 "Online Judge ↗" 버튼과 같은 위치(메뉴 오른쪽 끝)·같은 모양.
+              홈페이지는 React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다. */}
+          <a
+            href="/home/"
+            className="ml-auto border-b-2 border-transparent py-2.5 text-[var(--color-brand)] hover:border-[var(--color-brand)]"
+          >
+            Durunuri ↗
+          </a>
         </nav>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-8">
