@@ -30,7 +30,8 @@ docker compose up -d
 - `postgres` / `redis` — 상태 저장소
 - `api` (`dist/main.js`) — REST API + WebSocket 게이트웨이
 - `judge-worker` (`dist/main-worker.js`) — BullMQ 워커. `docker.sock`을 마운트해서 언어별 컴파일/실행용 컨테이너를 직접 띄운다(Docker-outside-of-Docker). **이 소켓 마운트는 사실상 호스트 root 권한과 동급**이므로, 운영 환경에서는 이 워커를 API 서버와 분리된 전용 서버/VM에 두는 걸 권장한다.
-- `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함)
+- `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함). `/home/`은 homepage 컨테이너로, `/api/`는 api 컨테이너로 프록시한다.
+- `homepage` — 동아리 홈페이지(`club-homepage/`, 정적 HTML/CSS/JS)를 nginx로 서빙. 외부 포트는 열지 않고 frontend를 통해서만 접근한다. OJ와 같은 origin을 유지해 localStorage의 `oj_token`을 공유하므로 두 페이지 간 로그인 상태가 이어진다.
 
 ## 지금까지 만든 것 (요약)
 

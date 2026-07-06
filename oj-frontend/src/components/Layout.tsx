@@ -49,6 +49,10 @@ export function Layout() {
             </div>
           </Link>
           <div className="flex items-center gap-3 text-xs text-fg-muted">
+            {/* 동아리 홈페이지는 React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다 */}
+            <a href="/home/" className="hover:text-[var(--color-brand)]">
+              동아리 홈
+            </a>
             {user ? (
               <>
                 <Link to={`/users/${user.username}`} className="hover:text-[var(--color-brand)]">
