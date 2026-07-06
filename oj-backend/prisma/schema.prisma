@@ -200,7 +200,7 @@ model SubmissionTestResult {
   submissionId  String
   submission    Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   testCaseId    String
-  testCase      TestCase          @relation(fields: [testCaseId], references: [id])
+  testCase      TestCase          @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
   status        SubmissionStatus
   runtimeMs     Int?
   memoryKb      Int?
