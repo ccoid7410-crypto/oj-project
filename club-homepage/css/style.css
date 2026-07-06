@@ -1,17 +1,12 @@
-/* ===== Durunuri OJ와 같은 테마 =====
-   색상 값은 oj-frontend/src/index.css의 @theme에서 그대로 가져왔습니다. */
 :root {
-  --color-ink-700: #f8f9fa; /* 아주 옅은 회색 배경 */
-  --color-ink-600: #e3e6ea; /* 옅은 테두리 */
-  --color-ink-500: #ced4da; /* 진한 테두리 */
-
-  --color-fg: #212529;        /* 기본 글자색 */
-  --color-fg-muted: #6c757d;  /* 보조 글자색 */
-
-  --color-brand: #2f6fed;     /* 브랜드 파랑 */
-  --color-brand-dim: #1f4fb8; /* 진한 파랑 (호버용) */
-
-  --color-logo: #1a2b4c;      /* 로고의 진한 남색 */
+  --color-ink-700: #f8f9fa;
+  --color-ink-600: #e3e6ea;
+  --color-ink-500: #ced4da;
+  --color-fg: #212529;
+  --color-fg-muted: #6c757d;
+  --color-brand: #2f6fed;
+  --color-brand-dim: #1f4fb8;
+  --color-logo: #1a2b4c;
 }
 
 * {
@@ -24,18 +19,16 @@ body {
   background-color: #ffffff;
   color: var(--color-fg);
   font-family: "Noto Sans KR", "Inter", sans-serif;
-  font-size: 14px; /* OJ와 같은 본문 크기 */
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.5;
   min-height: 100vh;
 }
 
-/* 드래그했을 때 파란 배경 (OJ와 동일) */
 ::selection {
   background: var(--color-brand);
   color: #ffffff;
 }
 
-/* 본문 최대 너비: OJ의 max-w-5xl(1024px)과 동일 */
 .container,
 .header-top,
 .header-nav {
@@ -45,7 +38,6 @@ body {
   padding-right: 24px;
 }
 
-/* ===== 헤더 ===== */
 .site-header {
   border-bottom: 1px solid var(--color-ink-500);
   background: #ffffff;
@@ -65,9 +57,12 @@ body {
 }
 
 .logo-title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: 1.25rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--color-logo);
 }
 
@@ -75,7 +70,6 @@ body {
   color: var(--color-brand);
 }
 
-/* 로고 아래 작은 영문 부제 (OJ의 "ONLINE JUDGE" 자리) */
 .logo-subtitle {
   margin-top: 2px;
   font-size: 10px;
@@ -86,24 +80,16 @@ body {
 
 .header-links {
   display: flex;
+  align-items: center;
   gap: 12px;
-  font-size: 12px;
-}
-
-.header-links a {
+  font-size: 0.75rem;
   color: var(--color-fg-muted);
-  text-decoration: none;
 }
 
-.header-links a:hover {
-  color: var(--color-brand);
-}
-
-/* 로그인 상태 표시 영역 (js/main.js가 내용을 채움) */
 .auth-area {
   display: inline-flex;
-  gap: 12px;
   align-items: center;
+  gap: 12px;
 }
 
 .auth-area a {
@@ -111,12 +97,11 @@ body {
   text-decoration: none;
 }
 
-.auth-area .username {
+.auth-area .rating {
+  margin-left: 4px;
   color: var(--color-brand);
-  font-weight: 700;
 }
 
-/* 로그아웃 버튼을 링크처럼 보이게 */
 .auth-area button {
   border: none;
   background: none;
@@ -131,12 +116,12 @@ body {
   color: var(--color-brand);
 }
 
-/* 메뉴: 호버하면 파란 밑줄이 생기는 OJ 스타일 */
 .header-nav {
   display: flex;
+  align-items: center;
   gap: 24px;
   border-top: 1px solid var(--color-ink-600);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -153,22 +138,20 @@ body {
 }
 
 .nav-oj {
-  margin-left: auto; /* OJ 링크만 오른쪽 끝으로 */
+  margin-left: auto;
   color: var(--color-brand) !important;
 }
 
-/* ===== 히어로 ===== */
 .hero {
-  padding: 72px 0 56px;
+  padding: 32px 0 48px;
   border-bottom: 1px solid var(--color-ink-600);
 }
 
 .hero h1 {
-  font-size: 2rem;
+  max-width: 576px;
+  font-size: 2.25rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
-  line-height: 1.35;
-  margin-bottom: 12px;
+  line-height: 1.25;
 }
 
 .hero .accent {
@@ -176,32 +159,35 @@ body {
 }
 
 .hero p {
+  margin-top: 16px;
+  max-width: 448px;
+  font-size: 0.875rem;
+  line-height: 1.625;
   color: var(--color-fg-muted);
-  margin-bottom: 24px;
 }
 
 .hero-actions {
+  margin-top: 32px;
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
-/* ===== 버튼 ===== */
 .btn {
   display: inline-block;
-  padding: 8px 20px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 700;
   text-decoration: none;
 }
 
 .btn-primary {
-  background: var(--color-brand);
+  background-color: var(--color-brand);
   color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: var(--color-brand-dim);
+  background-color: var(--color-brand-dim);
 }
 
 .btn-ghost {
@@ -214,7 +200,6 @@ body {
   color: var(--color-brand);
 }
 
-/* ===== 본문 섹션 ===== */
 .section {
   padding: 48px 0;
   border-bottom: 1px solid var(--color-ink-600);
@@ -227,11 +212,9 @@ body {
 }
 
 .section p {
-  color: var(--color-fg);
   max-width: 640px;
 }
 
-/* ===== 활동 카드 ===== */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -241,7 +224,7 @@ body {
 
 .card {
   border: 1px solid var(--color-ink-600);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 20px;
   background: #ffffff;
 }
@@ -258,10 +241,9 @@ body {
 
 .card p {
   color: var(--color-fg-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
-/* ===== 가입 안내 표 ===== */
 .info-table {
   margin-top: 16px;
   border-collapse: collapse;
@@ -283,10 +265,9 @@ body {
   width: 110px;
 }
 
-/* ===== 푸터 ===== */
 .site-footer {
   padding: 24px;
   text-align: center;
   color: var(--color-fg-muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }

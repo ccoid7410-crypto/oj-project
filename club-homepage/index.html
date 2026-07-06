@@ -6,20 +6,17 @@
   <title>두루누리 | 동아리 홈페이지</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- ===== 헤더: Durunuri OJ와 같은 2단 구조 =====
-       윗줄: 로고 + 오른쪽 작은 링크 / 아랫줄: 메뉴 (호버 시 파란 밑줄) -->
   <header class="site-header">
     <div class="header-top">
       <a href="index.html" class="logo">
-        <div class="logo-title">Durunuri <span class="logo-accent">&gt;</span></div>
+        <div class="logo-title">Durunuri<span class="logo-accent">&gt;</span></div>
         <div class="logo-subtitle">CBSH 정보과</div>
       </a>
       <div class="header-links">
-        <!-- 로그인 상태 표시 영역: js/main.js가 OJ 토큰을 확인해서 채워준다 -->
         <span id="auth-area" class="auth-area"></span>
       </div>
     </div>
@@ -27,13 +24,11 @@
       <a href="#about">소개</a>
       <a href="#activities">활동</a>
       <a href="#join">가입 안내</a>
-      <!-- OJ는 같은 주소의 루트(/)에서 서비스된다 (nginx가 라우팅) -->
       <a href="/" class="nav-oj">Online Judge ↗</a>
     </nav>
   </header>
 
   <main class="container">
-    <!-- ===== 히어로: 첫인사 영역 ===== -->
     <section class="hero">
       <h1>알고리즘과 함께 성장하는<br>동아리, <span class="accent">두루누리</span></h1>
       <p>함께 문제를 풀고, 서로 배우고, 직접 서비스를 만드는 동아리입니다.</p>
@@ -43,7 +38,6 @@
       </div>
     </section>
 
-    <!-- ===== 소개 ===== -->
     <section id="about" class="section">
       <h2>소개</h2>
       <p>
@@ -53,7 +47,6 @@
       </p>
     </section>
 
-    <!-- ===== 활동: 카드 3개 ===== -->
     <section id="activities" class="section">
       <h2>활동</h2>
       <div class="card-grid">
@@ -72,7 +65,6 @@
       </div>
     </section>
 
-    <!-- ===== 가입 안내 ===== -->
     <section id="join" class="section">
       <h2>가입 안내</h2>
       <p>모집 기간과 가입 방법을 여기에 적어주세요.</p>
