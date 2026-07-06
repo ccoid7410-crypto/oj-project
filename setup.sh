@@ -59,13 +59,57 @@ else
   echo "==> JWT_SECRET이 이미 설정되어 있어 건너뜀"
 fi
 
-cat <<'EOF'
+# 4. 이 머신의 LAN IP를 감지해서 VITE_API_URL/CORS_ORIGIN/FRONTEND_URL을 채운다.
+# localhost 기본값을 그대로 두면, 다른 PC의 브라우저에서 접속했을 때 프론트가
+# "자기 자신"(그 PC의 localhost)으로 API를 호출하려다 CORS 에러로 실패한다
+# (배포 서버에서 실제로 겪은 문제). 값이 아직 기본값일 때만 덮어써서, 이미
+# 도메인/HTTPS 등으로 직접 설정해둔 경우는 건드리지 않는다.
+detect_lan_ip() {
+  local ip
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  if [ -z "$ip" ]; then
+    ip="$(ip route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p')"
+  fi
+  echo "$ip"
+}
+
+LAN_IP="$(detect_lan_ip)"
+
+if [ -n "$LAN_IP" ]; then
+  current_vite_url="$(grep '^VITE_API_URL=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  if [ -z "$current_vite_url" ] || [ "$current_vite_url" = "http://localhost:3000" ]; then
+    set_env_var ".env" "VITE_API_URL" "http://$LAN_IP:3000"
+    echo "==> VITE_API_URL을 이 머신의 IP(http://$LAN_IP:3000)로 채웠다"
+  else
+    echo "==> VITE_API_URL이 이미 커스텀 값이라 건너뜀"
+  fi
+
+  current_cors="$(grep '^CORS_ORIGIN=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  if [ -z "$current_cors" ] || [ "$current_cors" = "http://localhost:5173" ]; then
+    set_env_var "oj-backend/.env" "CORS_ORIGIN" "\"http://$LAN_IP:8080,http://localhost:8080\""
+    echo "==> CORS_ORIGIN을 이 머신의 IP 기준으로 채웠다"
+  else
+    echo "==> CORS_ORIGIN이 이미 커스텀 값이라 건너뜀"
+  fi
+
+  current_frontend_url="$(grep '^FRONTEND_URL=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  if [ -z "$current_frontend_url" ] || [ "$current_frontend_url" = "http://localhost:5173" ]; then
+    set_env_var "oj-backend/.env" "FRONTEND_URL" "\"http://$LAN_IP:8080\""
+    echo "==> FRONTEND_URL을 이 머신의 IP 기준으로 채웠다"
+  else
+    echo "==> FRONTEND_URL이 이미 커스텀 값이라 건너뜀"
+  fi
+else
+  echo "==> LAN IP를 자동으로 못 찾았다. VITE_API_URL/CORS_ORIGIN/FRONTEND_URL을 직접 확인할 것"
+fi
+
+cat <<EOF
 
 ==> 세팅 완료. 다음 단계:
-    1. oj-backend/.env 를 열어서 SIGNUP_EMAIL_DOMAIN, CORS_ORIGIN, FRONTEND_URL,
-       그리고 필요하다면 SMTP_* 값을 이 배포 환경에 맞게 확인/수정한다.
-    2. 외부에서 접속할 도메인/포트가 다르다면 .env(루트)의 VITE_API_URL,
-       API_PORT, FRONTEND_PORT도 맞게 수정한다.
+    1. 실제 도메인이나 HTTPS로 배포한다면 oj-backend/.env의 CORS_ORIGIN,
+       FRONTEND_URL과 .env(루트)의 VITE_API_URL을 그 도메인으로 바꾼다
+       (지금은 감지된 이 머신 IP인 ${LAN_IP:-<감지 실패>} 기준으로 채워져 있음).
+    2. oj-backend/.env의 SIGNUP_EMAIL_DOMAIN, SMTP_* 값도 이 배포 환경에 맞게 확인한다.
     3. docker compose build
     4. docker compose up -d
        (api 컨테이너가 기동 시 자동으로 prisma migrate deploy를 실행한다)
