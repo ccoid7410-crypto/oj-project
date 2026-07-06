@@ -11,13 +11,6 @@ const PHASE_LABEL: Record<string, string> = {
 const inputClass =
   'rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]';
 
-function toLocalInputValue(iso: string): string {
-  // <input type="datetime-local">은 "YYYY-MM-DDTHH:mm" 형식(타임존 없음)을 기대한다.
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function ContestsAdminPage() {
   const [contests, setContests] = useState<ContestSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
