@@ -112,9 +112,17 @@ export function Layout() {
               내 문제
             </Link>
           )}
+          {user && (
+            <Link
+              to="/classes"
+              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+            >
+              수업
+            </Link>
+          )}
           {user?.role === 'ADMIN' && (
             <Link
-              to="/admin/problems/new"
+              to="/admin"
               className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
             >
               관리자

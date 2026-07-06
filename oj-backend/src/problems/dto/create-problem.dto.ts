@@ -78,4 +78,18 @@ export class CreateProblemDto {
   @IsOptional()
   @IsArray()
   testCases?: TestCaseInputDto[];
+
+  /** 대회 전용 문제로 만들지 여부. 어드민만 지정 가능(그 외는 무시됨). */
+  @IsOptional()
+  @IsBoolean()
+  contestOnly?: boolean;
+
+  /** 일반 사용자는 필수: 이 코드가 모든 테스트케이스를 통과해야 문제 제안이 등록된다. */
+  @IsOptional()
+  @IsEnum(LanguageDto)
+  verificationLanguage?: LanguageDto;
+
+  @IsOptional()
+  @IsString()
+  verificationCode?: string;
 }

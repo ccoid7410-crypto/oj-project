@@ -23,6 +23,8 @@ import type { JudgeConfigMap } from '../judge-config/judge-config.service';
 import { RatingService } from '../rating/rating.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StudentIdService } from '../student-id/student-id.service';
+import { AdminStatsService } from './admin-stats.service';
+import { ProblemsService } from '../problems/problems.service';
 
 class RosterEntryDto {
   @IsString() studentId: string;
@@ -82,7 +84,21 @@ export class AdminController {
     private readonly rating: RatingService,
     private readonly notifications: NotificationsService,
     private readonly studentId: StudentIdService,
+    private readonly stats: AdminStatsService,
+    private readonly problems: ProblemsService,
   ) {}
+
+  // ---- 전체 현황 대시보드 ----
+  @Get('stats/overview')
+  overview() {
+    return this.stats.overview();
+  }
+
+  // ---- 전체 문제 관리(삭제 포함, 상태 무관) ----
+  @Get('problems')
+  listAllProblems() {
+    return this.problems.findAllForAdmin();
+  }
 
   // ---- 대량 계정 생성 ----
   @Post('users/bulk')

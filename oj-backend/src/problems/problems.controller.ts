@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { ProblemsService } from './problems.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
 import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
+import { CreateCommentDto } from './dto/comment.dto';
 
 class VoteDifficultyDto {
   @IsInt()
@@ -53,9 +55,9 @@ export class ProblemsController {
 
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':slug')
-  findOne(@Param('slug') slug: string, @Req() req: any) {
+  findOne(@Param('slug') slug: string, @Query('contestId') contestId: string | undefined, @Req() req: any) {
     // 로그인은 선택: 토큰이 있으면 내 난이도 투표 여부/가능 여부를 같이 내려준다.
-    return this.problemsService.findBySlug(slug, req.user?.userId);
+    return this.problemsService.findBySlug(slug, req.user?.userId, req.user?.role, contestId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -165,5 +167,28 @@ export class ProblemsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.problemsService.deleteTestCase(id, testCaseId, user.userId, user.role);
+  }
+
+  // ---- 문제 Q&A 게시판 ----
+
+  @Get(':id/comments')
+  listComments(@Param('id') id: string) {
+    return this.problemsService.listComments(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/comments')
+  addComment(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.problemsService.addComment(id, user.userId, dto.content, dto.parentId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/comments/:commentId')
+  removeComment(@Param('commentId') commentId: string, @CurrentUser() user: RequestUser) {
+    return this.problemsService.removeComment(commentId, user.userId, user.role);
   }
 }

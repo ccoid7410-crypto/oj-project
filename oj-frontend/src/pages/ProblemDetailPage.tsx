@@ -6,6 +6,7 @@ import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_TEMPLATE, LANGUAGE_OPTIONS } from '../lib/languages';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
+import { ProblemComments } from '../components/ProblemComments';
 
 export function ProblemDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -25,7 +26,7 @@ export function ProblemDetailPage() {
   function loadProblem() {
     if (!slug) return;
     api
-      .get<ProblemDetail>(`/problems/${slug}`)
+      .get<ProblemDetail>(`/problems/${slug}${contestId ? `?contestId=${contestId}` : ''}`)
       .then((p) => {
         setProblem(p);
         setVoteLevel(p.myDifficultyVote ?? p.level);
@@ -212,6 +213,10 @@ export function ProblemDetailPage() {
         >
           {submitting ? '제출 중...' : '제출'}
         </button>
+      </div>
+
+      <div className="lg:col-span-2">
+        <ProblemComments problemId={problem.id} />
       </div>
     </div>
   );

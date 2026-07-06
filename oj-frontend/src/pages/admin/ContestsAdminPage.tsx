@@ -20,6 +20,7 @@ export function ContestsAdminPage() {
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  const [problemsVisibleAfterEnd, setProblemsVisibleAfterEnd] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
@@ -44,12 +45,14 @@ export function ContestsAdminPage() {
         description: description || undefined,
         startsAt: new Date(startsAt).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
+        problemsVisibleAfterEnd,
       });
       setTitle('');
       setSlug('');
       setDescription('');
       setStartsAt('');
       setEndsAt('');
+      setProblemsVisibleAfterEnd(true);
       loadContests();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '대회 생성에 실패했습니다.');
@@ -109,6 +112,14 @@ export function ContestsAdminPage() {
             />
           </label>
         </div>
+        <label className="flex items-center gap-2 text-xs text-fg-muted">
+          <input
+            type="checkbox"
+            checked={problemsVisibleAfterEnd}
+            onChange={(e) => setProblemsVisibleAfterEnd(e.target.checked)}
+          />
+          대회 전용(대회전용 태그) 문제를 대회 종료 후 일반 문제 목록에 공개
+        </label>
         {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
         <button
           type="submit"
@@ -118,7 +129,8 @@ export function ContestsAdminPage() {
           {submitting ? '생성 중...' : '대회 생성'}
         </button>
         <p className="text-xs text-fg-muted">
-          생성 후 아래 목록에서 "문제 구성"을 눌러 이 대회에 포함할 문제를 고르세요.
+          생성 후 아래 목록에서 "문제 구성"을 눌러 이 대회에 포함할 문제를 고르세요. 대회 전용 문제는
+          "문제 추가"에서 어드민으로 만들 때 "대회 전용" 체크박스를 켜면 됩니다.
         </p>
       </form>
 

@@ -14,6 +14,8 @@ import { GatewayModule } from './gateway/gateway.module';
 import { AdminModule } from './admin/admin.module';
 import { ApiKeyModule } from './apikeys/apikey.module';
 import { ContestsModule } from './contests/contests.module';
+import { GroupsModule } from './groups/groups.module';
+import { ClassesModule } from './classes/classes.module';
 
 /**
  * API 서버 모듈. 채점 워커(JudgeModule)는 보안/스케일링 상 별도 프로세스로 분리해서
@@ -45,6 +47,8 @@ import { ContestsModule } from './contests/contests.module';
     AdminModule,
     ApiKeyModule,
     ContestsModule,
+    GroupsModule,
+    ClassesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

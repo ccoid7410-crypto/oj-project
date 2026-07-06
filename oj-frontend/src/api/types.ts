@@ -264,3 +264,93 @@ export interface AdminNotification {
   problem: { displayId: number; title: string; slug: string } | null;
   voter: { username: string } | null;
 }
+
+export interface Group {
+  id: string;
+  name: string;
+  createdAt: string;
+  memberCount: number;
+}
+
+export interface GroupMember {
+  id: string;
+  username: string;
+  email: string;
+  rating: number;
+}
+
+export interface ClassSummary {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  memberCount: number;
+  problemCount: number;
+  createdAt?: string;
+}
+
+export interface ClassNotice {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface ClassProblemRef {
+  id: string;
+  displayId: number;
+  title: string;
+  slug: string;
+  difficulty: Difficulty;
+  level: number;
+  order: number;
+}
+
+export interface ClassRankingRow {
+  userId: string;
+  username: string;
+  rating: number;
+  solvedCount: number;
+}
+
+export interface ClassDetail {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  problems: ClassProblemRef[];
+  notices: ClassNotice[];
+  ranking: ClassRankingRow[];
+}
+
+export interface AdminProblemRow {
+  id: string;
+  displayId: number;
+  title: string;
+  slug: string;
+  status: string;
+  contestOnly: boolean;
+  createdAt: string;
+  author: { username: string };
+}
+
+export interface AdminOverviewStats {
+  users: { total: number; banned: number };
+  problems: { total: number; draft: number; pendingReview: number; published: number; rejected: number };
+  submissions: { today: number; total: number };
+  judgeHealth: {
+    queueDepth: number;
+    oldestPendingAgeSec: number;
+    internalErrorsLast24h: number;
+    compileErrorsLast24h: number;
+  };
+}
+
+export interface ProblemComment {
+  id: string;
+  problemId: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  user: { username: string };
+}

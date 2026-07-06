@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -47,6 +48,11 @@ export class CreateContestDto {
   @ValidateNested({ each: true })
   @Type(() => ContestProblemDto)
   problems?: ContestProblemDto[];
+
+  /** 대회 전용 문제가 대회 종료 후 일반 문제 목록에 공개될지. 기본값 true. */
+  @IsOptional()
+  @IsBoolean()
+  problemsVisibleAfterEnd?: boolean;
 }
 
 export class SetContestProblemsDto {

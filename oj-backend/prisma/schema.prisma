@@ -70,6 +70,9 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  groupId      String?
+  group        Group?       @relation(fields: [groupId], references: [id])
+
   problems             Problem[]                 @relation("ProblemAuthor")
   reviewedProblems     Problem[]                 @relation("ProblemReviewer")
   submissions          Submission[]
@@ -79,8 +82,23 @@ model User {
   difficultyVotes      ProblemDifficultyVote[]
   triggeredAlerts      AdminNotification[]       @relation("NotificationVoter")
   emailVerifications   EmailVerificationToken[]
+  comments             ProblemComment[]
+  classesCreated       ClassRoom[]               @relation("ClassCreator")
+  classMemberships     ClassMembership[]
+  classNotices         ClassNotice[]             @relation("ClassNoticeAuthor")
 
   @@map("users")
+}
+
+/// 통계/랭킹 필터링용 가벼운 사용자 묶음(수업과 달리 전용 문제/공지/랭킹 화면은 없음).
+model Group {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  members User[]
+
+  @@map("groups")
 }
 
 /// 회원가입 시 발급되는 이메일 인증 토큰. 원문은 저장하지 않고 sha256 해시만 보관한다(ApiKey와 동일한 방식).
@@ -133,13 +151,35 @@ model Problem {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  // 대회 전용 문제: true면 그 문제가 달린 대회가 끝나고 problemsVisibleAfterEnd가 켜진
+  // 대회가 하나라도 있기 전까지는 공개 문제 목록/상세에 노출되지 않는다(대회 참가자에게는 그대로 보임).
+  contestOnly  Boolean     @default(false)
+
   testCases       TestCase[]
   submissions     Submission[]
   contestProblems ContestProblem[]
   difficultyVotes ProblemDifficultyVote[]
   notifications   AdminNotification[]
+  comments        ProblemComment[]
+  classProblems   ClassProblem[]
 
   @@map("problems")
+}
+
+/// 문제 상세페이지의 질문/답변 게시판. 대댓글은 parentId로 표현한다.
+model ProblemComment {
+  id        String   @id @default(uuid())
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  parentId  String?
+  parent    ProblemComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ProblemComment[] @relation("CommentReplies")
+  createdAt DateTime @default(now())
+
+  @@map("problem_comments")
 }
 
 /// 문제를 실제로 푼(ACCEPTED) 사용자만 남길 수 있는 체감 난이도 투표. 유저당 문제당 1표.
@@ -247,6 +287,10 @@ model Contest {
   createdBy   User     @relation("ContestCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
 
+  // 대회 전용(contestOnly) 문제가 대회 종료 후 일반 문제 목록에 공개될지 여부.
+  // false면 대회가 끝나도 계속 비공개로 남는다(문제은행 재사용 목적).
+  problemsVisibleAfterEnd Boolean @default(true)
+
   problems     ContestProblem[]
   participants ContestParticipant[]
   submissions  Submission[]
@@ -311,4 +355,58 @@ model QueuePassState {
   updatedAt  DateTime @updatedAt
 
   @@map("queue_pass_state")
+}
+
+/// "수업" — 어드민이 만들고 학생을 등록해서 전용 문제집/공지/랭킹을 운영하는 단위.
+/// 통계 필터링만 하는 가벼운 Group과 달리 자체 콘텐츠(문제/공지)를 가진다.
+model ClassRoom {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String   @default("")
+  createdById String
+  createdBy   User     @relation("ClassCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  members  ClassMembership[]
+  problems ClassProblem[]
+  notices  ClassNotice[]
+
+  @@map("classrooms")
+}
+
+model ClassMembership {
+  classId  String
+  class    ClassRoom @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+  joinedAt DateTime  @default(now())
+
+  @@id([classId, userId])
+  @@map("class_memberships")
+}
+
+/// 수업 전용 문제집 구성(대회의 ContestProblem과 같은 역할, 배점 없이 순서만).
+model ClassProblem {
+  classId   String
+  class     ClassRoom @relation(fields: [classId], references: [id], onDelete: Cascade)
+  problemId String
+  problem   Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  order     Int       @default(0)
+
+  @@id([classId, problemId])
+  @@map("class_problems")
+}
+
+model ClassNotice {
+  id          String    @id @default(uuid())
+  classId     String
+  class       ClassRoom @relation(fields: [classId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  createdById String
+  createdBy   User      @relation("ClassNoticeAuthor", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@map("class_notices")
 }

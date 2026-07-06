@@ -25,6 +25,7 @@ export class ContestsService {
         startsAt,
         endsAt,
         createdById: creatorId,
+        problemsVisibleAfterEnd: dto.problemsVisibleAfterEnd ?? true,
         problems: dto.problems
           ? {
               create: dto.problems.map((p, i) => ({

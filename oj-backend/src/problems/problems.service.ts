@@ -1,13 +1,30 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
 import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 import { clampLevel, labelOfLevel, tierOfLevel } from '../common/difficulty';
 import { NotificationsService } from '../notifications/notifications.service';
+import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
 
 // 투표 난이도가 현재 공식 난이도와 이 값 이상 벌어지면(약 1.5~2티어) 관리자에게 알린다.
 const DIFFICULTY_ALERT_THRESHOLD = 8;
+
+// 검증 제출이 채점되길 기다리는 최대 시간/폴링 간격.
+const VERIFICATION_TIMEOUT_MS = 30_000;
+const VERIFICATION_POLL_MS = 500;
+
+const VERDICT_LABEL: Record<string, string> = {
+  ACCEPTED: '맞았습니다',
+  WRONG_ANSWER: '틀렸습니다',
+  TIME_LIMIT_EXCEEDED: '시간 초과',
+  MEMORY_LIMIT_EXCEEDED: '메모리 초과',
+  RUNTIME_ERROR: '런타임 에러',
+  COMPILE_ERROR: '컴파일 에러',
+  INTERNAL_ERROR: '채점 서버 오류',
+};
 
 // difficulty만 주어졌을 때(level 생략) 쓰는 굵은 티어 → 대표 level 매핑 (하위호환용)
 const MID_LEVEL_OF_TIER: Record<string, number> = {
@@ -31,6 +48,7 @@ export class ProblemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    @InjectQueue(JUDGE_QUEUE) private readonly judgeQueue: Queue<JudgeJobData>,
   ) {}
 
   /** BOJ의 "제출/맞힌 사람/정답 비율" 컬럼용 통계. 문제별로 실제 제출 기록을 집계한다. */
@@ -74,7 +92,22 @@ export class ProblemsService {
     // 어드민이 만든 문제는 초안(DRAFT) 상태로 두고, 이후 직접 공개할 수 있다.
     const status = authorRole === 'ADMIN' ? 'DRAFT' : 'PENDING_REVIEW';
     const level = dto.level != null ? clampLevel(dto.level) : (dto.difficulty ? MID_LEVEL_OF_TIER[dto.difficulty] : 1);
-    return this.prisma.problem.create({
+    // 대회 전용 지정은 어드민만 가능(일반 사용자 dto는 무시).
+    const contestOnly = authorRole === 'ADMIN' && !!dto.contestOnly;
+    const tags = dto.tags ?? [];
+    if (contestOnly && !tags.includes('대회전용')) tags.push('대회전용');
+
+    const isAdmin = authorRole === 'ADMIN';
+    if (!isAdmin) {
+      if (!dto.testCases || dto.testCases.length === 0) {
+        throw new BadRequestException('테스트케이스를 최소 1개 이상 넣어야 합니다.');
+      }
+      if (!dto.verificationLanguage || !dto.verificationCode) {
+        throw new BadRequestException('제안하는 문제는 그 문제를 실제로 푸는 코드를 같이 제출해서 검증해야 합니다.');
+      }
+    }
+
+    const problem = await this.prisma.problem.create({
       data: {
         title: dto.title,
         slug: dto.slug,
@@ -84,7 +117,8 @@ export class ProblemsService {
         timeLimitMs: dto.timeLimitMs,
         memoryLimitMb: dto.memoryLimitMb,
         allowedLanguages: (dto.allowedLanguages ?? []) as any,
-        tags: dto.tags ?? [],
+        tags,
+        contestOnly,
         authorId,
         status: status as any,
         testCases: dto.testCases
@@ -100,11 +134,72 @@ export class ProblemsService {
       },
       include: { testCases: true },
     });
+
+    if (!isAdmin) {
+      await this.verifyWithSolution(problem.id, authorId, dto.verificationLanguage!, dto.verificationCode!);
+    }
+
+    return problem;
+  }
+
+  /**
+   * 일반 사용자가 제안한 문제는 반드시 "실제로 그 문제를 통과하는 코드"를 같이 내야 한다.
+   * 검증 제출을 채점 큐에 넣고 끝날 때까지 기다린 뒤, ACCEPTED가 아니면 방금 만든 문제를
+   * (테스트케이스까지 cascade로) 롤백하고 실패 사유를 알려준다.
+   */
+  private async verifyWithSolution(problemId: string, authorId: string, language: string, sourceCode: string) {
+    const submission = await this.prisma.submission.create({
+      data: { userId: authorId, problemId, language: language as any, sourceCode, status: 'PENDING' },
+    });
+    await this.judgeQueue.add(
+      'judge',
+      { submissionId: submission.id },
+      { attempts: 1, removeOnComplete: 1000, removeOnFail: 1000 },
+    );
+
+    const deadline = Date.now() + VERIFICATION_TIMEOUT_MS;
+    let finalStatus = submission.status;
+    while (Date.now() < deadline) {
+      const current = await this.prisma.submission.findUnique({
+        where: { id: submission.id },
+        select: { status: true },
+      });
+      finalStatus = current?.status ?? finalStatus;
+      if (finalStatus !== 'PENDING' && finalStatus !== 'JUDGING') break;
+      await new Promise((resolve) => setTimeout(resolve, VERIFICATION_POLL_MS));
+    }
+
+    if (finalStatus === 'ACCEPTED') return;
+
+    // 실패(또는 타임아웃): 문제 자체를 없던 일로 되돌린다.
+    // Submission.problem엔 onDelete cascade가 없어서(제출 기록 보존 목적), 검증용 제출부터 먼저 지워야
+    // 문제 삭제가 외래키 위반 없이 된다(테스트케이스 등 나머지는 Problem 삭제에 cascade로 같이 지워짐).
+    await this.prisma.submission.delete({ where: { id: submission.id } }).catch(() => undefined);
+    await this.prisma.problem.delete({ where: { id: problemId } });
+
+    if (finalStatus === 'PENDING' || finalStatus === 'JUDGING') {
+      throw new BadRequestException('채점이 너무 오래 걸려서 검증에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+    throw new BadRequestException(
+      `제출한 코드가 검증에 실패했습니다 (${VERDICT_LABEL[finalStatus] ?? finalStatus}). 코드와 테스트케이스를 확인해주세요.`,
+    );
+  }
+
+  /** 대회 전용 문제가 이제 공개 목록에 나와도 되는지: 종료 + problemsVisibleAfterEnd인 대회에 하나라도 걸려있으면 공개. */
+  private contestOnlyVisibleFilter() {
+    return {
+      contestProblems: {
+        some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+      },
+    };
   }
 
   async findAllPublished() {
     const problems = await this.prisma.problem.findMany({
-      where: { status: 'PUBLISHED' },
+      where: {
+        status: 'PUBLISHED',
+        OR: [{ contestOnly: false }, { contestOnly: true, ...this.contestOnlyVisibleFilter() }],
+      },
       select: {
         id: true,
         displayId: true,
@@ -119,6 +214,23 @@ export class ProblemsService {
     });
     const stats = await this.getStats(problems.map((p) => p.id));
     return problems.map((p) => ({ ...p, ...(stats.get(p.id) ?? this.emptyStats()) }));
+  }
+
+  /** 어드민: 상태 무관 전체 문제 목록(관리/삭제용). */
+  async findAllForAdmin() {
+    return this.prisma.problem.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        displayId: true,
+        title: true,
+        slug: true,
+        status: true,
+        contestOnly: true,
+        createdAt: true,
+        author: { select: { username: true } },
+      },
+    });
   }
 
   /** 어드민: 승인 대기(제안된) 문제 목록. */
@@ -205,7 +317,7 @@ export class ProblemsService {
   }
 
   /** 문제 상세 조회. 샘플 테스트케이스만 노출 (히든은 채점 워커만 사용) */
-  async findBySlug(slug: string, requesterId?: string) {
+  async findBySlug(slug: string, requesterId?: string, requesterRole?: string, contestId?: string) {
     const problem = await this.prisma.problem.findUnique({
       where: { slug },
       include: {
@@ -213,6 +325,37 @@ export class ProblemsService {
       },
     });
     if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
+
+    const isAdmin = requesterRole === 'ADMIN';
+    const isAuthor = requesterId === problem.authorId;
+
+    // 아직 공개 안 된 문제(초안/검토중/반려)는 작성자/어드민만 볼 수 있다.
+    if (problem.status !== 'PUBLISHED' && !isAdmin && !isAuthor) {
+      throw new NotFoundException('문제를 찾을 수 없습니다.');
+    }
+
+    // 대회 전용 문제는 공개 전환되기 전까지 대회 참가자(제출 화면에서 contestId를 넘긴 경우)만 볼 수 있다.
+    if (problem.contestOnly && !isAdmin && !isAuthor) {
+      const publiclyVisible = await this.prisma.problem.count({
+        where: { id: problem.id, ...this.contestOnlyVisibleFilter() },
+      });
+      if (!publiclyVisible) {
+        let isContestParticipant = false;
+        if (contestId && requesterId) {
+          const cp = await this.prisma.contestProblem.findUnique({
+            where: { contestId_problemId: { contestId, problemId: problem.id } },
+          });
+          if (cp) {
+            const participant = await this.prisma.contestParticipant.findUnique({
+              where: { contestId_userId: { contestId, userId: requesterId } },
+            });
+            isContestParticipant = !!participant;
+          }
+        }
+        if (!isContestParticipant) throw new NotFoundException('문제를 찾을 수 없습니다.');
+      }
+    }
+
     const stats = await this.getStats([problem.id]);
 
     const voteAgg = await this.prisma.problemDifficultyVote.aggregate({
@@ -392,6 +535,39 @@ export class ProblemsService {
     const tc = await this.prisma.testCase.findUnique({ where: { id: testCaseId } });
     if (!tc || tc.problemId !== problemId) throw new NotFoundException('테스트케이스를 찾을 수 없습니다.');
     await this.prisma.testCase.delete({ where: { id: testCaseId } });
+    return { success: true };
+  }
+
+  // ---- 문제 Q&A 게시판 ----
+
+  async listComments(problemId: string) {
+    return this.prisma.problemComment.findMany({
+      where: { problemId },
+      orderBy: { createdAt: 'asc' },
+      include: { user: { select: { username: true } } },
+    });
+  }
+
+  async addComment(problemId: string, userId: string, content: string, parentId?: string) {
+    const problem = await this.prisma.problem.findUnique({ where: { id: problemId } });
+    if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
+    if (parentId) {
+      const parent = await this.prisma.problemComment.findUnique({ where: { id: parentId } });
+      if (!parent || parent.problemId !== problemId) throw new NotFoundException('답글 대상을 찾을 수 없습니다.');
+    }
+    return this.prisma.problemComment.create({
+      data: { problemId, userId, content, parentId },
+      include: { user: { select: { username: true } } },
+    });
+  }
+
+  async removeComment(commentId: string, requesterId: string, requesterRole: string) {
+    const comment = await this.prisma.problemComment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    if (comment.userId !== requesterId && requesterRole !== 'ADMIN') {
+      throw new ForbiddenException('이 댓글을 삭제할 권한이 없습니다.');
+    }
+    await this.prisma.problemComment.delete({ where: { id: commentId } });
     return { success: true };
   }
 }
