@@ -19,7 +19,12 @@ function shQuote(arg: string): string {
   return `'${arg.replace(/'/g, `'\\''`)}'`;
 }
 
-@Processor(JUDGE_QUEUE, { concurrency: 2 })
+// 라즈베리파이 4B(8GB) 같은 저사양 호스트에서는 동시 채점 개수를 낮춰야 컴파일 단계에서
+// 메모리 압박이 덜하다. docker-compose가 컨테이너 기동 시 실제 OS 환경변수로 주입하므로
+// (dotenv 타이밍과 무관하게) 데코레이터 평가 시점에 이미 값이 존재한다.
+const JUDGE_CONCURRENCY = Number(process.env.JUDGE_CONCURRENCY) || 2;
+
+@Processor(JUDGE_QUEUE, { concurrency: JUDGE_CONCURRENCY })
 export class JudgeProcessor extends WorkerHost {
   private readonly logger = new Logger(JudgeProcessor.name);
   private readonly publisher: Redis;

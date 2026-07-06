@@ -53,3 +53,14 @@ docker compose up -d
 
 - judge 샌드박스(`docker-sandbox.service.ts`)는 non-root 유저, `ReadonlyRootfs`, `CapDrop: ALL`, `no-new-privileges`, tmpfs `/tmp`, PID 제한이 이미 적용되어 있다.
 - `prisma migrate diff`로 마이그레이션 파일과 실제 스키마 간 drift가 없는지 주기적으로 확인할 것 — 수기로 DB를 고친 적이 있다면 반드시 마이그레이션 파일에도 반영해야 한다(안 그러면 새 머신에 배포할 때만 실패하는 버그가 생긴다).
+
+## 저사양 호스트(라즈베리파이 4B 8GB 등) 튜닝
+
+`docker-compose.yml`이 8GB 기준으로 이미 튜닝되어 있다:
+
+- `postgres`/`redis`를 alpine 이미지로 교체(용량/메모리 footprint 축소), `shared_buffers`/`work_mem`/`max_connections`을 낮게 잡음.
+- 모든 서비스에 `deploy.resources.limits.memory`/`cpus`를 설정해서 한 서비스가 메모리를 독차지해 다른 서비스가 OOM-kill 당하는 걸 막음 (postgres 384M, api 384M, judge-worker 256M, redis 128M, frontend 64M, homepage 32M — 합쳐서 약 1.6GB, 나머지는 채점용 임시 컨테이너와 OS 몫).
+- `api`/`judge-worker`에 `NODE_OPTIONS=--max-old-space-size`를 컨테이너 메모리 상한보다 살짝 낮게 설정해서, cgroup에 급사당하기 전에 V8이 스스로 GC를 더 자주 돌리게 함.
+- **redis의 `maxmemory-policy`는 반드시 `noeviction`이어야 한다.** `allkeys-lru` 등으로 두면 BullMQ 큐 데이터가 메모리 부족 시 조용히 삭제되어(evict) 채점 대기 중이던 제출이 그냥 사라질 수 있다. `noeviction`이면 메모리가 꽉 찼을 때 에러를 내므로 최소한 알아챌 수 있다.
+- `JUDGE_CONCURRENCY`(루트 `.env`, 기본 2): 동시 채점 개수. 컴파일 단계(특히 Java/C++)가 한 번에 최대 512MB까지 쓸 수 있어서, 2로 두면 최악의 경우 순간적으로 ~1GB까지 튈 수 있다. 채점이 자주 밀리거나 메모리가 빠듯하면 1로 낮출 것.
+- 그래도 여유가 없다면 호스트 OS에 swap(zram 권장)을 추가로 잡아두는 걸 권장한다 — 위 설정들은 정상 동작 시의 메모리 사용량을 낮추는 것이지, 순간적인 스파이크(동시 접속/제출 몰림)까지 완전히 막아주진 않는다.

@@ -2,7 +2,15 @@ name: durunuri-oj
 
 services:
   postgres:
-    image: postgres:16-bookworm
+    image: postgres:16-alpine
+    # 8GB급 저사양 호스트(라즈베리파이 4B 등) 기준 튜닝. shared_buffers/work_mem을 낮춰서
+    # postgres가 컨테이너 메모리 상한(mem_limit) 안에서 안전하게 돌도록 한다.
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c work_mem=4MB
+      -c max_connections=50
+      -c effective_cache_size=384MB
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-oj_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oj_password}
@@ -12,13 +20,23 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oj_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oj_user} -d ${POSTGRES_DB:-oj_db}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: "1.0"
 
   redis:
-    image: redis:7-bookworm
+    image: redis:7-alpine
+    # 채점 큐/pub-sub 용도로만 쓰여 데이터량이 적으니 메모리 상한을 낮게 잡는다.
+    # maxmemory-policy는 반드시 noeviction이어야 한다: BullMQ는 큐 데이터가 Redis에서
+    # evict되면(allkeys-lru 등) 채점 대기 중인 제출이 그냥 사라져버린다 - 메모리 부족 시엔
+    # evict 대신 에러를 내는 게 훨씬 안전하다(그러면 최소한 재시도/알아챌 수 있음).
+    command: redis-server --maxmemory 96mb --maxmemory-policy noeviction
     ports:
       - "6379:6379"
     healthcheck:
@@ -26,6 +44,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
 
   api:
     build: ./oj-backend
@@ -34,6 +57,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
+      # 컨테이너 메모리 상한(384M)보다 여유 있게 힙을 잡아두면 OOM-kill 직전에 GC가 못 돌아
+      # 급사하는 대신, V8이 스스로 컬렉션을 더 자주 돌려서 은근슬쩍 버틴다.
+      NODE_OPTIONS: --max-old-space-size=320
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
@@ -44,6 +70,11 @@ services:
     # 컨테이너에는 스키마만 들어있고 실제 마이그레이션 적용은 기동 시 한 번 실행한다.
     # (여러 인스턴스를 띄워도 prisma migrate deploy는 안전하게 반복 실행 가능)
     entrypoint: ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: "1.0"
 
   judge-worker:
     build: ./oj-backend
@@ -53,6 +84,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
       JUDGE_DOCKER_SOCK: /var/run/docker.sock
+      NODE_OPTIONS: --max-old-space-size=192
+      # 라즈베리파이 4B(4코어) 기준 기본값. 컴파일 단계(특히 Java/C++)가 순간적으로
+      # 512MB까지 쓸 수 있어서, 2로 두면 최악의 경우 동시에 ~1GB까지 튈 수 있다.
+      # 채점이 자주 밀리거나 메모리가 빠듯하면 .env에서 1로 낮출 것.
+      JUDGE_CONCURRENCY: ${JUDGE_CONCURRENCY:-2}
     volumes:
       # Docker-outside-of-Docker: 워커가 형제 컨테이너(채점용)를 직접 띄우기 위함.
       # 이 소켓 마운트가 곧 호스트 root 권한과 동급이므로, 반드시 이 워커만 격리된
@@ -68,6 +104,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1.0"
 
   frontend:
     build:
@@ -79,12 +120,22 @@ services:
     depends_on:
       - api
       - homepage
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.5"
 
   # 동아리 홈페이지 (정적 사이트). 외부에 직접 포트를 열지 않고 frontend nginx가
   # /home/ 경로로 프록시한다. OJ와 같은 origin을 유지해야 localStorage의 로그인
   # 토큰(oj_token)이 공유되어 두 페이지 간 로그인 상태가 이어지기 때문이다.
   homepage:
     build: ./club-homepage
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: "0.25"
 
 volumes:
   pg_data:
