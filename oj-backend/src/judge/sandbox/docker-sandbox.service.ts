@@ -60,6 +60,9 @@ export class DockerSandboxService {
       // nobody 유저는 /etc/passwd에 홈 디렉토리가 없어 HOME이 /nonexistent(읽기전용)로 잡힌다.
       // Go 빌드 캐시처럼 $HOME 하위에 쓰려는 도구가 있어 tmpfs로 열어둔 /tmp를 홈으로 지정한다.
       Env: ['HOME=/tmp'],
+      // 아래 finally에서 remove()가 실패해도(레이스, 데몬 재시작 등) 나중에 SandboxCleanupService가
+      // 이 라벨로 안전하게 찾아서 정리할 수 있게 표시해둔다.
+      Labels: { 'com.durunuri-oj.role': 'judge-sandbox' },
       HostConfig: {
         Binds: options.binds,
         Memory: options.memoryLimitMb * 1024 * 1024,
@@ -119,5 +122,30 @@ export class DockerSandboxService {
         this.logger.warn(`컨테이너 정리 실패: ${e}`);
       }
     }
+  }
+
+  /**
+   * run()의 finally에서 remove()가 실패했을 때(데몬 재시작, 레이스 등) 남는 좀비 컨테이너를
+   * 안전망으로 정리한다. 라벨로 우리가 만든 채점용 컨테이너만 골라서 지우므로 호스트의
+   * 다른 컨테이너에는 영향이 없다. 오래 켜둔 서버일수록 이런 게 쌓여 disk/메모리를 갉아먹고
+   * `docker ps`류 명령/데몬 자체가 느려지는 게 "오래 켜두면 느려진다"의 흔한 원인 중 하나다.
+   */
+  async pruneOrphanedContainers(maxAgeMs: number): Promise<number> {
+    const containers = await this.docker.listContainers({
+      all: true,
+      filters: JSON.stringify({ label: ['com.durunuri-oj.role=judge-sandbox'] }),
+    });
+    let removed = 0;
+    for (const info of containers) {
+      const createdAgeMs = Date.now() - info.Created * 1000;
+      if (createdAgeMs < maxAgeMs) continue; // 지금 막 실행 중인 정상 컨테이너는 건드리지 않는다
+      try {
+        await this.docker.getContainer(info.Id).remove({ force: true });
+        removed++;
+      } catch (e) {
+        this.logger.warn(`좀비 컨테이너 정리 실패 (${info.Id}): ${e}`);
+      }
+    }
+    return removed;
   }
 }

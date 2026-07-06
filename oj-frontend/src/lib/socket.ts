@@ -25,5 +25,9 @@ export function subscribeToSubmission(
 
   return () => {
     s.off('submission-update', handler);
+    // 소켓 하나를 앱 전체에서 계속 재사용하기 때문에(getSocket), leave를 안 하면 사용자가
+    // 페이지를 옮겨다닐 때마다 예전 room에 계속 남아있게 되고, 세션이 길어질수록(=서버를
+    // 오래 켜둘수록) 서버 메모리에 방(room) 멤버십이 계속 쌓인다.
+    s.emit('leave', submissionId);
   };
 }

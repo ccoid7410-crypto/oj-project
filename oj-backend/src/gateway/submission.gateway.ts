@@ -60,5 +60,11 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
     client.on('join', (submissionId: string) => {
       client.join(submissionId);
     });
+    // 소켓 하나가 앱 전체 수명 동안 재사용되며 여러 제출 페이지를 옮겨다니므로, 클라이언트가
+    // 떠난 room은 명시적으로 나가야 한다(안 그러면 room 멤버십이 계속 쌓여서 오래 켜둔
+    // 서버일수록 소켓 어댑터 메모리를 갉아먹는다).
+    client.on('leave', (submissionId: string) => {
+      client.leave(submissionId);
+    });
   }
 }

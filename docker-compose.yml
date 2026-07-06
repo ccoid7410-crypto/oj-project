@@ -1,5 +1,14 @@
 name: durunuri-oj
 
+# 기본 로그 드라이버(json-file)는 로테이션이 없어서 서버를 오래 켜둘수록 로그 파일이
+# 끝없이 커진다 - 디스크를 다 채우거나(라즈베리파이의 SD카드는 특히 느려짐), 로그 파일 자체가
+# 커지면서 쓰기/조회가 느려져 "오래 켜두면 반응성이 떨어지는" 흔한 원인이 된다.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -29,6 +38,7 @@ services:
         limits:
           memory: 384M
           cpus: "1.0"
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
@@ -49,6 +59,7 @@ services:
         limits:
           memory: 128M
           cpus: "0.5"
+    logging: *default-logging
 
   api:
     build: ./oj-backend
@@ -75,6 +86,7 @@ services:
         limits:
           memory: 384M
           cpus: "1.0"
+    logging: *default-logging
 
   judge-worker:
     build: ./oj-backend
@@ -109,6 +121,7 @@ services:
         limits:
           memory: 256M
           cpus: "1.0"
+    logging: *default-logging
 
   frontend:
     build:
@@ -125,6 +138,7 @@ services:
         limits:
           memory: 64M
           cpus: "0.5"
+    logging: *default-logging
 
   # 동아리 홈페이지 (정적 사이트). 외부에 직접 포트를 열지 않고 frontend nginx가
   # /home/ 경로로 프록시한다. OJ와 같은 origin을 유지해야 localStorage의 로그인
@@ -136,6 +150,7 @@ services:
         limits:
           memory: 32M
           cpus: "0.25"
+    logging: *default-logging
 
 volumes:
   pg_data:
