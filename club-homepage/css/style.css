@@ -1,0 +1,260 @@
+/* ===== Durunuri OJ와 같은 테마 =====
+   색상 값은 oj-frontend/src/index.css의 @theme에서 그대로 가져왔습니다. */
+:root {
+  --color-ink-700: #f8f9fa; /* 아주 옅은 회색 배경 */
+  --color-ink-600: #e3e6ea; /* 옅은 테두리 */
+  --color-ink-500: #ced4da; /* 진한 테두리 */
+
+  --color-fg: #212529;        /* 기본 글자색 */
+  --color-fg-muted: #6c757d;  /* 보조 글자색 */
+
+  --color-brand: #2f6fed;     /* 브랜드 파랑 */
+  --color-brand-dim: #1f4fb8; /* 진한 파랑 (호버용) */
+
+  --color-logo: #1a2b4c;      /* 로고의 진한 남색 */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #ffffff;
+  color: var(--color-fg);
+  font-family: "Noto Sans KR", "Inter", sans-serif;
+  font-size: 14px; /* OJ와 같은 본문 크기 */
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* 드래그했을 때 파란 배경 (OJ와 동일) */
+::selection {
+  background: var(--color-brand);
+  color: #ffffff;
+}
+
+/* 본문 최대 너비: OJ의 max-w-5xl(1024px)과 동일 */
+.container,
+.header-top,
+.header-nav {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* ===== 헤더 ===== */
+.site-header {
+  border-bottom: 1px solid var(--color-ink-500);
+  background: #ffffff;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+
+.logo {
+  text-decoration: none;
+  line-height: 1;
+}
+
+.logo-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--color-logo);
+}
+
+.logo-accent {
+  color: var(--color-brand);
+}
+
+/* 로고 아래 작은 영문 부제 (OJ의 "ONLINE JUDGE" 자리) */
+.logo-subtitle {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--color-fg-muted);
+}
+
+.header-links {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.header-links a {
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+
+.header-links a:hover {
+  color: var(--color-brand);
+}
+
+/* 메뉴: 호버하면 파란 밑줄이 생기는 OJ 스타일 */
+.header-nav {
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid var(--color-ink-600);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.header-nav a {
+  padding: 10px 0;
+  color: var(--color-fg);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.header-nav a:hover {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+}
+
+.nav-oj {
+  margin-left: auto; /* OJ 링크만 오른쪽 끝으로 */
+  color: var(--color-brand) !important;
+}
+
+/* ===== 히어로 ===== */
+.hero {
+  padding: 72px 0 56px;
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+
+.hero .accent {
+  color: var(--color-brand);
+}
+
+.hero p {
+  color: var(--color-fg-muted);
+  margin-bottom: 24px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 버튼 ===== */
+.btn {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--color-brand);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--color-brand-dim);
+}
+
+.btn-ghost {
+  border: 1px solid var(--color-ink-500);
+  color: var(--color-fg);
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+/* ===== 본문 섹션 ===== */
+.section {
+  padding: 48px 0;
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.section h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.section p {
+  color: var(--color-fg);
+  max-width: 640px;
+}
+
+/* ===== 활동 카드 ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.card {
+  border: 1px solid var(--color-ink-600);
+  border-radius: 8px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.card:hover {
+  border-color: var(--color-brand);
+}
+
+.card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.card p {
+  color: var(--color-fg-muted);
+  font-size: 0.9rem;
+}
+
+/* ===== 가입 안내 표 ===== */
+.info-table {
+  margin-top: 16px;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 640px;
+}
+
+.info-table th,
+.info-table td {
+  border: 1px solid var(--color-ink-600);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.info-table th {
+  background: var(--color-ink-700);
+  font-weight: 500;
+  white-space: nowrap;
+  width: 110px;
+}
+
+/* ===== 푸터 ===== */
+.site-footer {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
