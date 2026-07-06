@@ -99,6 +99,38 @@ body {
   color: var(--color-brand);
 }
 
+/* 로그인 상태 표시 영역 (js/main.js가 내용을 채움) */
+.auth-area {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.auth-area a {
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+
+.auth-area .username {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+/* 로그아웃 버튼을 링크처럼 보이게 */
+.auth-area button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.auth-area a:hover,
+.auth-area button:hover {
+  color: var(--color-brand);
+}
+
 /* 메뉴: 호버하면 파란 밑줄이 생기는 OJ 스타일 */
 .header-nav {
   display: flex;

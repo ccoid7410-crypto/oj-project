@@ -20,6 +20,8 @@
         <div class="logo-subtitle">SCHOOL CLUB</div>
       </a>
       <div class="header-links">
+        <!-- 로그인 상태 표시 영역: js/main.js가 OJ 토큰을 확인해서 채워준다 -->
+        <span id="auth-area" class="auth-area"></span>
         <a href="https://github.com/ccoid7410-crypto/oj-project" target="_blank">GitHub</a>
       </div>
     </div>
@@ -27,8 +29,8 @@
       <a href="#about">소개</a>
       <a href="#activities">활동</a>
       <a href="#join">가입 안내</a>
-      <!-- OJ 서비스 주소가 정해지면 href를 실제 주소로 바꿔주세요 -->
-      <a href="#" class="nav-oj">Online Judge ↗</a>
+      <!-- OJ는 같은 주소의 루트(/)에서 서비스된다 (nginx가 라우팅) -->
+      <a href="/" class="nav-oj">Online Judge ↗</a>
     </nav>
   </header>
 

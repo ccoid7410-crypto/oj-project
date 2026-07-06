@@ -78,6 +78,13 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       - api
+      - homepage
+
+  # 동아리 홈페이지 (정적 사이트). 외부에 직접 포트를 열지 않고 frontend nginx가
+  # /home/ 경로로 프록시한다. OJ와 같은 origin을 유지해야 localStorage의 로그인
+  # 토큰(oj_token)이 공유되어 두 페이지 간 로그인 상태가 이어지기 때문이다.
+  homepage:
+    build: ./club-homepage
 
 volumes:
   pg_data:
