@@ -108,4 +108,24 @@ export class SubmissionsService {
       },
     });
   }
+
+  /** 전체 사용자의 최근 제출 현황(채점 현황 피드). 소스코드는 여기서 절대 내려주지 않는다. */
+  async findAll(limit = 50) {
+    const capped = Math.min(Math.max(limit, 1), 100);
+    return this.prisma.submission.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: capped,
+      select: {
+        id: true,
+        problemId: true,
+        language: true,
+        status: true,
+        runtimeMs: true,
+        memoryKb: true,
+        createdAt: true,
+        user: { select: { username: true } },
+        problem: { select: { title: true, slug: true, displayId: true } },
+      },
+    });
+  }
 }

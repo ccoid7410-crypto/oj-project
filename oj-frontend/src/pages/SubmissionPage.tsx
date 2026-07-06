@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import type { SubmissionDetail } from '../api/types';
 import { VerdictBadge } from '../components/VerdictBadge';
 import { subscribeToSubmission } from '../lib/socket';
@@ -8,10 +8,16 @@ import { subscribeToSubmission } from '../lib/socket';
 export function SubmissionPage() {
   const { id } = useParams<{ id: string }>();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(() => {
     if (!id) return;
-    api.get<SubmissionDetail>(`/submissions/${id}`).then(setSubmission);
+    api
+      .get<SubmissionDetail>(`/submissions/${id}`)
+      .then(setSubmission)
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : '제출 내역을 불러오지 못했습니다.'),
+      );
   }, [id]);
 
   useEffect(() => {
@@ -23,6 +29,7 @@ export function SubmissionPage() {
     return subscribeToSubmission(id, () => refetch());
   }, [id, refetch]);
 
+  if (error) return <p className="text-sm text-[var(--color-wa)]">{error}</p>;
   if (!submission) return <p className="text-sm text-fg-muted">불러오는 중...</p>;
 
   const isLive = submission.status === 'PENDING' || submission.status === 'JUDGING';

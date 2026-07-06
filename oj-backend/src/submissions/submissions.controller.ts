@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -21,6 +21,12 @@ export class SubmissionsController {
   @Get('me')
   findMine(@CurrentUser() user: RequestUser) {
     return this.submissionsService.findByUser(user.userId);
+  }
+
+  // 전체 사용자 채점 현황 피드. 로그인한 사용자면 누구나 볼 수 있다(소스코드는 포함되지 않음).
+  @Get()
+  findAll(@Query('limit') limit?: string) {
+    return this.submissionsService.findAll(limit ? Number(limit) : undefined);
   }
 
   @Get(':id')

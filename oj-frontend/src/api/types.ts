@@ -95,6 +95,9 @@ export interface SubmissionSummary {
   runtimeMs: number | null;
   memoryKb: number | null;
   createdAt: string;
+  // 전체 채점 현황 피드(GET /submissions)에서만 내려온다. 내 제출 목록(GET /submissions/me)엔 없음.
+  user?: { username: string };
+  problem?: { title: string; slug: string; displayId: number };
 }
 
 export interface SubmissionDetail extends SubmissionSummary {
