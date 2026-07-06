@@ -23,8 +23,12 @@ export class RatingService {
   }
 
   async recomputeForUser(userId: string): Promise<number> {
+    // 공개(PUBLISHED)된 문제만 레이팅에 반영한다. 그렇지 않으면 일반 사용자가 문제를 제안할 때
+    // 필수로 제출하는 "검증용 정답 코드"(problems.service.ts의 verifyWithSolution)가 그대로
+    // AC 제출로 남아서, 아직 검토 중이거나 반려된(심지어 영영 공개 안 될) 문제로도 레이팅이
+    // 올라가 버린다 - 문제를 계속 제안하기만 해도 레이팅을 불릴 수 있는 구멍이었다.
     const solved = await this.prisma.submission.findMany({
-      where: { userId, status: 'ACCEPTED' },
+      where: { userId, status: 'ACCEPTED', problem: { status: 'PUBLISHED' } },
       distinct: ['problemId'],
       select: { problem: { select: { level: true } } },
     });

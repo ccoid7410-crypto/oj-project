@@ -7,6 +7,7 @@ import { UpdateProblemDto } from './dto/update-problem.dto';
 import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 import { clampLevel, labelOfLevel, tierOfLevel } from '../common/difficulty';
 import { NotificationsService } from '../notifications/notifications.service';
+import { RatingService } from '../rating/rating.service';
 import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
 
 // 투표 난이도가 현재 공식 난이도와 이 값 이상 벌어지면(약 1.5~2티어) 관리자에게 알린다.
@@ -48,8 +49,25 @@ export class ProblemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly rating: RatingService,
     @InjectQueue(JUDGE_QUEUE) private readonly judgeQueue: Queue<JudgeJobData>,
   ) {}
+
+  /**
+   * 문제가 막 공개(PUBLISHED)됐을 때, 그 문제에 이미 AC 제출이 있는 사용자들(주로 작성자 본인의
+   * 검증용 제출)의 레이팅을 다시 계산한다. 레이팅은 PUBLISHED된 문제만 반영하므로, 공개되기 전엔
+   * 반영되지 않았다가 이 시점에 비로소 잡힌다.
+   */
+  private async recomputeRatingForPublishedProblem(problemId: string) {
+    const solvers = await this.prisma.submission.findMany({
+      where: { problemId, status: 'ACCEPTED' },
+      distinct: ['userId'],
+      select: { userId: true },
+    });
+    for (const s of solvers) {
+      await this.rating.recomputeForUser(s.userId);
+    }
+  }
 
   /** BOJ의 "제출/맞힌 사람/정답 비율" 컬럼용 통계. 문제별로 실제 제출 기록을 집계한다. */
   private async getStats(problemIds: string[]): Promise<Map<string, ProblemStats>> {
@@ -288,7 +306,7 @@ export class ProblemsService {
   async approve(id: string, reviewerId: string) {
     const problem = await this.prisma.problem.findUnique({ where: { id } });
     if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
-    return this.prisma.problem.update({
+    const updated = await this.prisma.problem.update({
       where: { id },
       data: {
         status: 'PUBLISHED',
@@ -298,6 +316,8 @@ export class ProblemsService {
         reviewNote: null,
       },
     });
+    await this.recomputeRatingForPublishedProblem(id);
+    return updated;
   }
 
   /** 어드민: 반려(사유 포함). */
@@ -460,10 +480,12 @@ export class ProblemsService {
   }
 
   async publish(id: string) {
-    return this.prisma.problem.update({
+    const updated = await this.prisma.problem.update({
       where: { id },
       data: { isPublished: true, status: 'PUBLISHED' },
     });
+    await this.recomputeRatingForPublishedProblem(id);
+    return updated;
   }
 
   async remove(id: string, requesterId: string, requesterRole: string) {
