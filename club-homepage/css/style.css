@@ -15,6 +15,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   background-color: #ffffff;
   color: var(--color-fg);
@@ -66,6 +70,7 @@ body.gate-pending .site-footer {
   align-items: baseline;
   gap: 4px;
   font-size: 1.25rem;
+  line-height: 1.75rem;
   font-weight: 900;
   letter-spacing: -0.025em;
   color: var(--color-logo);
@@ -88,6 +93,7 @@ body.gate-pending .site-footer {
   align-items: center;
   gap: 12px;
   font-size: 0.75rem;
+  line-height: 1rem;
   color: var(--color-fg-muted);
 }
 
@@ -127,6 +133,7 @@ body.gate-pending .site-footer {
   gap: 24px;
   border-top: 1px solid var(--color-ink-600);
   font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 500;
 }
 

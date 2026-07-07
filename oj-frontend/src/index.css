@@ -33,6 +33,12 @@
   --color-ruby: #e0115f;
 }
 
+/* 스크롤바를 항상 표시해서, 내용 길이에 따라 가운데 정렬된 레이아웃이
+   좌우로 미세하게 밀리는 현상을 막는다 (동아리 홈페이지와 위치를 맞추기 위함). */
+html {
+  overflow-y: scroll;
+}
+
 body {
   background-color: #ffffff;
   color: var(--color-fg);
