@@ -34,6 +34,13 @@ export class UsersController {
     return this.usersService.findById(user.userId);
   }
 
+  /** 동아리 홈페이지의 마이페이지/접속 제한이 사용하는 본인 정보. */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/club-profile')
+  clubProfile(@CurrentUser() user: RequestUser) {
+    return this.usersService.clubProfile(user.userId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me/student-id-window')
   async getStudentIdWindow() {

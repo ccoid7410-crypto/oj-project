@@ -46,4 +46,6 @@ async function loadHallOfFame() {
   }
 }
 
-loadHallOfFame();
+window.clubProfileReady.then((profile) => {
+  if (profile) loadHallOfFame();
+});

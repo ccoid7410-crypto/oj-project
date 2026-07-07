@@ -27,7 +27,7 @@ function renderLoggedOut() {
 function renderLoggedIn(user) {
   authArea.innerHTML = "";
   const profile = document.createElement("a");
-  profile.href = `/users/${encodeURIComponent(user.username)}`;
+  profile.href = "account.html";
   profile.textContent = user.username;
   if (user.rating !== undefined && user.rating !== null) {
     const rating = document.createElement("span");

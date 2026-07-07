@@ -29,6 +29,11 @@ body {
   color: #ffffff;
 }
 
+body.gate-pending main,
+body.gate-pending .site-footer {
+  visibility: hidden;
+}
+
 .container,
 .header-top,
 .header-nav {
