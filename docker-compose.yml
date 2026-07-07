@@ -12,6 +12,9 @@ x-logging: &default-logging
 services:
   postgres:
     image: postgres:16-alpine
+    # 재부팅해도 docker 데몬이 뜨면 알아서 다시 켜지도록. (컨테이너가 죽었다가 살아나는 거지,
+    # docker compose up을 매번 손으로 실행해야 하는 게 아니다.)
+    restart: unless-stopped
     # 8GB급 저사양 호스트(라즈베리파이 4B 등) 기준 튜닝. shared_buffers/work_mem을 낮춰서
     # postgres가 컨테이너 메모리 상한(mem_limit) 안에서 안전하게 돌도록 한다.
     command: >
@@ -42,6 +45,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     # 채점 큐/pub-sub 용도로만 쓰여 데이터량이 적으니 메모리 상한을 낮게 잡는다.
     # maxmemory-policy는 반드시 noeviction이어야 한다: BullMQ는 큐 데이터가 Redis에서
     # evict되면(allkeys-lru 등) 채점 대기 중인 제출이 그냥 사라져버린다 - 메모리 부족 시엔
@@ -63,6 +67,7 @@ services:
 
   api:
     build: ./oj-backend
+    restart: unless-stopped
     command: ["node", "dist/main.js"]
     env_file: ./oj-backend/.env
     environment:
@@ -90,6 +95,7 @@ services:
 
   judge-worker:
     build: ./oj-backend
+    restart: unless-stopped
     command: ["node", "dist/main-worker.js"]
     env_file: ./oj-backend/.env
     environment:
@@ -128,6 +134,7 @@ services:
       context: ./oj-frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
@@ -145,6 +152,7 @@ services:
   # 토큰(oj_token)이 공유되어 두 페이지 간 로그인 상태가 이어지기 때문이다.
   homepage:
     build: ./club-homepage
+    restart: unless-stopped
     deploy:
       resources:
         limits:
