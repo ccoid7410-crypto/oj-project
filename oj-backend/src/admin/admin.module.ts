@@ -7,9 +7,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { StudentIdModule } from '../student-id/student-id.module';
 import { ProblemsModule } from '../problems/problems.module';
 import { AdminStatsService } from './admin-stats.service';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [UsersModule, JudgeConfigModule, RatingModule, NotificationsModule, StudentIdModule, ProblemsModule],
+  imports: [UsersModule, JudgeConfigModule, RatingModule, NotificationsModule, StudentIdModule, ProblemsModule, MailModule],
   controllers: [AdminController],
   providers: [AdminStatsService],
 })

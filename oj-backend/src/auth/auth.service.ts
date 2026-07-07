@@ -1,4 +1,11 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -17,6 +24,8 @@ function sha256(v: string): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -60,12 +69,14 @@ export class AuthService {
       },
     });
 
-    await this.issueAndSendVerification(user.id, user.email);
+    const mailSent = await this.issueAndSendVerification(user.id, user.email);
 
     // 이메일 인증 전에는 로그인할 수 없으므로, 여기서는 토큰을 주지 않고 안내만 반환한다.
     return {
       requiresEmailVerification: true,
-      message: `${user.email}로 인증 메일을 보냈습니다. 메일함을 확인해주세요.`,
+      message: mailSent
+        ? `${user.email}로 인증 메일을 보냈습니다. 메일함을 확인해주세요.`
+        : '계정은 생성됐지만 인증 메일 발송에 실패했습니다. 관리자에게 메일 설정 확인을 요청하거나 잠시 뒤 다시 발송을 시도해주세요.',
     };
   }
 
@@ -89,8 +100,9 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-  private async issueAndSendVerification(userId: string, email: string) {
+  private async issueAndSendVerification(userId: string, email: string): Promise<boolean> {
     const raw = randomBytes(32).toString('hex');
+    await this.prisma.emailVerificationToken.deleteMany({ where: { userId } });
     await this.prisma.emailVerificationToken.create({
       data: {
         userId,
@@ -100,7 +112,13 @@ export class AuthService {
     });
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173');
     const verifyUrl = `${frontendUrl}/verify-email?token=${raw}`;
-    await this.mail.sendVerificationEmail(email, verifyUrl);
+    try {
+      await this.mail.sendVerificationEmail(email, verifyUrl);
+      return true;
+    } catch (err) {
+      this.logger.error(`인증 메일 발송 실패(${email}): ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
   }
 
   async resendVerification(email: string) {

@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } fro
 import {
   IsArray,
   IsDateString,
+  IsEmail,
   IsIn,
   IsInt,
   IsObject,
@@ -26,6 +27,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { StudentIdService } from '../student-id/student-id.service';
 import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
+import { MailService } from '../mail/mail.service';
 
 class RosterEntryDto {
   @IsString() studentId: string;
@@ -80,6 +82,11 @@ class JudgeConfigUpdateDto {
   config: JudgeConfigMap;
 }
 
+class SendTestMailDto {
+  @IsEmail()
+  to: string;
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin')
@@ -92,6 +99,7 @@ export class AdminController {
     private readonly studentId: StudentIdService,
     private readonly stats: AdminStatsService,
     private readonly problems: ProblemsService,
+    private readonly mail: MailService,
   ) {}
 
   // ---- 전체 현황 대시보드 ----
@@ -172,6 +180,17 @@ export class AdminController {
   @Post('judge-config/reset')
   resetJudgeConfig(@CurrentUser() user: RequestUser) {
     return this.judgeConfig.reset(user.userId);
+  }
+
+  // ---- 메일 발송 설정 ----
+  @Get('mail/status')
+  getMailStatus() {
+    return this.mail.verifyConnection();
+  }
+
+  @Post('mail/test')
+  sendTestMail(@Body() dto: SendTestMailDto) {
+    return this.mail.sendTestEmail(dto.to);
   }
 
   // ---- 레이팅 ----
