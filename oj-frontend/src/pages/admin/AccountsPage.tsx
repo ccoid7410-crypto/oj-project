@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import type { AdminUser } from '../../api/types';
+import { useAuth } from '../../context/AuthContext';
 
 export function AccountsPage() {
+  const { user: me } = useAuth();
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,21 @@ export function AccountsPage() {
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '정지 해제에 실패했습니다.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function setRole(id: string, username: string, role: 'USER' | 'ADMIN') {
+    const action = role === 'ADMIN' ? '관리자로 지정' : '관리자에서 해제';
+    if (!window.confirm(`${username} 계정을 ${action}할까요?`)) return;
+    setBusyId(id);
+    setError(null);
+    try {
+      await api.post(`/admin/users/${id}/role`, { role });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '권한 변경에 실패했습니다.');
     } finally {
       setBusyId(null);
     }
@@ -99,30 +116,52 @@ export function AccountsPage() {
                 </td>
                 <td className="border border-ink-600 px-2 py-1.5">
                   {u.role === 'ADMIN' ? (
-                    <span className="text-xs text-fg-muted">관리자는 정지 불가</span>
-                  ) : u.banned ? (
-                    <button
-                      onClick={() => unban(u.id)}
-                      disabled={busyId === u.id}
-                      className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] disabled:opacity-60"
-                    >
-                      정지 해제
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        value={banReason[u.id] ?? ''}
-                        onChange={(e) => setBanReason((prev) => ({ ...prev, [u.id]: e.target.value }))}
-                        placeholder="정지 사유"
-                        className="w-32 rounded border border-ink-500 px-1.5 py-1 text-xs outline-none focus:border-[var(--color-brand)]"
-                      />
+                    me?.username === u.username ? (
+                      <span className="text-xs text-fg-muted">본인 계정</span>
+                    ) : (
                       <button
-                        onClick={() => ban(u.id)}
+                        onClick={() => setRole(u.id, u.username, 'USER')}
                         disabled={busyId === u.id}
-                        className="rounded border border-[var(--color-wa)] px-2 py-1 text-xs font-bold text-[var(--color-wa)] hover:bg-[var(--color-wa)]/10 disabled:opacity-60"
+                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-wa)] hover:text-[var(--color-wa)] disabled:opacity-60"
                       >
-                        정지
+                        관리자 해제
                       </button>
+                    )
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        onClick={() => setRole(u.id, u.username, 'ADMIN')}
+                        disabled={busyId === u.id || u.banned}
+                        title={u.banned ? '정지된 계정은 관리자로 지정할 수 없습니다' : undefined}
+                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+                      >
+                        관리자 지정
+                      </button>
+                      {u.banned ? (
+                        <button
+                          onClick={() => unban(u.id)}
+                          disabled={busyId === u.id}
+                          className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] disabled:opacity-60"
+                        >
+                          정지 해제
+                        </button>
+                      ) : (
+                        <>
+                          <input
+                            value={banReason[u.id] ?? ''}
+                            onChange={(e) => setBanReason((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                            placeholder="정지 사유"
+                            className="w-32 rounded border border-ink-500 px-1.5 py-1 text-xs outline-none focus:border-[var(--color-brand)]"
+                          />
+                          <button
+                            onClick={() => ban(u.id)}
+                            disabled={busyId === u.id}
+                            className="rounded border border-[var(--color-wa)] px-2 py-1 text-xs font-bold text-[var(--color-wa)] hover:bg-[var(--color-wa)]/10 disabled:opacity-60"
+                          >
+                            정지
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </td>

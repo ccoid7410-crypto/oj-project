@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } fro
 import {
   IsArray,
   IsDateString,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -47,6 +48,11 @@ class BanUserDto {
   @IsOptional()
   @IsString()
   reason?: string;
+}
+
+class SetRoleDto {
+  @IsIn(['USER', 'ADMIN'])
+  role: 'USER' | 'ADMIN';
 }
 
 // role은 의도적으로 받지 않는다: bulk 생성 경로로는 절대 ADMIN을 만들 수 없다
@@ -123,6 +129,12 @@ export class AdminController {
   @Post('users/:id/unban')
   unbanUser(@Param('id') id: string) {
     return this.users.unban(id);
+  }
+
+  // ---- 관리자 권한 부여/해제 ----
+  @Post('users/:id/role')
+  setUserRole(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: SetRoleDto) {
+    return this.users.setRole(id, dto.role, user.userId);
   }
 
   // ---- 관리자 알림 ----

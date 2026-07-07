@@ -223,6 +223,32 @@ export class UsersService {
     });
   }
 
+  /** 관리자 권한 부여/해제. 본인 권한 해제와 마지막 관리자 해제는 잠금 사고 방지를 위해 막는다. */
+  async setRole(id: string, role: 'USER' | 'ADMIN', actingUserId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (user.role === role) {
+      return { id: user.id, username: user.username, role: user.role };
+    }
+    if (role === 'USER') {
+      if (id === actingUserId) {
+        throw new BadRequestException('본인의 관리자 권한은 스스로 해제할 수 없습니다.');
+      }
+      const adminCount = await this.prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount <= 1) {
+        throw new BadRequestException('마지막 관리자의 권한은 해제할 수 없습니다.');
+      }
+    }
+    if (role === 'ADMIN' && user.banned) {
+      throw new BadRequestException('정지된 계정은 관리자로 지정할 수 없습니다.');
+    }
+    return this.prisma.user.update({
+      where: { id },
+      data: { role },
+      select: { id: true, username: true, role: true },
+    });
+  }
+
   /** 본인 비밀번호 변경. 대량 생성된 계정의 mustChangePassword 플래그도 여기서 해제된다. */
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
