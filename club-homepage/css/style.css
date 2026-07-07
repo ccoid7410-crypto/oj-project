@@ -265,6 +265,51 @@ body {
   width: 110px;
 }
 
+.hof-generation {
+  margin-top: 24px;
+}
+
+.hof-generation h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-brand);
+  margin-bottom: 8px;
+}
+
+.hof-count {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+}
+
+.hof-members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  list-style: none;
+}
+
+.hof-members a {
+  display: block;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--color-fg);
+  text-decoration: none;
+}
+
+.hof-members a:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+.loading,
+.error,
+.empty {
+  color: var(--color-fg-muted);
+}
+
 .site-footer {
   padding: 24px;
   text-align: center;

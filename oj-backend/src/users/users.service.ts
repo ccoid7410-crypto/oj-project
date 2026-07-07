@@ -223,6 +223,33 @@ export class UsersService {
     });
   }
 
+  /**
+   * 명예의 전당: 이메일 아이디에서 처음 나오는 두 자리 숫자를 기수로 삼아
+   * 회원을 기수별로 묶는다 (예: cbsh38018@... -> 38기). 이메일 자체는 노출하지 않는다.
+   */
+  async hallOfFame() {
+    const users = await this.prisma.user.findMany({
+      where: { banned: false },
+      select: { username: true, email: true },
+      orderBy: { username: 'asc' },
+    });
+    const byGeneration = new Map<string, string[]>();
+    for (const u of users) {
+      const match = u.email.split('@')[0].match(/\d{2}/);
+      const key = match ? match[0] : '기타';
+      if (!byGeneration.has(key)) byGeneration.set(key, []);
+      byGeneration.get(key)!.push(u.username);
+    }
+    // 기수 오름차순 정렬, 숫자가 없는 이메일(기타)은 맨 뒤로
+    return [...byGeneration.entries()]
+      .sort(([a], [b]) => {
+        if (a === '기타') return 1;
+        if (b === '기타') return -1;
+        return Number(a) - Number(b);
+      })
+      .map(([generation, members]) => ({ generation, members }));
+  }
+
   /** 관리자 권한 부여/해제. 본인 권한 해제와 마지막 관리자 해제는 잠금 사고 방지를 위해 막는다. */
   async setRole(id: string, role: 'USER' | 'ADMIN', actingUserId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });

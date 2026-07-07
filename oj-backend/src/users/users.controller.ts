@@ -59,6 +59,12 @@ export class UsersController {
     return this.usersService.ranking(limit ? parseInt(limit, 10) : undefined);
   }
 
+  /** 동아리 홈페이지의 명예의 전당이 사용하는 공개 엔드포인트. */
+  @Get('hall-of-fame')
+  hallOfFame() {
+    return this.usersService.hallOfFame();
+  }
+
   @Get(':username')
   getByUsername(@Param('username') username: string) {
     return this.usersService.findByUsername(username);
