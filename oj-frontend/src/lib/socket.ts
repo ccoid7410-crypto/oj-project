@@ -1,11 +1,13 @@
 import { io, type Socket } from 'socket.io-client';
-import { API_URL } from '../api/client';
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(API_URL, { transports: ['websocket'] });
+    // API와 마찬가지로 같은 origin으로 접속한다(연결 대상 URL을 생략하면 socket.io-client가
+    // 현재 페이지 origin을 쓴다). nginx가 /socket.io/를 백엔드로 업그레이드 프록시한다.
+    // 개발 서버(vite dev, 5173)에서는 vite.config.ts의 프록시 설정이 같은 역할을 한다.
+    socket = io({ path: '/socket.io', transports: ['websocket'] });
   }
   return socket;
 }

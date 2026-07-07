@@ -1,4 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// 기본값은 "같은 origin의 /api" - 접속한 주소가 IP든 도메인이든(.local mDNS 포함) 항상
+// 페이지를 받아온 그 주소로 API를 부르게 되어, mDNS를 못 쓰는 기기/네트워크에서만 실패하는
+// 문제(도메인을 못 찾음)와 CORS 문제를 둘 다 없앤다. nginx가 /api/ -> 백엔드로 프록시한다.
+// VITE_API_URL을 명시적으로 지정하면(예: 백엔드를 완전히 다른 도메인에 둔 경우) 그 값을 우선한다.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export class ApiError extends Error {
   status: number;

@@ -87,6 +87,18 @@ class SendTestMailDto {
   to: string;
 }
 
+class SaveGmailConfigDto {
+  @IsEmail()
+  from: string;
+
+  @IsEmail()
+  smtpUser: string;
+
+  @IsOptional()
+  @IsString()
+  smtpPass?: string;
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin')
@@ -186,6 +198,16 @@ export class AdminController {
   @Get('mail/status')
   getMailStatus() {
     return this.mail.verifyConnection();
+  }
+
+  @Put('mail/gmail')
+  saveGmailConfig(@CurrentUser() user: RequestUser, @Body() dto: SaveGmailConfigDto) {
+    return this.mail.saveGmailConfig(dto, user.userId);
+  }
+
+  @Delete('mail/config')
+  disableMailConfig(@CurrentUser() user: RequestUser) {
+    return this.mail.disableDatabaseConfig(user.userId);
   }
 
   @Post('mail/test')

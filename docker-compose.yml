@@ -138,7 +138,10 @@ services:
     build:
       context: ./oj-frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        # 비워두면(기본값) 프론트가 같은 origin의 상대 경로(/api)로 nginx를 통해 API를 부른다 -
+        # 접속 주소가 IP든 도메인이든 항상 되고 CORS도 안 걸린다. 백엔드를 완전히 다른
+        # 도메인에 별도로 둔 특수한 배포가 아니면 VITE_API_URL을 따로 지정할 필요가 없다.
+        VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:80"

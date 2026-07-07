@@ -3,6 +3,7 @@ import { api, ApiError } from '../../api/client';
 
 type MailStatus = {
   configured: boolean;
+  source: 'database' | 'environment' | 'log-only';
   provider: string;
   host: string | null;
   port: number | null;
@@ -21,16 +22,22 @@ type TestMailResult = {
 export function MailSettingsPage() {
   const [status, setStatus] = useState<MailStatus | null>(null);
   const [testTo, setTestTo] = useState('');
+  const [from, setFrom] = useState('');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function loadStatus() {
     setLoading(true);
     setError(null);
     try {
-      setStatus(await api.get<MailStatus>('/admin/mail/status'));
+      const next = await api.get<MailStatus>('/admin/mail/status');
+      setStatus(next);
+      setFrom(next.from.includes('@') ? next.from : '');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '메일 설정 상태를 불러오지 못했습니다.');
     } finally {
@@ -41,6 +48,42 @@ export function MailSettingsPage() {
   useEffect(() => {
     loadStatus();
   }, []);
+
+  async function saveGmail() {
+    if (!from.trim() || !smtpUser.trim()) return;
+    setSaving(true);
+    setError(null);
+    setResult(null);
+    try {
+      const next = await api.put<MailStatus>('/admin/mail/gmail', {
+        from: from.trim(),
+        smtpUser: smtpUser.trim(),
+        smtpPass: smtpPass.trim() || undefined,
+      });
+      setStatus(next);
+      setSmtpPass('');
+      setResult(next.message);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gmail 설정 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function disableConfig() {
+    setSaving(true);
+    setError(null);
+    setResult(null);
+    try {
+      const next = await api.delete<MailStatus>('/admin/mail/config');
+      setStatus(next);
+      setResult('관리자 페이지에 저장된 메일 설정을 껐습니다.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '메일 설정을 끄지 못했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function sendTest() {
     if (!testTo.trim()) return;
@@ -95,6 +138,12 @@ export function MailSettingsPage() {
 
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
+              <dt className="text-xs text-fg-muted">설정 위치</dt>
+              <dd className="mt-1 font-mono">
+                {status.source === 'database' ? '관리자 페이지' : status.source === 'environment' ? '환경변수' : '로그 전용'}
+              </dd>
+            </div>
+            <div>
               <dt className="text-xs text-fg-muted">발신 주소</dt>
               <dd className="mt-1 font-mono">{status.from}</dd>
             </div>
@@ -115,16 +164,61 @@ export function MailSettingsPage() {
       )}
 
       <div className="mt-4 rounded border border-ink-500 p-4">
-        <h3 className="font-bold">Gmail로 설정하기</h3>
-        <div className="mt-3 rounded bg-ink-100 p-3 font-mono text-xs leading-6">
-          <p>MAIL_PROVIDER="gmail"</p>
-          <p>MAIL_FROM="보내는 Gmail 주소"</p>
-          <p>SMTP_USER="보내는 Gmail 주소"</p>
-          <p>SMTP_PASS="Google 계정의 앱 비밀번호 16자리"</p>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-bold">Gmail 저장</h3>
+          <button
+            onClick={disableConfig}
+            disabled={saving || status?.source !== 'database'}
+            className="rounded border border-ink-500 px-3 py-1.5 text-xs hover:border-[var(--color-wa)] hover:text-[var(--color-wa)] disabled:opacity-50"
+          >
+            저장 설정 끄기
+          </button>
         </div>
         <p className="mt-2 text-xs text-fg-muted">
           Gmail은 일반 로그인 비밀번호를 받지 않습니다. Google 계정에서 2단계 인증을 켠 뒤 앱 비밀번호를 만들어 넣어야 합니다.
         </p>
+        <div className="mt-3 grid gap-3">
+          <label className="flex flex-col gap-1 text-xs text-fg-muted">
+            발신 Gmail
+            <input
+              type="email"
+              value={from}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                if (!smtpUser) setSmtpUser(e.target.value);
+              }}
+              placeholder="your-account@gmail.com"
+              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg outline-none focus:border-[var(--color-brand)]"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-fg-muted">
+            SMTP 로그인 Gmail
+            <input
+              type="email"
+              value={smtpUser}
+              onChange={(e) => setSmtpUser(e.target.value)}
+              placeholder="your-account@gmail.com"
+              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg outline-none focus:border-[var(--color-brand)]"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-fg-muted">
+            Gmail 앱 비밀번호
+            <input
+              type="password"
+              value={smtpPass}
+              onChange={(e) => setSmtpPass(e.target.value)}
+              placeholder={status?.source === 'database' ? '변경할 때만 새 앱 비밀번호 입력' : '16자리 앱 비밀번호'}
+              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg outline-none focus:border-[var(--color-brand)]"
+            />
+          </label>
+        </div>
+        <button
+          onClick={saveGmail}
+          disabled={saving || !from.trim() || !smtpUser.trim()}
+          className="mt-3 rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+        >
+          {saving ? '저장 중...' : 'Gmail 설정 저장'}
+        </button>
       </div>
 
       <div className="mt-4 rounded border border-ink-500 p-4">

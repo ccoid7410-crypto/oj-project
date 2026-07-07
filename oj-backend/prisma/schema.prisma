@@ -276,6 +276,24 @@ model JudgeConfig {
   @@map("judge_config")
 }
 
+/// 관리자 페이지에서 수정하는 메일 발송 설정. smtpPass는 앱 비밀번호처럼
+/// 발송 시 원문이 필요한 값이라 해시하지 않는다. API 응답에는 절대 포함하지 않는다.
+model MailConfig {
+  id          Int      @id @default(1)
+  enabled     Boolean  @default(false)
+  provider    String   @default("gmail")
+  from        String
+  smtpUser    String
+  smtpPass    String
+  smtpHost    String?  @default("smtp.gmail.com")
+  smtpPort    Int      @default(587)
+  smtpSecure  Boolean  @default(false)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("mail_config")
+}
+
 model Contest {
   id          String   @id @default(uuid())
   title       String
