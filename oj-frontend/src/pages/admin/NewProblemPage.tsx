@@ -5,6 +5,7 @@ import type { Difficulty, Language } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
+import { FileTextLoader } from '../../components/FileTextLoader';
 
 interface TestCaseInput {
   input: string;
@@ -215,7 +216,10 @@ export function NewProblemPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex flex-col gap-1 text-xs text-fg-muted">
-                    input
+                    <span className="flex items-center justify-between">
+                      input
+                      <FileTextLoader onLoad={(text) => updateTestCase(i, { input: text })} />
+                    </span>
                     <textarea
                       required
                       rows={3}
@@ -225,7 +229,10 @@ export function NewProblemPage() {
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-xs text-fg-muted">
-                    output
+                    <span className="flex items-center justify-between">
+                      output
+                      <FileTextLoader onLoad={(text) => updateTestCase(i, { output: text })} />
+                    </span>
                     <textarea
                       required
                       rows={3}

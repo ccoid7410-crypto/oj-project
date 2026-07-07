@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client';
 import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
+import { FileTextLoader } from '../components/FileTextLoader';
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -303,7 +304,10 @@ export function EditProblemPage() {
           <p className="text-sm font-bold">새 테스트케이스 추가</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-sm">
-              입력
+              <span className="flex items-center justify-between">
+                입력
+                <FileTextLoader onLoad={setNewInput} />
+              </span>
               <textarea
                 required
                 rows={4}
@@ -313,7 +317,10 @@ export function EditProblemPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              출력
+              <span className="flex items-center justify-between">
+                출력
+                <FileTextLoader onLoad={setNewOutput} />
+              </span>
               <textarea
                 required
                 rows={4}
