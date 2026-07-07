@@ -1,5 +1,6 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 
 function resolveCorsOrigins(): string[] | boolean {
@@ -25,6 +26,13 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
+
+  // Express 기본 바디 파서 한도(json 기준 100kb)가 너무 작아서, 스트레스 테스트용으로
+  // 큰 입력을 넣는 테스트케이스나 대량 계정 생성 요청이 "request entity too large"로 막혔다.
+  // 문제 하나에 들어갈 테스트케이스 총량 기준으로 여유 있게 잡는다.
+  app.use(json({ limit: '20mb' }));
+  app.use(urlencoded({ limit: '20mb', extended: true }));
+
   const corsOrigins = resolveCorsOrigins();
   app.enableCors({ origin: corsOrigins, credentials: true });
   logger.log(`CORS allowed origins: ${JSON.stringify(corsOrigins)}`);
