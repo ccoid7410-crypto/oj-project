@@ -52,8 +52,7 @@ export class AuthService {
       throw new ConflictException('이미 사용 중인 이메일 또는 username 입니다.');
     }
 
-    // 동아리 학번 명단이 등록돼 있으면, 가입 시 입력한 학번도 그 명단에 있어야 한다.
-    await this.studentId.assertValidForSignup(dto.studentId);
+    // 학번 명단(화이트리스트)은 가입을 막는 용도가 아니라 문제 등록 자격 검증에 쓴다 (problems.service 참고).
     if (dto.studentId) {
       const studentIdTaken = await this.prisma.user.findUnique({ where: { studentId: dto.studentId } });
       if (studentIdTaken) throw new ConflictException('이미 다른 계정에 등록된 학번입니다.');

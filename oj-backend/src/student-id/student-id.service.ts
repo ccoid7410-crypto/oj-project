@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -46,15 +52,18 @@ export class StudentIdService {
   }
 
   /**
-   * 명단이 하나라도 등록돼 있으면, 그 학번은 반드시 명단에 있어야 유효하다.
-   * 명단이 비어 있으면(아직 관리자가 아무것도 안 넣었으면) 검증하지 않는다.
+   * 문제 등록 자격 검증: 명단이 하나라도 등록돼 있으면, 명단에 있는 학번을
+   * 등록한 회원만 문제를 등록할 수 있다. 명단이 비어 있으면 검증하지 않는다.
+   * (가입/학번 등록을 막는 용도가 아니다.)
    */
-  async assertValidForSignup(studentId: string | undefined) {
-    if (!studentId) return;
+  async assertCanRegisterProblem(studentId: string | null | undefined) {
     const size = await this.rosterSize();
     if (size === 0) return;
+    if (!studentId) {
+      throw new ForbiddenException('문제를 등록하려면 먼저 프로필에서 학번을 등록해야 합니다.');
+    }
     const ok = await this.isInRoster(studentId);
-    if (!ok) throw new ConflictException('동아리 학번 명단에 없는 학번입니다.');
+    if (!ok) throw new ForbiddenException('동아리 학번 명단에 있는 회원만 문제를 등록할 수 있습니다.');
   }
 
   // ---- 학번 "수정" 허용 기간 ----
@@ -93,8 +102,6 @@ export class StudentIdService {
         throw new BadRequestException('지금은 학번 수정 기간이 아닙니다. 관리자가 연 기간에만 수정할 수 있습니다.');
       }
     }
-
-    await this.assertValidForSignup(studentId);
 
     const taken = await this.prisma.user.findUnique({ where: { studentId } });
     if (taken && taken.id !== userId) {
