@@ -11,7 +11,12 @@ x-logging: &default-logging
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # 반드시 glibc 계열(bookworm)이어야 한다 - alpine(musl)로 바꿨다가 기존 pg_data 볼륨을
+    # 그대로 재사용하면, 텍스트 컬럼 인덱스가 glibc collation 기준으로 만들어져 있는데
+    # musl은 그 로케일의 실제 정렬 순서가 달라서(사실상 C 순서에 가까움) 인덱스가 조용히
+    # 어긋난다 - 에러 없이 조회 누락/중복 unique 통과 같은 미묘한 데이터 정합성 문제로만 나타남.
+    # 이미지를 다시 바꿔야 한다면 반드시 REINDEX(또는 새 클러스터로 dump/restore)까지 같이 해야 한다.
+    image: postgres:16-bookworm
     # 재부팅해도 docker 데몬이 뜨면 알아서 다시 켜지도록. (컨테이너가 죽었다가 살아나는 거지,
     # docker compose up을 매번 손으로 실행해야 하는 게 아니다.)
     restart: unless-stopped

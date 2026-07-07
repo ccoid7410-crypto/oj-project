@@ -58,7 +58,13 @@ docker compose up -d
 
 `docker-compose.yml`이 8GB 기준으로 이미 튜닝되어 있다:
 
-- `postgres`/`redis`를 alpine 이미지로 교체(용량/메모리 footprint 축소), `shared_buffers`/`work_mem`/`max_connections`을 낮게 잡음.
+- `redis`는 alpine 이미지로 교체(용량/메모리 footprint 축소). **`postgres`는 반드시 bookworm(glibc) 계열을 유지할 것** —
+  한때 postgres도 alpine(musl)으로 바꿨다가 기존 `pg_data` 볼륨을 그대로 재사용해서 실제 사고가 났다: 텍스트 컬럼
+  인덱스가 glibc의 `en_US.utf8` collation 기준으로 만들어져 있는데, musl은 그 로케일의 실제 정렬 순서가 달라서
+  (사실상 C/바이트 순서에 가까움) 인덱스가 에러 없이 조용히 어긋난다 — 조회 누락, 있으면 안 될 값이 unique를
+  통과하는 등 미묘한 데이터 정합성 문제로만 나타나서 알아채기 어렵다. postgres 이미지의 libc 계열을 바꿔야
+  한다면 반드시 `REINDEX DATABASE`(또는 새 클러스터로 dump/restore)까지 같이 해야 한다.
+- postgres는 `shared_buffers`/`work_mem`/`max_connections`을 낮게 잡음.
 - 모든 서비스에 `deploy.resources.limits.memory`/`cpus`를 설정해서 한 서비스가 메모리를 독차지해 다른 서비스가 OOM-kill 당하는 걸 막음 (postgres 384M, api 384M, judge-worker 256M, redis 128M, frontend 64M, homepage 32M — 합쳐서 약 1.6GB, 나머지는 채점용 임시 컨테이너와 OS 몫).
 - `api`/`judge-worker`에 `NODE_OPTIONS=--max-old-space-size`를 컨테이너 메모리 상한보다 살짝 낮게 설정해서, cgroup에 급사당하기 전에 V8이 스스로 GC를 더 자주 돌리게 함.
 - **redis의 `maxmemory-policy`는 반드시 `noeviction`이어야 한다.** `allkeys-lru` 등으로 두면 BullMQ 큐 데이터가 메모리 부족 시 조용히 삭제되어(evict) 채점 대기 중이던 제출이 그냥 사라질 수 있다. `noeviction`이면 메모리가 꽉 찼을 때 에러를 내므로 최소한 알아챌 수 있다.
