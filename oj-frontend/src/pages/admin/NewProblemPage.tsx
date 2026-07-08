@@ -5,7 +5,7 @@ import type { Difficulty, Language } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
-import { FileTextLoader } from '../../components/FileTextLoader';
+import { TestCaseTextField } from '../../components/TestCaseTextField';
 
 interface TestCaseInput {
   input: string;
@@ -215,32 +215,18 @@ export function NewProblemPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1 text-xs text-fg-muted">
-                    <span className="flex items-center justify-between">
-                      input
-                      <FileTextLoader onLoad={(text) => updateTestCase(i, { input: text })} />
-                    </span>
-                    <textarea
-                      required
-                      rows={3}
-                      value={tc.input}
-                      onChange={(e) => updateTestCase(i, { input: e.target.value })}
-                      className={`${inputClass} resize-y`}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs text-fg-muted">
-                    <span className="flex items-center justify-between">
-                      output
-                      <FileTextLoader onLoad={(text) => updateTestCase(i, { output: text })} />
-                    </span>
-                    <textarea
-                      required
-                      rows={3}
-                      value={tc.output}
-                      onChange={(e) => updateTestCase(i, { output: e.target.value })}
-                      className={`${inputClass} resize-y`}
-                    />
-                  </label>
+                  <TestCaseTextField
+                    label="input"
+                    value={tc.input}
+                    onChange={(text) => updateTestCase(i, { input: text })}
+                    className={`${inputClass} resize-y`}
+                  />
+                  <TestCaseTextField
+                    label="output"
+                    value={tc.output}
+                    onChange={(text) => updateTestCase(i, { output: text })}
+                    className={`${inputClass} resize-y`}
+                  />
                 </div>
               </div>
             ))}

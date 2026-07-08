@@ -4,7 +4,7 @@ import { api, ApiError } from '../api/client';
 import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
-import { FileTextLoader } from '../components/FileTextLoader';
+import { TestCaseTextField } from '../components/TestCaseTextField';
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -303,32 +303,8 @@ export function EditProblemPage() {
         <form onSubmit={onAddTestCase} className="mt-6 flex flex-col gap-3 rounded border border-ink-500 p-4">
           <p className="text-sm font-bold">새 테스트케이스 추가</p>
           <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="flex items-center justify-between">
-                입력
-                <FileTextLoader onLoad={setNewInput} />
-              </span>
-              <textarea
-                required
-                rows={4}
-                value={newInput}
-                onChange={(e) => setNewInput(e.target.value)}
-                className={`${inputClass} font-mono`}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="flex items-center justify-between">
-                출력
-                <FileTextLoader onLoad={setNewOutput} />
-              </span>
-              <textarea
-                required
-                rows={4}
-                value={newOutput}
-                onChange={(e) => setNewOutput(e.target.value)}
-                className={`${inputClass} font-mono`}
-              />
-            </label>
+            <TestCaseTextField label="입력" value={newInput} onChange={setNewInput} rows={4} className={`${inputClass} font-mono`} />
+            <TestCaseTextField label="출력" value={newOutput} onChange={setNewOutput} rows={4} className={`${inputClass} font-mono`} />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={newIsSample} onChange={(e) => setNewIsSample(e.target.checked)} />
