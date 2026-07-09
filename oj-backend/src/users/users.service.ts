@@ -289,14 +289,15 @@ export class UsersService {
       .map(([generation, members]) => ({ generation, members }));
   }
 
-  /** 관리자 권한 부여/해제. 본인 권한 해제와 마지막 관리자 해제는 잠금 사고 방지를 위해 막는다. */
-  async setRole(id: string, role: 'USER' | 'ADMIN', actingUserId: string) {
+  /** 권한 변경 (USER=일반, MEMBER=부원, ADMIN=관리자). 관리자 강등에는 잠금 사고 방지 장치가 걸려 있다. */
+  async setRole(id: string, role: 'USER' | 'MEMBER' | 'ADMIN', actingUserId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === role) {
       return { id: user.id, username: user.username, role: user.role };
     }
-    if (role === 'USER') {
+    // 관리자를 강등(ADMIN -> MEMBER/USER)할 때의 보호 장치들
+    if (user.role === 'ADMIN') {
       const rootAdmin = process.env.ROOT_ADMIN_USERNAME?.trim() || DEFAULT_ROOT_ADMIN_USERNAME;
       if (user.username === rootAdmin) {
         throw new BadRequestException('메인 관리자의 권한은 해제할 수 없습니다.');
@@ -309,8 +310,8 @@ export class UsersService {
         throw new BadRequestException('마지막 관리자의 권한은 해제할 수 없습니다.');
       }
     }
-    if (role === 'ADMIN' && user.banned) {
-      throw new BadRequestException('정지된 계정은 관리자로 지정할 수 없습니다.');
+    if (role !== 'USER' && user.banned) {
+      throw new BadRequestException('정지된 계정에는 권한을 부여할 수 없습니다.');
     }
     return this.prisma.user.update({
       where: { id },

@@ -13,7 +13,7 @@ window.clubProfileReady.then((profile) => {
     ["기수", profile.generation ? `${profile.generation}기` : "-"],
     ["학번", profile.studentId ?? "미등록"],
     ["레이팅", String(profile.rating)],
-    ["권한", profile.role === "ADMIN" ? "관리자" : "일반 회원"],
+    ["권한", profile.role === "ADMIN" ? "관리자" : profile.role === "MEMBER" ? "부원" : "일반 회원"],
     ["가입일", new Date(profile.createdAt).toLocaleDateString("ko-KR")],
   ];
   for (const [label, value] of rows) {

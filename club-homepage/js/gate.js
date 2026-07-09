@@ -57,19 +57,11 @@ window.clubProfileReady = (async () => {
     if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
 
     const profile = await res.json();
-    if (!profile.clubMember) {
+    if (profile.role !== "MEMBER" && profile.role !== "ADMIN") {
       renderGateScreen(
-        "동아리 회원만 접속할 수 있습니다",
-        profile.studentId
-          ? "등록된 학번이 동아리 명단에 없습니다. 동아리 관리자에게 문의해주세요."
-          : "동아리 명단 확인을 위해 OJ 프로필에서 학번을 먼저 등록해주세요.",
-        [
-          {
-            href: `/users/${encodeURIComponent(profile.username)}`,
-            label: "OJ 프로필로 가기",
-            primary: true,
-          },
-        ],
+        "동아리 부원만 접속할 수 있습니다",
+        "관리자에게 부원 등록을 요청해주세요. 부원으로 등록되면 홈페이지를 이용할 수 있습니다.",
+        [{ href: "/", label: "OJ로 가기", primary: true }],
       );
       return null;
     }

@@ -53,8 +53,8 @@ class BanUserDto {
 }
 
 class SetRoleDto {
-  @IsIn(['USER', 'ADMIN'])
-  role: 'USER' | 'ADMIN';
+  @IsIn(['USER', 'MEMBER', 'ADMIN'])
+  role: 'USER' | 'MEMBER' | 'ADMIN';
 }
 
 // role은 의도적으로 받지 않는다: bulk 생성 경로로는 절대 ADMIN을 만들 수 없다

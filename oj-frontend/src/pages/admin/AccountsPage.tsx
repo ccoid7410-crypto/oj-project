@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
-import type { AdminUser } from '../../api/types';
+import type { AdminUser, Role } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
+
+const ROLE_LABEL: Record<Role, string> = { USER: '일반', MEMBER: '부원', ADMIN: '관리자' };
 
 export function AccountsPage() {
   const { user: me } = useAuth();
@@ -46,9 +48,11 @@ export function AccountsPage() {
     }
   }
 
-  async function setRole(id: string, username: string, role: 'USER' | 'ADMIN') {
-    const action = role === 'ADMIN' ? '관리자로 지정' : '관리자에서 해제';
-    if (!window.confirm(`${username} 계정을 ${action}할까요?`)) return;
+  async function setRole(id: string, username: string, role: Role) {
+    if (!window.confirm(`${username} 계정의 권한을 '${ROLE_LABEL[role]}'(으)로 변경할까요?`)) {
+      load(); // 취소 시 select 표시를 원래 값으로 되돌리기 위해 다시 불러온다
+      return;
+    }
     setBusyId(id);
     setError(null);
     try {
@@ -56,6 +60,7 @@ export function AccountsPage() {
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '권한 변경에 실패했습니다.');
+      load();
     } finally {
       setBusyId(null);
     }
@@ -105,7 +110,7 @@ export function AccountsPage() {
               <tr key={u.id}>
                 <td className="border border-ink-600 px-2 py-1.5 font-medium">{u.username}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{u.email}</td>
-                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{u.role}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{ROLE_LABEL[u.role] ?? u.role}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{u.rating}</td>
                 <td
                   className={`border border-ink-600 px-2 py-1.5 font-bold ${
@@ -115,29 +120,23 @@ export function AccountsPage() {
                   {u.banned ? `정지됨${u.bannedReason ? ` (${u.bannedReason})` : ''}` : '활성'}
                 </td>
                 <td className="border border-ink-600 px-2 py-1.5">
-                  {u.role === 'ADMIN' ? (
-                    me?.username === u.username ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {me?.username === u.username ? (
                       <span className="text-xs text-fg-muted">본인 계정</span>
                     ) : (
-                      <button
-                        onClick={() => setRole(u.id, u.username, 'USER')}
+                      <select
+                        value={u.role}
                         disabled={busyId === u.id}
-                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-wa)] hover:text-[var(--color-wa)] disabled:opacity-60"
+                        onChange={(e) => setRole(u.id, u.username, e.target.value as Role)}
+                        className="rounded border border-ink-500 bg-white px-1.5 py-1 text-xs outline-none focus:border-[var(--color-brand)] disabled:opacity-60"
                       >
-                        관리자 해제
-                      </button>
-                    )
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <button
-                        onClick={() => setRole(u.id, u.username, 'ADMIN')}
-                        disabled={busyId === u.id || u.banned}
-                        title={u.banned ? '정지된 계정은 관리자로 지정할 수 없습니다' : undefined}
-                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
-                      >
-                        관리자 지정
-                      </button>
-                      {u.banned ? (
+                        <option value="USER">일반</option>
+                        <option value="MEMBER">부원</option>
+                        <option value="ADMIN">관리자</option>
+                      </select>
+                    )}
+                    {u.role !== 'ADMIN' &&
+                      (u.banned ? (
                         <button
                           onClick={() => unban(u.id)}
                           disabled={busyId === u.id}
@@ -161,9 +160,8 @@ export function AccountsPage() {
                             정지
                           </button>
                         </>
-                      )}
-                    </div>
-                  )}
+                      ))}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -13,6 +13,7 @@ datasource db {
 
 enum Role {
   USER
+  MEMBER // 동아리 부원: 홈페이지 접속 자격
   ADMIN
 }
 
