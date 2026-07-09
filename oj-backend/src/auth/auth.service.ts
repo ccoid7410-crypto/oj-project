@@ -55,12 +55,16 @@ export class AuthService {
       if (studentIdTaken) throw new ConflictException('이미 다른 계정에 등록된 학번입니다.');
     }
 
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException('이름을 입력해주세요.');
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         username: dto.username,
         passwordHash,
+        name,
         studentId: dto.studentId ?? null,
       },
     });

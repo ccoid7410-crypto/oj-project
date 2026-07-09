@@ -34,6 +34,7 @@ export class UsersService {
         id: true,
         email: true,
         username: true,
+        name: true,
         role: true,
         rating: true,
         studentId: true,
@@ -231,19 +232,31 @@ export class UsersService {
   async clubProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { username: true, email: true, studentId: true, rating: true, role: true, createdAt: true },
+      select: { username: true, email: true, name: true, studentId: true, rating: true, role: true, createdAt: true },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
 
     const match = user.email.split('@')[0].match(/\d{2}/);
     return {
       username: user.username,
+      name: user.name,
       studentId: user.studentId,
       rating: user.rating,
       role: user.role,
       createdAt: user.createdAt,
       generation: match ? match[0] : null,
     };
+  }
+
+  /** 본인 이름(실명) 등록/수정. */
+  async updateName(userId: string, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) throw new BadRequestException('이름을 입력해주세요.');
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { name: trimmed },
+      select: { id: true, name: true },
+    });
   }
 
   /**

@@ -9,6 +9,7 @@ import { SignupPage } from './pages/SignupPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ResendVerificationPage } from './pages/ResendVerificationPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { RegisterNamePage } from './pages/RegisterNamePage';
 import { ProblemListPage } from './pages/ProblemListPage';
 import { ProblemDetailPage } from './pages/ProblemDetailPage';
 import { MyProblemsPage } from './pages/MyProblemsPage';
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/users/:username" element={<ProfilePage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/change-password" element={<ChangePasswordPage />} />
+              <Route path="/register-name" element={<RegisterNamePage />} />
               <Route path="/problems/mine" element={<MyProblemsPage />} />
               <Route path="/problems/new" element={<NewProblemPage />} />
               <Route path="/problems/:slug/edit" element={<EditProblemPage />} />

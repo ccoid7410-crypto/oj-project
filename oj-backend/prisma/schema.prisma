@@ -60,6 +60,7 @@ model User {
   email        String       @unique
   username     String       @unique
   passwordHash String
+  name         String? // 실명. 가입 시 필수 입력, 없는 기존 계정은 로그인 후 등록을 강제한다(Layout 참고)
   role         Role         @default(USER)
   rating       Int          @default(0) // 상위 100문제(AC) 레이팅 합. RatingService가 재계산한다.
   banned       Boolean      @default(false)

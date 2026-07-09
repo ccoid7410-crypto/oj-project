@@ -18,6 +18,14 @@ export function Layout() {
     }
   }, [user?.mustChangePassword, location.pathname, navigate]);
 
+  // 이름(실명)이 없는 계정은 등록할 때까지 다른 화면을 못 쓰게 막는다. 비밀번호 강제 변경이 우선.
+  useEffect(() => {
+    if (!user || user.mustChangePassword) return;
+    if (!user.name && location.pathname !== '/register-name') {
+      navigate('/register-name', { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
+
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
     const load = () => {

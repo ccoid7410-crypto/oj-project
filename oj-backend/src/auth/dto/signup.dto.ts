@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, MinLength, Matches } from 'class-validator';
 
 export class SignupDto {
   @IsEmail()
@@ -9,6 +9,11 @@ export class SignupDto {
     message: 'username은 3~20자의 영문/숫자/언더스코어만 가능합니다.',
   })
   username: string;
+
+  /** 실명. 필수 입력. */
+  @IsString()
+  @Length(1, 30, { message: '이름은 1~30자로 입력해주세요.' })
+  name: string;
 
   @IsString()
   @MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })

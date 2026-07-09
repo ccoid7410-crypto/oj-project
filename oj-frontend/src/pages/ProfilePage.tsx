@@ -52,6 +52,7 @@ export function ProfilePage() {
         </div>
       </div>
 
+      {isSelf && <NameSection />}
       {isSelf && <StudentIdSection onUpdated={() => refreshUser().then(load)} />}
 
       <h2 className="mt-8 border-b border-ink-500 pb-1 text-base font-bold">푼 문제 (난이도 높은 순)</h2>
@@ -73,6 +74,55 @@ export function ProfilePage() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function NameSection() {
+  const { user, refreshUser } = useAuth();
+  const [name, setName] = useState(user?.name ?? '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.patch('/users/me/name', { name });
+      setNotice('이름이 저장됐습니다.');
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '이름 저장에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded border border-ink-500 p-3 text-xs">
+      <p className="font-bold text-fg">이름 (실명)</p>
+      {!user?.name && <p className="mt-1 text-fg-muted">아직 등록된 이름이 없습니다.</p>}
+      <form onSubmit={onSubmit} className="mt-2 flex items-center gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={30}
+          placeholder="예: 김철수"
+          className="w-40 rounded border border-ink-500 bg-white px-2 py-1.5 outline-none focus:border-[var(--color-brand)]"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !name.trim()}
+          className="rounded bg-[var(--color-brand)] px-3 py-1.5 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+        >
+          {submitting ? '저장 중...' : '저장'}
+        </button>
+      </form>
+      {notice && <p className="mt-2 text-[var(--color-ac)]">{notice}</p>}
+      {error && <p className="mt-2 text-[var(--color-wa)]">{error}</p>}
     </div>
   );
 }

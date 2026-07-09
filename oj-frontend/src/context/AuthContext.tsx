@@ -6,7 +6,13 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, username: string, password: string, studentId?: string) => Promise<{ message: string }>;
+  signup: (
+    email: string,
+    username: string,
+    name: string,
+    password: string,
+    studentId?: string,
+  ) => Promise<{ message: string }>;
   verifyEmail: (token: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -43,11 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }
 
-  async function signup(email: string, username: string, password: string, studentId?: string) {
+  async function signup(email: string, username: string, name: string, password: string, studentId?: string) {
     // 이메일 인증 전에는 토큰이 발급되지 않는다. 안내 메시지만 반환하고 로그인 상태로 만들지 않는다.
     return api.post<{ requiresEmailVerification: true; message: string }>('/auth/signup', {
       email,
       username,
+      name,
       password,
       studentId: studentId || undefined,
     });

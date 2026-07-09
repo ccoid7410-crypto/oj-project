@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { IsString, Matches, MinLength } from 'class-validator';
+import { IsString, Length, Matches, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -12,6 +12,12 @@ class UpdateStudentIdDto {
   @IsString()
   @Matches(/^[a-zA-Z0-9-]{1,20}$/, { message: '학번 형식이 올바르지 않습니다.' })
   studentId: string;
+}
+
+class UpdateNameDto {
+  @IsString()
+  @Length(1, 30, { message: '이름은 1~30자로 입력해주세요.' })
+  name: string;
 }
 
 class ChangePasswordDto {
@@ -54,6 +60,12 @@ export class UsersController {
   @Patch('me/student-id')
   updateStudentId(@CurrentUser() user: RequestUser, @Body() dto: UpdateStudentIdDto) {
     return this.studentId.updateOwnStudentId(user.userId, dto.studentId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/name')
+  updateName(@CurrentUser() user: RequestUser, @Body() dto: UpdateNameDto) {
+    return this.usersService.updateName(user.userId, dto.name);
   }
 
   @UseGuards(JwtAuthGuard)

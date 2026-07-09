@@ -7,6 +7,7 @@ export function SignupPage() {
   const { signup } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await signup(email, username, password, studentId);
+      const res = await signup(email, username, name, password, studentId);
       setSentMessage(res.message);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '회원가입에 실패했습니다.');
@@ -65,6 +66,17 @@ export function SignupPage() {
             pattern="^[a-zA-Z0-9_]{3,20}$"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            className="rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          이름 (실명)
+          <input
+            required
+            maxLength={30}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="예: 김철수"
             className="rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
         </label>
