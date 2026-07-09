@@ -341,16 +341,6 @@ model ContestParticipant {
   @@map("contest_participants")
 }
 
-/// 동아리 회원 학번 명단(화이트리스트). 관리자가 등록/삭제한다.
-model ClubRosterEntry {
-  id        String   @id @default(uuid())
-  studentId String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-
-  @@map("club_roster")
-}
-
 /// 학번 "수정"이 허용되는 기간(단일 행 설정). 최초 가입 시 입력은 이 기간과 무관하게 항상 가능하다.
 model StudentIdEditWindow {
   id          Int       @id @default(1)

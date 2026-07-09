@@ -9,7 +9,6 @@ window.clubProfileReady.then((profile) => {
   table.className = "info-table";
   const rows = [
     ["아이디", profile.username],
-    ["이름", profile.name ?? "-"],
     ["기수", profile.generation ? `${profile.generation}기` : "-"],
     ["학번", profile.studentId ?? "미등록"],
     ["레이팅", String(profile.rating)],

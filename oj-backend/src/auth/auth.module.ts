@@ -5,7 +5,6 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
-import { StudentIdModule } from '../student-id/student-id.module';
 import { MailModule } from '../mail/mail.module';
 
 @Module({
@@ -19,7 +18,6 @@ import { MailModule } from '../mail/mail.module';
         signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '1d') as any },
       }),
     }),
-    StudentIdModule,
     MailModule,
   ],
   controllers: [AuthController],

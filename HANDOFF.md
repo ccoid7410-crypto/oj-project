@@ -36,7 +36,7 @@ docker compose up -d
 ## 지금까지 만든 것 (요약)
 
 - `auth` — 회원가입(이메일 도메인 제한 + 이메일 인증), 로그인, JWT (역할 재확인 포함)
-- `users` — 프로필/랭킹(PII 최소화된 응답), 학번 등록 + 어드민이 지정한 수정 기간에만 수정 가능, 동아리 학번 화이트리스트
+- `users` — 프로필/랭킹(PII 최소화된 응답), 학번 등록 + 어드민이 지정한 수정 기간에만 수정 가능, 권한 3단계(USER/MEMBER/ADMIN — 부원(MEMBER) 이상만 동아리 홈페이지 접속·문제 등록 가능)
 - `problems` — 문제 CRUD, 일반 사용자 제안 → 어드민 승인 후 공개, solved.ac 스타일 티어(브론즈~루비 x 5레벨), 커뮤니티 난이도 투표
 - `submissions` / `judge` — BullMQ 큐 채점, 언어별(C/C++/Java/Python3/JS/Go) 샌드박스 실행, WebSocket 실시간 채점 로그
 - `rating` — 상위 100문제 난이도 합산 레이팅

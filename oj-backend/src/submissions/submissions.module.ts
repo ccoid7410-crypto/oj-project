@@ -4,10 +4,9 @@ import { SubmissionsService } from './submissions.service';
 import { SubmissionsController } from './submissions.controller';
 import { JUDGE_QUEUE } from '../judge/judge.constants';
 import { QueuePriorityService } from '../judge/queue-priority.service';
-import { StudentIdModule } from '../student-id/student-id.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: JUDGE_QUEUE }), StudentIdModule],
+  imports: [BullModule.registerQueue({ name: JUDGE_QUEUE })],
   controllers: [SubmissionsController],
   providers: [SubmissionsService, QueuePriorityService],
   exports: [SubmissionsService],

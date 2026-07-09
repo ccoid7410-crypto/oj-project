@@ -5,46 +5,6 @@ import { PrismaService } from '../prisma/prisma.service';
 export class StudentIdService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ---- 동아리 학번 명단(화이트리스트) ----
-
-  async listRoster() {
-    return this.prisma.clubRosterEntry.findMany({ orderBy: { createdAt: 'desc' } });
-  }
-
-  /** 여러 줄(또는 콤마)로 붙여넣은 학번을 한 번에 등록. 이미 있는 학번은 건너뛴다. */
-  async bulkAddRoster(entries: Array<{ studentId: string; name?: string }>) {
-    if (!entries.length) throw new BadRequestException('추가할 학번이 없습니다.');
-    const added: string[] = [];
-    const skipped: string[] = [];
-    for (const e of entries) {
-      const studentId = e.studentId.trim();
-      if (!studentId) continue;
-      const exists = await this.prisma.clubRosterEntry.findUnique({ where: { studentId } });
-      if (exists) {
-        skipped.push(studentId);
-        continue;
-      }
-      await this.prisma.clubRosterEntry.create({ data: { studentId, name: e.name?.trim() || null } });
-      added.push(studentId);
-    }
-    return { addedCount: added.length, skippedCount: skipped.length, added, skipped };
-  }
-
-  async removeRoster(id: string) {
-    const entry = await this.prisma.clubRosterEntry.findUnique({ where: { id } });
-    if (!entry) throw new NotFoundException('명단에 없는 항목입니다.');
-    await this.prisma.clubRosterEntry.delete({ where: { id } });
-    return { success: true };
-  }
-
-  async isInRoster(studentId: string): Promise<boolean> {
-    return !!(await this.prisma.clubRosterEntry.findUnique({ where: { studentId } }));
-  }
-
-  async rosterSize(): Promise<number> {
-    return this.prisma.clubRosterEntry.count();
-  }
-
   // ---- 학번 "수정" 허용 기간 ----
 
   async getWindow() {

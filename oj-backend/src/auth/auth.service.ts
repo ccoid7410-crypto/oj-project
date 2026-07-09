@@ -11,7 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { StudentIdService } from '../student-id/student-id.service';
 import { MailService } from '../mail/mail.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -29,7 +28,6 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly studentId: StudentIdService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
   ) {}
@@ -52,7 +50,6 @@ export class AuthService {
       throw new ConflictException('이미 사용 중인 이메일 또는 username 입니다.');
     }
 
-    // 학번 명단(화이트리스트)은 가입을 막는 용도가 아니라 문제 등록 자격 검증에 쓴다 (problems.service 참고).
     if (dto.studentId) {
       const studentIdTaken = await this.prisma.user.findUnique({ where: { studentId: dto.studentId } });
       if (studentIdTaken) throw new ConflictException('이미 다른 계정에 등록된 학번입니다.');

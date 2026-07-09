@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import {
   IsArray,
   IsDateString,
@@ -28,18 +28,6 @@ import { StudentIdService } from '../student-id/student-id.service';
 import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
 import { MailService } from '../mail/mail.service';
-
-class RosterEntryDto {
-  @IsString() studentId: string;
-  @IsOptional() @IsString() name?: string;
-}
-
-class BulkRosterDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RosterEntryDto)
-  entries: RosterEntryDto[];
-}
 
 class SetStudentIdWindowDto {
   @IsOptional() @IsDateString() startsAt?: string;
@@ -221,22 +209,6 @@ export class AdminController {
   async recomputeAllRatings() {
     const count = await this.rating.recomputeAll();
     return { recomputedUsers: count };
-  }
-
-  // ---- 동아리 학번 명단 ----
-  @Get('student-id/roster')
-  listRoster() {
-    return this.studentId.listRoster();
-  }
-
-  @Post('student-id/roster')
-  bulkAddRoster(@Body() dto: BulkRosterDto) {
-    return this.studentId.bulkAddRoster(dto.entries);
-  }
-
-  @Delete('student-id/roster/:id')
-  removeRoster(@Param('id') id: string) {
-    return this.studentId.removeRoster(id);
   }
 
   // ---- 학번 수정 허용 기간 ----

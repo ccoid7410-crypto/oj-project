@@ -227,27 +227,13 @@ export class UsersService {
     });
   }
 
-  /**
-   * 동아리 홈페이지 마이페이지/접속 제한용 본인 정보.
-   * clubMember: 학번 명단(화이트리스트)에 등록된 회원인지. 명단이 비어 있으면 모두 회원으로 취급한다.
-   */
+  /** 동아리 홈페이지 마이페이지/접속 제한용 본인 정보. 홈페이지 접속 자격은 role(MEMBER 이상)로 판단한다. */
   async clubProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { username: true, email: true, studentId: true, rating: true, role: true, createdAt: true },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
-
-    const rosterSize = await this.prisma.clubRosterEntry.count();
-    let clubMember = true;
-    let rosterName: string | null = null;
-    if (rosterSize > 0) {
-      const entry = user.studentId
-        ? await this.prisma.clubRosterEntry.findUnique({ where: { studentId: user.studentId } })
-        : null;
-      clubMember = !!entry;
-      rosterName = entry?.name ?? null;
-    }
 
     const match = user.email.split('@')[0].match(/\d{2}/);
     return {
@@ -257,8 +243,6 @@ export class UsersService {
       role: user.role,
       createdAt: user.createdAt,
       generation: match ? match[0] : null,
-      name: rosterName,
-      clubMember,
     };
   }
 

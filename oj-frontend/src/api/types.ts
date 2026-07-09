@@ -16,20 +16,6 @@ export interface StudentIdWindow {
   isOpen: boolean;
 }
 
-export interface ClubRosterEntry {
-  id: string;
-  studentId: string;
-  name: string | null;
-  createdAt: string;
-}
-
-export interface BulkRosterResult {
-  addedCount: number;
-  skippedCount: number;
-  added: string[];
-  skipped: string[];
-}
-
 export type Difficulty = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'RUBY';
 
 export interface ProblemSummary {
