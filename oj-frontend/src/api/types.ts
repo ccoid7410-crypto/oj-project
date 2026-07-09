@@ -233,6 +233,7 @@ export interface UserProfile {
 export interface AdminUser {
   id: string;
   username: string;
+  name: string | null;
   email: string;
   role: Role;
   rating: number;

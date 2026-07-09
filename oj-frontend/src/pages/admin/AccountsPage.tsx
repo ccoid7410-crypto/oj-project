@@ -97,6 +97,7 @@ export function AccountsPage() {
         <table className="mt-4 w-full border-collapse text-left text-[13px]">
           <thead>
             <tr className="bg-ink-700 text-fg-muted">
+              <th className="w-24 border border-ink-600 px-2 py-1.5 font-medium">이름</th>
               <th className="border border-ink-600 px-2 py-1.5 font-medium">username</th>
               <th className="border border-ink-600 px-2 py-1.5 font-medium">email</th>
               <th className="w-16 border border-ink-600 px-2 py-1.5 font-medium">권한</th>
@@ -108,6 +109,7 @@ export function AccountsPage() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
+                <td className="border border-ink-600 px-2 py-1.5 font-medium">{u.name ?? '-'}</td>
                 <td className="border border-ink-600 px-2 py-1.5 font-medium">{u.username}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{u.email}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{ROLE_LABEL[u.role] ?? u.role}</td>
