@@ -11,6 +11,7 @@ export class AdminStatsService {
 
     const [
       userCount,
+      memberCount,
       bannedCount,
       problemCounts,
       submissionsToday,
@@ -20,6 +21,8 @@ export class AdminStatsService {
       recentCompileErrors,
     ] = await Promise.all([
       this.prisma.user.count(),
+      // 부원 가입자: 관리자도 부원이므로 MEMBER 이상을 센다
+      this.prisma.user.count({ where: { role: { in: ['MEMBER', 'ADMIN'] } } }),
       this.prisma.user.count({ where: { banned: true } }),
       this.prisma.problem.groupBy({ by: ['status'], _count: true }),
       this.prisma.submission.count({ where: { createdAt: { gte: todayStart } } }),
@@ -47,7 +50,7 @@ export class AdminStatsService {
       : 0;
 
     return {
-      users: { total: userCount, banned: bannedCount },
+      users: { total: userCount, members: memberCount, banned: bannedCount },
       problems: {
         total: Object.values(byStatus).reduce((a, b) => a + b, 0),
         draft: byStatus.DRAFT ?? 0,

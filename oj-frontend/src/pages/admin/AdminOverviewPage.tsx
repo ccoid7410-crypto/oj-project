@@ -28,6 +28,7 @@ export function AdminOverviewPage() {
         <h2 className="text-sm font-bold text-fg-muted">가입/계정</h2>
         <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="전체 가입자" value={stats.users.total} />
+          <StatCard label="부원 가입자" value={stats.users.members} />
           <StatCard label="정지된 계정" value={stats.users.banned} warn={stats.users.banned > 0} />
         </div>
       </section>

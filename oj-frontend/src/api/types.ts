@@ -321,7 +321,7 @@ export interface AdminProblemRow {
 }
 
 export interface AdminOverviewStats {
-  users: { total: number; banned: number };
+  users: { total: number; members: number; banned: number };
   problems: { total: number; draft: number; pendingReview: number; published: number; rejected: number };
   submissions: { today: number; total: number };
   judgeHealth: {
