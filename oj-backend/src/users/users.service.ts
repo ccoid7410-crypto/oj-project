@@ -13,6 +13,10 @@ const BULK_CREATE_MAX = 100; // 관리자 토큰 탈취 시 피해 규모를 제
 const RANKING_DEFAULT_LIMIT = 50;
 const RANKING_MAX_LIMIT = 100;
 
+// 메인 관리자 기본값. 이 계정은 누구도 관리자 권한을 해제할 수 없다.
+// 서버 .env의 ROOT_ADMIN_USERNAME이 설정돼 있으면 그 값이 우선한다.
+const DEFAULT_ROOT_ADMIN_USERNAME = 'jihun1050';
+
 function randomPassword(): string {
   // 사람이 옮겨적기 쉬운 12자리 임시 비밀번호
   return randomBytes(9).toString('base64').replace(/[+/=]/g, '').slice(0, 12) + '1';
@@ -293,10 +297,8 @@ export class UsersService {
       return { id: user.id, username: user.username, role: user.role };
     }
     if (role === 'USER') {
-      // 메인 관리자(.env의 ROOT_ADMIN_USERNAME)는 앱 안에서는 누구도 권한을 해제할 수 없다.
-      // 서버 설정으로만 지정/변경 가능해서, 관리자 계정이 탈취돼도 메인 관리자는 지킬 수 있다.
-      const rootAdmin = process.env.ROOT_ADMIN_USERNAME?.trim();
-      if (rootAdmin && user.username === rootAdmin) {
+      const rootAdmin = process.env.ROOT_ADMIN_USERNAME?.trim() || DEFAULT_ROOT_ADMIN_USERNAME;
+      if (user.username === rootAdmin) {
         throw new BadRequestException('메인 관리자의 권한은 해제할 수 없습니다.');
       }
       if (id === actingUserId) {
