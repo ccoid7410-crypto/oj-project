@@ -64,3 +64,13 @@ async function initAuth() {
 }
 
 initAuth();
+
+window.clubProfileReady?.then((profile) => {
+  if (!profile || profile.role !== "ADMIN") return;
+  const nav = document.querySelector(".header-nav");
+  if (!nav) return;
+  const adminLink = document.createElement("a");
+  adminLink.href = "/admin";
+  adminLink.textContent = "관리자";
+  nav.insertBefore(adminLink, nav.querySelector(".nav-oj"));
+});

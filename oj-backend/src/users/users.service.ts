@@ -247,12 +247,12 @@ export class UsersService {
   }
 
   /**
-   * 명예의 전당: 이메일 아이디에서 처음 나오는 두 자리 숫자를 기수로 삼아
-   * 회원을 기수별로 묶는다 (예: cbsh38018@... -> 38기). 이메일 자체는 노출하지 않는다.
+   * 명예의 전당: 동아리 부원(MEMBER 이상)만, 이메일 아이디에서 처음 나오는 두 자리
+   * 숫자를 기수로 삼아 기수별로 묶는다 (예: cbsh38018@... -> 38기). 이메일 자체는 노출하지 않는다.
    */
   async hallOfFame() {
     const users = await this.prisma.user.findMany({
-      where: { banned: false },
+      where: { banned: false, role: { in: ['MEMBER', 'ADMIN'] } },
       select: { username: true, email: true },
       orderBy: { username: 'asc' },
     });
