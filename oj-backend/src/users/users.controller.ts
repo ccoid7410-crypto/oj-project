@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { IsString, Matches, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { StudentIdService } from '../student-id/student-id.service';
@@ -66,7 +68,9 @@ export class UsersController {
     return this.usersService.ranking(limit ? parseInt(limit, 10) : undefined);
   }
 
-  /** 동아리 홈페이지의 명예의 전당이 사용하는 공개 엔드포인트. */
+  /** 동아리 홈페이지의 명예의 전당. 부원(MEMBER) 이상만 조회할 수 있다. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('MEMBER', 'ADMIN')
   @Get('hall-of-fame')
   hallOfFame() {
     return this.usersService.hallOfFame();

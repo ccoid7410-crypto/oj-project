@@ -37,7 +37,9 @@ function renderHallOfFame(groups) {
 async function loadHallOfFame() {
   if (!hofList) return;
   try {
-    const res = await fetch("/api/users/hall-of-fame");
+    const res = await fetch("/api/users/hall-of-fame", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("oj_token")}` },
+    });
     if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
     renderHallOfFame(await res.json());
   } catch {
