@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -49,21 +43,6 @@ export class StudentIdService {
 
   async rosterSize(): Promise<number> {
     return this.prisma.clubRosterEntry.count();
-  }
-
-  /**
-   * 문제 등록 자격 검증: 명단이 하나라도 등록돼 있으면, 명단에 있는 학번을
-   * 등록한 회원만 문제를 등록할 수 있다. 명단이 비어 있으면 검증하지 않는다.
-   * (가입/학번 등록을 막는 용도가 아니다.)
-   */
-  async assertCanRegisterProblem(studentId: string | null | undefined) {
-    const size = await this.rosterSize();
-    if (size === 0) return;
-    if (!studentId) {
-      throw new ForbiddenException('문제를 등록하려면 먼저 프로필에서 학번을 등록해야 합니다.');
-    }
-    const ok = await this.isInRoster(studentId);
-    if (!ok) throw new ForbiddenException('동아리 학번 명단에 있는 회원만 문제를 등록할 수 있습니다.');
   }
 
   // ---- 학번 "수정" 허용 기간 ----

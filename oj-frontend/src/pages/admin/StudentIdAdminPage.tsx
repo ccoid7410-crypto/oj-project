@@ -134,7 +134,7 @@ export function StudentIdAdminPage() {
         <h2 className="text-sm font-bold text-fg-muted">동아리 학번 명단</h2>
         <p className="mt-1 text-xs text-fg-muted">
           한 줄에 하나씩, <code className="font-mono">학번</code> 또는 <code className="font-mono">학번,이름</code>{' '}
-          형태로 붙여넣으세요. 명단이 하나라도 있으면 이 명단에 있는 학번을 등록한 회원만 문제를 등록할 수 있습니다.
+          형태로 붙여넣으세요. 명단에 이름을 넣어두면 홈페이지 마이페이지에 부원 이름이 표시됩니다.
         </p>
         <form onSubmit={onAddRoster} className="mt-2 flex flex-col gap-2">
           <textarea
@@ -193,7 +193,7 @@ export function StudentIdAdminPage() {
         )}
         {roster && roster.length === 0 && (
           <p className="mt-4 text-sm text-fg-muted">
-            아직 등록된 학번이 없습니다. (명단이 비어 있으면 문제 등록 자격을 검증하지 않습니다)
+            아직 등록된 학번이 없습니다.
           </p>
         )}
       </section>

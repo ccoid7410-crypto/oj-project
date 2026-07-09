@@ -8,7 +8,6 @@ import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 import { clampLevel, labelOfLevel, tierOfLevel } from '../common/difficulty';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RatingService } from '../rating/rating.service';
-import { StudentIdService } from '../student-id/student-id.service';
 import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
 
 // 투표 난이도가 현재 공식 난이도와 이 값 이상 벌어지면(약 1.5~2티어) 관리자에게 알린다.
@@ -51,7 +50,6 @@ export class ProblemsService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly rating: RatingService,
-    private readonly studentId: StudentIdService,
     @InjectQueue(JUDGE_QUEUE) private readonly judgeQueue: Queue<JudgeJobData>,
   ) {}
 
@@ -119,12 +117,10 @@ export class ProblemsService {
 
     const isAdmin = authorRole === 'ADMIN';
     if (!isAdmin) {
-      // 학번 명단(화이트리스트)이 등록돼 있으면 명단에 있는 회원만 문제를 등록할 수 있다.
-      const author = await this.prisma.user.findUnique({
-        where: { id: authorId },
-        select: { studentId: true },
-      });
-      await this.studentId.assertCanRegisterProblem(author?.studentId);
+      // 문제 등록은 동아리 부원(MEMBER) 이상만 가능하다. 일반(USER) 계정은 풀이만 할 수 있다.
+      if (authorRole !== 'MEMBER') {
+        throw new ForbiddenException('동아리 부원만 문제를 등록할 수 있습니다.');
+      }
       if (!dto.testCases || dto.testCases.length === 0) {
         throw new BadRequestException('테스트케이스를 최소 1개 이상 넣어야 합니다.');
       }
