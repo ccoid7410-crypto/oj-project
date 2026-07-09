@@ -293,6 +293,12 @@ export class UsersService {
       return { id: user.id, username: user.username, role: user.role };
     }
     if (role === 'USER') {
+      // 메인 관리자(.env의 ROOT_ADMIN_USERNAME)는 앱 안에서는 누구도 권한을 해제할 수 없다.
+      // 서버 설정으로만 지정/변경 가능해서, 관리자 계정이 탈취돼도 메인 관리자는 지킬 수 있다.
+      const rootAdmin = process.env.ROOT_ADMIN_USERNAME?.trim();
+      if (rootAdmin && user.username === rootAdmin) {
+        throw new BadRequestException('메인 관리자의 권한은 해제할 수 없습니다.');
+      }
       if (id === actingUserId) {
         throw new BadRequestException('본인의 관리자 권한은 스스로 해제할 수 없습니다.');
       }
