@@ -91,18 +91,18 @@ export function ProblemDetailPage() {
           {contestId && <span className="font-bold text-[var(--color-brand)]">대회 제출 모드</span>}
         </div>
         <div className="mt-1 flex items-center gap-2">
-          <DifficultyBadge level={problem.level} />
-          <h1 className="text-2xl font-bold">{problem.title}</h1>
           {problem.myStatus === 'solved' && (
             <span className="rounded bg-[var(--color-ac)] px-2 py-0.5 text-xs font-bold text-white">
-              맞았습니다
+              정답
             </span>
           )}
           {problem.myStatus === 'attempted' && (
             <span className="rounded bg-[var(--color-wa)] px-2 py-0.5 text-xs font-bold text-white">
-              틀렸습니다
+              오답
             </span>
           )}
+          <DifficultyBadge level={problem.level} />
+          <h1 className="text-2xl font-bold">{problem.title}</h1>
           {user && (user.role === 'ADMIN' || user.id === problem.authorId) && (
             <Link
               to={`/problems/${problem.slug}/edit`}
