@@ -227,6 +227,9 @@ export interface UserProfile {
   username: string;
   role: Role;
   rating: number;
+  bio: string | null;
+  website: string | null;
+  avatarVersion: number | null; // 아바타 캐시 무효화용 타임스탬프. null이면 기본(회색) 아바타
   solvedCount: number;
   rank: number | null;
   solvedProblems: UserProfileProblem[];
