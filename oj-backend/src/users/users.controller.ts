@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { IsString, Length, Matches, MinLength } from 'class-validator';
+import { IsIn, IsString, Length, Matches, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -18,6 +18,14 @@ class UpdateNameDto {
   @IsString()
   @Length(1, 30, { message: '이름은 1~30자로 입력해주세요.' })
   name: string;
+}
+
+const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO'] as const;
+type LanguageValue = (typeof LANGUAGES)[number];
+
+class UpdatePreferredLanguageDto {
+  @IsIn(LANGUAGES, { message: '지원하지 않는 언어입니다.' })
+  language: LanguageValue;
 }
 
 class ChangePasswordDto {
@@ -66,6 +74,12 @@ export class UsersController {
   @Patch('me/name')
   updateName(@CurrentUser() user: RequestUser, @Body() dto: UpdateNameDto) {
     return this.usersService.updateName(user.userId, dto.name);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/preferred-language')
+  updatePreferredLanguage(@CurrentUser() user: RequestUser, @Body() dto: UpdatePreferredLanguageDto) {
+    return this.usersService.updatePreferredLanguage(user.userId, dto.language);
   }
 
   @UseGuards(JwtAuthGuard)

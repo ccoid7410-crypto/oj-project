@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { StudentIdWindow, UserProfile } from '../api/types';
+import type { Language, StudentIdWindow, UserProfile } from '../api/types';
+import { LANGUAGE_OPTIONS } from '../lib/languages';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
 
@@ -54,6 +55,7 @@ export function ProfilePage() {
 
       {isSelf && <NameSection />}
       {isSelf && <StudentIdSection onUpdated={() => refreshUser().then(load)} />}
+      {isSelf && <PreferredLanguageSection />}
 
       <h2 className="mt-8 border-b border-ink-500 pb-1 text-base font-bold">푼 문제 (난이도 높은 순)</h2>
       {profile.solvedProblems.length === 0 ? (
@@ -74,6 +76,63 @@ export function ProfilePage() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function PreferredLanguageSection() {
+  const { user, refreshUser } = useAuth();
+  const [language, setLanguage] = useState<Language | ''>(user?.preferredLanguage ?? '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!language) return;
+    setSubmitting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.patch('/users/me/preferred-language', { language });
+      setNotice('기본 제출 언어가 저장됐습니다.');
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '저장에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded border border-ink-500 p-3 text-xs">
+      <p className="font-bold text-fg">기본 제출 언어</p>
+      <p className="mt-1 text-fg-muted">문제 페이지에서 이 언어가 자동으로 선택됩니다.</p>
+      <form onSubmit={onSubmit} className="mt-2 flex items-center gap-2">
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as Language)}
+          className="w-40 rounded border border-ink-500 bg-white px-2 py-1.5 outline-none focus:border-[var(--color-brand)]"
+        >
+          <option value="" disabled>
+            언어 선택
+          </option>
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          disabled={submitting || !language}
+          className="rounded bg-[var(--color-brand)] px-3 py-1.5 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+        >
+          {submitting ? '저장 중...' : '저장'}
+        </button>
+      </form>
+      {notice && <p className="mt-2 text-[var(--color-ac)]">{notice}</p>}
+      {error && <p className="mt-2 text-[var(--color-wa)]">{error}</p>}
     </div>
   );
 }

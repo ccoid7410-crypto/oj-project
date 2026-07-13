@@ -35,6 +35,7 @@ export class UsersService {
         email: true,
         username: true,
         name: true,
+        preferredLanguage: true,
         role: true,
         rating: true,
         studentId: true,
@@ -247,6 +248,15 @@ export class UsersService {
       createdAt: user.createdAt,
       generation: match ? match[0] : null,
     };
+  }
+
+  /** 기본 제출 언어 설정. 문제 페이지에서 자동 선택된다. */
+  async updatePreferredLanguage(userId: string, language: 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO') {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { preferredLanguage: language },
+      select: { id: true, preferredLanguage: true },
+    });
   }
 
   /** 본인 이름(실명) 등록/수정. */
