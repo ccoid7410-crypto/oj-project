@@ -55,14 +55,11 @@ export function ProblemDetailPage() {
     setCode((prev) => (Object.values(DEFAULT_TEMPLATE).includes(prev) ? DEFAULT_TEMPLATE[next] : prev));
   }
 
-  // 프로필에 설정한 기본 제출 언어를 자동 선택한다 (문제가 언어를 제한하면 허용된 경우에만).
+  // 프로필에 설정한 기본 제출 언어를 자동 선택한다.
   useEffect(() => {
-    const preferred = user?.preferredLanguage;
-    if (!preferred || !problem) return;
-    if (problem.allowedLanguages.length > 0 && !problem.allowedLanguages.includes(preferred)) return;
-    onLanguageChange(preferred);
+    if (user?.preferredLanguage) onLanguageChange(user.preferredLanguage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.preferredLanguage, problem?.id]);
+  }, [user?.preferredLanguage]);
 
   async function onSubmit() {
     if (!problem) return;
