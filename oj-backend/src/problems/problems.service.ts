@@ -423,6 +423,19 @@ export class ProblemsService {
         })) > 0
       : false;
 
+    // 내 정답/오답 상태: 맞은 적 있으면 solved(=canVote와 같은 조건), 제출만 했으면 attempted
+    let myStatus: 'solved' | 'attempted' | null = null;
+    if (requesterId) {
+      if (canVote) {
+        myStatus = 'solved';
+      } else {
+        const attempted = await this.prisma.submission.count({
+          where: { problemId: problem.id, userId: requesterId },
+        });
+        if (attempted > 0) myStatus = 'attempted';
+      }
+    }
+
     return {
       ...problem,
       ...(stats.get(problem.id) ?? this.emptyStats()),
@@ -430,6 +443,7 @@ export class ProblemsService {
       difficultyVoteAverage: voteAgg._avg.level != null ? Math.round(voteAgg._avg.level * 10) / 10 : null,
       myDifficultyVote: myVote?.level ?? null,
       canVoteDifficulty: canVote,
+      myStatus,
     };
   }
 
