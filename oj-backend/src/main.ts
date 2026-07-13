@@ -1,6 +1,8 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 function resolveCorsOrigins(): string[] | boolean {
@@ -25,8 +27,25 @@ async function bootstrap() {
     throw new Error('운영 환경에서는 JWT_SECRET 환경변수를 반드시 설정해야 합니다.');
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableShutdownHooks();
+
+  // 모든 외부 트래픽은 프론트 nginx(단일 홉)를 거쳐 들어온다. trust proxy를 켜야
+  // req.ip가 nginx가 붙여준 X-Forwarded-For의 실제 클라이언트 IP가 되어, rate limit이
+  // 클라이언트별로 걸린다. 안 켜면 모두가 nginx 컨테이너 IP 하나로 묶여, 공격자 한 명이
+  // 로그인 5회/분 같은 제한을 전체 사용자 대상으로 소진시킬 수 있다.
+  // (API를 127.0.0.1로 잠가서 nginx 외의 경로로는 못 들어오므로 X-Forwarded-For를 신뢰해도 안전)
+  app.set('trust proxy', 1);
+
+  // 보안 헤더. 이 서버는 JSON API + socket.io만 응답하므로(HTML 페이지는 nginx가 서빙)
+  // CSP는 프론트 nginx 쪽에서 걸고, 여기서는 API 응답에 불필요한 CSP로 오작동하지 않게 끈다.
+  // crossOriginResourcePolicy도 same-origin nginx 프록시 구조라 same-site로 완화한다.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'same-site' },
+    }),
+  );
 
   // Express 기본 바디 파서 한도(json 기준 100kb)가 너무 작아서, 스트레스 테스트용으로
   // 큰 입력을 넣는 테스트케이스나 대량 계정 생성 요청이 "request entity too large"로 막혔다.

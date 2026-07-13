@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
+import { resetSocket } from '../lib/socket';
 import type { User } from '../api/types';
 
 interface AuthContextValue {
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const res = await api.post<{ accessToken: string; user: User }>('/auth/login', { email, password });
     localStorage.setItem('oj_token', res.accessToken);
+    resetSocket(); // 새 토큰으로 소켓 재연결(WS 인증 핸드셰이크)
     setUser(res.user);
   }
 
@@ -63,11 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function verifyEmail(token: string) {
     const res = await api.post<{ accessToken: string; user: User }>('/auth/verify-email', { token });
     localStorage.setItem('oj_token', res.accessToken);
+    resetSocket();
     setUser(res.user);
   }
 
   function logout() {
     localStorage.removeItem('oj_token');
+    resetSocket(); // 인증 안 된 소켓으로 되돌린다(로그아웃 후 남의 알림 수신 방지)
     setUser(null);
   }
 

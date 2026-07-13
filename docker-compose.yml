@@ -33,7 +33,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oj_password}
       POSTGRES_DB: ${POSTGRES_DB:-oj_db}
     ports:
-      - "5432:5432"
+      # 호스트 로컬(127.0.0.1)에만 바인딩 - 디버깅용으로 파이 안에서는 접근되지만
+      # 외부 네트워크/인터넷에서는 직접 접근 불가. 앱은 도커 내부망(postgres:5432)으로 붙는다.
+      # 외부 개방 시 이 포트가 0.0.0.0으로 열려 있으면 DB가 인터넷에 그대로 노출된다.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -57,7 +60,8 @@ services:
     # evict 대신 에러를 내는 게 훨씬 안전하다(그러면 최소한 재시도/알아챌 수 있음).
     command: redis-server --maxmemory 96mb --maxmemory-policy noeviction
     ports:
-      - "6379:6379"
+      # redis는 비밀번호가 없으므로 절대 외부에 열면 안 된다. 호스트 로컬에만 바인딩.
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -82,7 +86,10 @@ services:
       # 급사하는 대신, V8이 스스로 컬렉션을 더 자주 돌려서 은근슬쩍 버틴다.
       NODE_OPTIONS: --max-old-space-size=320
     ports:
-      - "${API_PORT:-3000}:3000"
+      # API도 호스트 로컬에만. 공개 진입점은 프론트 nginx(8080)뿐이고, nginx가 /api를
+      # 내부망으로 프록시한다. 3000을 외부에 열면 보안 헤더/프록시를 우회해 API에 직접
+      # 접근할 수 있으니 막는다.
+      - "127.0.0.1:${API_PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
