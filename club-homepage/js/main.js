@@ -11,7 +11,13 @@ const API_BASE = "/api";
 
 const authArea = document.getElementById("auth-area");
 
+function setHeroActionsVisible(visible) {
+  const actions = document.querySelector(".hero-actions");
+  if (actions) actions.style.display = visible ? "" : "none";
+}
+
 function renderLoggedOut() {
+  setHeroActionsVisible(true);
   authArea.innerHTML = "";
   const login = document.createElement("a");
   login.href =
@@ -25,6 +31,7 @@ function renderLoggedOut() {
 }
 
 function renderLoggedIn(user) {
+  setHeroActionsVisible(false);
   authArea.innerHTML = "";
   const profile = document.createElement("a");
   profile.href = "account.html";
