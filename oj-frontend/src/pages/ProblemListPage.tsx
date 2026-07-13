@@ -82,13 +82,13 @@ export function ProblemListPage() {
                     className="flex items-center gap-1.5 text-[var(--color-brand)] hover:underline"
                   >
                     {p.myStatus === 'solved' && (
-                      <span className="font-bold text-[var(--color-ac)]" title="맞았습니다">
-                        ✓
+                      <span className="shrink-0 rounded bg-[var(--color-ac)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        정답
                       </span>
                     )}
                     {p.myStatus === 'attempted' && (
-                      <span className="font-bold text-[var(--color-wa)]" title="틀렸습니다">
-                        ✗
+                      <span className="shrink-0 rounded bg-[var(--color-wa)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        오답
                       </span>
                     )}
                     <DifficultyBadge level={p.level} />
