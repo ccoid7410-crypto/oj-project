@@ -38,7 +38,7 @@ export class ProblemsController {
   @Get()
   findAll(@Req() req: any) {
     // 로그인은 선택: 토큰이 있으면 각 문제에 내 정답/오답 여부(myStatus)를 같이 내려준다.
-    return this.problemsService.findAllPublished(req.user?.userId);
+    return this.problemsService.findAllPublished(req.user?.userId, req.user?.role);
   }
 
   // 정적 경로는 반드시 ':slug' 파라미터 라우트보다 먼저 선언해야 매칭이 가로채이지 않는다.

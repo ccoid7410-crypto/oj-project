@@ -129,8 +129,22 @@ export class ProblemsService {
       }
     }
 
+    // test 태그 문제는 1~1000번대를 쓴다 (관리자 전용 점검 문제). 일반 문제는 시퀀스가 1001부터 부여.
+    let testDisplayId: number | undefined;
+    if (tags.includes('test')) {
+      const maxTest = await this.prisma.problem.aggregate({
+        _max: { displayId: true },
+        where: { displayId: { lte: 1000 } },
+      });
+      testDisplayId = (maxTest._max.displayId ?? 0) + 1;
+      if (testDisplayId > 1000) {
+        throw new BadRequestException('test 문제 번호(1~1000)가 모두 사용되었습니다.');
+      }
+    }
+
     const problem = await this.prisma.problem.create({
       data: {
+        ...(testDisplayId !== undefined ? { displayId: testDisplayId } : {}),
         title: dto.title,
         slug: dto.slug,
         description: dto.description,
@@ -216,11 +230,13 @@ export class ProblemsService {
     };
   }
 
-  async findAllPublished(userId?: string) {
+  async findAllPublished(userId?: string, requesterRole?: string) {
     const problems = await this.prisma.problem.findMany({
       where: {
         status: 'PUBLISHED',
         OR: [{ contestOnly: false }, { contestOnly: true, ...this.contestOnlyVisibleFilter() }],
+        // test 태그 문제(채점기 점검용, 1~1000번대)는 관리자에게만 보인다
+        ...(requesterRole !== 'ADMIN' ? { NOT: { tags: { has: 'test' } } } : {}),
       },
       select: {
         id: true,
@@ -380,6 +396,11 @@ export class ProblemsService {
 
     // 아직 공개 안 된 문제(초안/검토중/반려)는 작성자/어드민만 볼 수 있다.
     if (problem.status !== 'PUBLISHED' && !isAdmin && !isAuthor) {
+      throw new NotFoundException('문제를 찾을 수 없습니다.');
+    }
+
+    // test 태그 문제(채점기 점검용)는 관리자/작성자만 볼 수 있다.
+    if (problem.tags.includes('test') && !isAdmin && !isAuthor) {
       throw new NotFoundException('문제를 찾을 수 없습니다.');
     }
 
