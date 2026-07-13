@@ -159,6 +159,8 @@ export class AuthService {
     id: string;
     email: string;
     username: string;
+    name?: string | null;
+    preferredLanguage?: string | null;
     role: string;
     studentId?: string | null;
     mustChangePassword?: boolean;
@@ -170,6 +172,9 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        // name이 빠지면 프론트가 "이름 미등록"으로 판단해 로그인 때마다 등록을 강요하게 된다
+        name: user.name ?? null,
+        preferredLanguage: user.preferredLanguage ?? null,
         role: user.role,
         studentId: user.studentId ?? null,
         mustChangePassword: user.mustChangePassword ?? false,
