@@ -302,9 +302,10 @@ body.gate-pending .site-footer {
   gap: 5px;
   list-style: none;
   margin-top: 8px;
-  padding: 0 16px;
-  border-bottom: 10px solid #9a7b5f;
-  border-radius: 0 0 3px 3px;
+  padding: 12px 16px 0;
+  border-bottom: 12px solid #9a7b5f;
+  border-image: linear-gradient(to bottom, #b08d6b, #7c5c42) 1;
+  box-shadow: 0 16px 12px -10px rgba(0, 0, 0, 0.25);
 }
 
 .hof-members li {
@@ -321,53 +322,94 @@ body.gate-pending .site-footer {
   height: 184px;
 }
 
+.hof-members li:nth-child(7n + 5) {
+  margin-left: 14px;
+}
+
+.hof-members li:nth-child(7n + 5) a {
+  transform: rotate(-6deg);
+  transform-origin: bottom right;
+}
+
 .hof-members a {
+  position: relative;
   writing-mode: vertical-rl;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 46px;
   height: 100%;
-  padding: 16px 0;
+  padding: 18px 0;
   overflow: hidden;
-  border-radius: 3px 3px 0 0;
+  border-radius: 3px 2px 2px 3px;
   color: #ffffff;
   text-decoration: none;
-  transition: transform 0.15s ease;
+  background-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(255, 255, 255, 0.18) 10%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(0, 0, 0, 0.12) 85%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+  box-shadow: 2px 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hof-members a::before,
+.hof-members a::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  height: 2px;
+  background: rgba(255, 235, 180, 0.7);
+}
+
+.hof-members a::before {
+  top: 8px;
+  box-shadow: 0 4px 0 rgba(255, 235, 180, 0.35);
+}
+
+.hof-members a::after {
+  bottom: 8px;
+  box-shadow: 0 -4px 0 rgba(255, 235, 180, 0.35);
 }
 
 .hof-members a:hover {
-  transform: translateY(-8px);
+  transform: translateY(-10px);
+  box-shadow: 3px 6px 8px rgba(0, 0, 0, 0.35);
 }
 
 .hof-members li:nth-child(6n + 1) a {
-  background: #2f6fed;
+  background-color: #2f6fed;
 }
 
 .hof-members li:nth-child(6n + 2) a {
-  background: #1a2b4c;
+  background-color: #1a2b4c;
 }
 
 .hof-members li:nth-child(6n + 3) a {
-  background: #435f7a;
+  background-color: #435f7a;
 }
 
 .hof-members li:nth-child(6n + 4) a {
-  background: #1a9c4b;
+  background-color: #1a6e3f;
 }
 
 .hof-members li:nth-child(6n + 5) a {
-  background: #e08423;
+  background-color: #b3671a;
 }
 
 .hof-members li:nth-child(6n + 6) a {
-  background: #8b5cf6;
+  background-color: #6d4fc4;
 }
 
 .hof-name {
   font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .hof-username {
