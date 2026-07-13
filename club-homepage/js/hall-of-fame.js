@@ -20,11 +20,17 @@ function renderHallOfFame(groups) {
 
     const list = document.createElement("ul");
     list.className = "hof-members";
-    for (const username of group.members) {
+    for (const member of group.members) {
       const item = document.createElement("li");
       const link = document.createElement("a");
-      link.href = `/users/${encodeURIComponent(username)}`;
-      link.textContent = username;
+      link.href = `/users/${encodeURIComponent(member.username)}`;
+      const name = document.createElement("span");
+      name.className = "hof-name";
+      name.textContent = member.name ?? member.username;
+      const username = document.createElement("span");
+      username.className = "hof-username";
+      username.textContent = member.username;
+      link.append(name, username);
       item.appendChild(link);
       list.appendChild(item);
     }

@@ -303,7 +303,9 @@ body.gate-pending .site-footer {
 }
 
 .hof-members a {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border: 1px solid var(--color-ink-600);
   border-radius: 4px;
   padding: 8px 12px;
@@ -313,7 +315,19 @@ body.gate-pending .site-footer {
 
 .hof-members a:hover {
   border-color: var(--color-brand);
+}
+
+.hof-members a:hover .hof-name {
   color: var(--color-brand);
+}
+
+.hof-name {
+  font-weight: 700;
+}
+
+.hof-username {
+  font-size: 0.75rem;
+  color: var(--color-fg-muted);
 }
 
 .loading,

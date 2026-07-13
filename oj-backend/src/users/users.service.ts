@@ -267,15 +267,15 @@ export class UsersService {
   async hallOfFame() {
     const users = await this.prisma.user.findMany({
       where: { banned: false, role: { in: ['MEMBER', 'ADMIN'] } },
-      select: { username: true, email: true },
-      orderBy: { username: 'asc' },
+      select: { username: true, name: true, email: true },
+      orderBy: [{ name: 'asc' }, { username: 'asc' }],
     });
-    const byGeneration = new Map<string, string[]>();
+    const byGeneration = new Map<string, { username: string; name: string | null }[]>();
     for (const u of users) {
       const match = u.email.split('@')[0].match(/\d{2}/);
       const key = match ? match[0] : '기타';
       if (!byGeneration.has(key)) byGeneration.set(key, []);
-      byGeneration.get(key)!.push(u.username);
+      byGeneration.get(key)!.push({ username: u.username, name: u.name });
     }
     // 기수 오름차순 정렬, 숫자가 없는 이메일(기타)은 맨 뒤로
     return [...byGeneration.entries()]
