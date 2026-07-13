@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
 import { TestCaseTextField } from '../../components/TestCaseTextField';
+import { TagPicker } from '../../components/TagPicker';
 
 interface TestCaseInput {
   input: string;
@@ -29,7 +30,7 @@ export function NewProblemPage() {
   const level = (TIER_OPTIONS.find((t) => t.difficulty === tier)?.base ?? 0) + subRank;
   const [timeLimitMs, setTimeLimitMs] = useState(2000);
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [testCases, setTestCases] = useState<TestCaseInput[]>([emptyTestCase(true)]);
   const [publishNow, setPublishNow] = useState(isAdmin);
   const [contestOnly, setContestOnly] = useState(false);
@@ -62,10 +63,7 @@ export function NewProblemPage() {
         level,
         timeLimitMs,
         memoryLimitMb,
-        tags: tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags,
         testCases,
         ...(isAdmin
           ? { contestOnly }
@@ -170,15 +168,7 @@ export function NewProblemPage() {
           선택된 난이도: <span className="font-bold text-fg">{labelOfLevel(level)}</span> (레벨 {level})
         </p>
 
-        <label className="flex flex-col gap-1 text-sm">
-          태그 (쉼표로 구분)
-          <input
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="dp, graph, greedy"
-            className={inputClass}
-          />
-        </label>
+        <TagPicker value={tags} onChange={setTags} />
 
         <div>
           <div className="flex items-center justify-between">

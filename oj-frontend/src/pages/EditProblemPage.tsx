@@ -5,6 +5,7 @@ import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 import { TestCaseTextField } from '../components/TestCaseTextField';
+import { TagPicker } from '../components/TagPicker';
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -18,7 +19,7 @@ export function EditProblemPage() {
   const [subRank, setSubRank] = useState(5);
   const [timeLimitMs, setTimeLimitMs] = useState(2000);
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export function EditProblemPage() {
         setSubRank(((p.level - 1) % 5) + 1);
         setTimeLimitMs(p.timeLimitMs);
         setMemoryLimitMb(p.memoryLimitMb);
-        setTags(p.tags.join(', '));
+        setTags(p.tags);
         return api.get<TestCase[]>(`/problems/${p.id}/testcases`);
       })
       .then((tcs) => setTestCases(tcs))
@@ -117,10 +118,7 @@ export function EditProblemPage() {
         level,
         timeLimitMs,
         memoryLimitMb,
-        tags: tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags,
       });
       navigate(`/problems/${slug}`);
     } catch (err) {
@@ -236,10 +234,7 @@ export function EditProblemPage() {
           </div>
         )}
 
-        <label className="flex flex-col gap-1 text-sm">
-          태그 (쉼표로 구분)
-          <input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} />
-        </label>
+        <TagPicker value={tags} onChange={setTags} />
 
         {notice && <p className="text-xs text-[var(--color-ac)]">{notice}</p>}
         {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
