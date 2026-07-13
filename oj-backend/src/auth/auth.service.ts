@@ -162,6 +162,7 @@ export class AuthService {
     name?: string | null;
     preferredLanguage?: string | null;
     role: string;
+    rating?: number;
     studentId?: string | null;
     mustChangePassword?: boolean;
   }) {
@@ -176,6 +177,7 @@ export class AuthService {
         name: user.name ?? null,
         preferredLanguage: user.preferredLanguage ?? null,
         role: user.role,
+        rating: user.rating ?? 0,
         studentId: user.studentId ?? null,
         mustChangePassword: user.mustChangePassword ?? false,
       },
