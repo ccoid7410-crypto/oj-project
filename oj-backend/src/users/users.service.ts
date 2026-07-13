@@ -259,6 +259,68 @@ export class UsersService {
     });
   }
 
+  /**
+   * 계정과 활동 기록(제출/댓글/투표/참가)을 완전히 삭제한다.
+   * 이 계정이 만든 콘텐츠(문제/대회/수업/공지)가 있으면 다른 회원의 기록까지 얽혀 있어 막는다.
+   */
+  private async purgeAccount(id: string) {
+    const [problemCount, contestCount, classCount, noticeCount] = await Promise.all([
+      this.prisma.problem.count({ where: { authorId: id } }),
+      this.prisma.contest.count({ where: { createdById: id } }),
+      this.prisma.classRoom.count({ where: { createdById: id } }),
+      this.prisma.classNotice.count({ where: { createdById: id } }),
+    ]);
+    if (problemCount > 0) {
+      throw new BadRequestException('이 계정이 만든 문제가 있어 삭제할 수 없습니다. 문제를 먼저 삭제해주세요.');
+    }
+    if (contestCount > 0) {
+      throw new BadRequestException('이 계정이 만든 대회가 있어 삭제할 수 없습니다. 대회를 먼저 삭제해주세요.');
+    }
+    if (classCount > 0) {
+      throw new BadRequestException('이 계정이 만든 수업이 있어 삭제할 수 없습니다. 수업을 먼저 삭제해주세요.');
+    }
+    if (noticeCount > 0) {
+      throw new BadRequestException('이 계정이 작성한 수업 공지가 있어 삭제할 수 없습니다. 공지를 먼저 삭제해주세요.');
+    }
+
+    await this.prisma.$transaction([
+      // 남겨야 하는 기록에서 이 계정을 가리키는 참조만 비운다
+      this.prisma.adminNotification.updateMany({ where: { voterId: id }, data: { voterId: null } }),
+      this.prisma.problem.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } }),
+      // 본인의 활동 기록 삭제 (제출의 테스트 결과, 댓글의 대댓글은 cascade로 함께 삭제됨)
+      this.prisma.submission.deleteMany({ where: { userId: id } }),
+      this.prisma.problemComment.deleteMany({ where: { userId: id } }),
+      this.prisma.problemDifficultyVote.deleteMany({ where: { userId: id } }),
+      this.prisma.contestParticipant.deleteMany({ where: { userId: id } }),
+      this.prisma.classMembership.deleteMany({ where: { userId: id } }),
+      this.prisma.apiKey.deleteMany({ where: { createdById: id } }),
+      this.prisma.user.delete({ where: { id } }),
+    ]);
+    return { success: true };
+  }
+
+  /** 관리자: 계정 삭제. 관리자 계정은 먼저 권한을 해제해야 한다. */
+  async adminDeleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('관리자 계정은 삭제할 수 없습니다. 먼저 관리자 권한을 해제하세요.');
+    }
+    return this.purgeAccount(id);
+  }
+
+  /** 본인 탈퇴. 비밀번호 확인 필수, 관리자는 권한을 해제한 뒤에만 가능. */
+  async deleteOwnAccount(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('관리자 계정은 탈퇴할 수 없습니다. 다른 관리자에게 권한 해제를 먼저 요청하세요.');
+    }
+    const matches = await bcrypt.compare(password, user.passwordHash);
+    if (!matches) throw new ForbiddenException('비밀번호가 올바르지 않습니다.');
+    return this.purgeAccount(userId);
+  }
+
   /** 본인 이름(실명) 등록/수정. */
   async updateName(userId: string, name: string) {
     const trimmed = name.trim();

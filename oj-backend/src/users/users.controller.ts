@@ -20,6 +20,11 @@ class UpdateNameDto {
   name: string;
 }
 
+class DeleteAccountDto {
+  @IsString()
+  password: string;
+}
+
 const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO'] as const;
 type LanguageValue = (typeof LANGUAGES)[number];
 
@@ -86,6 +91,13 @@ export class UsersController {
   @Post('me/change-password')
   changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto) {
     return this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+  }
+
+  /** 본인 탈퇴. 비밀번호를 다시 확인받고 계정과 활동 기록을 삭제한다. */
+  @UseGuards(JwtAuthGuard)
+  @Post('me/delete-account')
+  deleteAccount(@CurrentUser() user: RequestUser, @Body() dto: DeleteAccountDto) {
+    return this.usersService.deleteOwnAccount(user.userId, dto.password);
   }
 
   // 정적 경로는 ':username' 파라미터 라우트보다 먼저 선언해야 매칭이 가로채이지 않는다.

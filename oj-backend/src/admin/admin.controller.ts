@@ -145,6 +145,12 @@ export class AdminController {
     return this.users.setRole(id, dto.role, user.userId);
   }
 
+  // ---- 계정 삭제 (활동 기록 포함, 되돌릴 수 없음) ----
+  @Delete('users/:id')
+  deleteUser(@Param('id') id: string) {
+    return this.users.adminDeleteUser(id);
+  }
+
   // ---- 관리자 알림 ----
   @Get('notifications')
   listNotifications(@Query('unread') unread?: string) {

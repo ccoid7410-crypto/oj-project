@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Language, StudentIdWindow, UserProfile } from '../api/types';
 import { LANGUAGE_OPTIONS } from '../lib/languages';
@@ -56,6 +56,7 @@ export function ProfilePage() {
       {isSelf && <NameSection />}
       {isSelf && <StudentIdSection onUpdated={() => refreshUser().then(load)} />}
       {isSelf && <PreferredLanguageSection />}
+      {isSelf && user?.role !== 'ADMIN' && <DeleteAccountSection />}
 
       <h2 className="mt-8 border-b border-ink-500 pb-1 text-base font-bold">푼 문제 (난이도 높은 순)</h2>
       {profile.solvedProblems.length === 0 ? (
@@ -76,6 +77,61 @@ export function ProfilePage() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function DeleteAccountSection() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (
+      !window.confirm(
+        '정말 탈퇴할까요?\n제출 기록·댓글 등 모든 활동이 함께 삭제되며 되돌릴 수 없습니다.',
+      )
+    )
+      return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post('/users/me/delete-account', { password });
+      logout();
+      navigate('/');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '탈퇴에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded border border-[var(--color-wa)]/40 p-3 text-xs">
+      <p className="font-bold text-[var(--color-wa)]">회원 탈퇴</p>
+      <p className="mt-1 text-fg-muted">
+        계정과 모든 활동 기록(제출, 댓글 등)이 삭제되며 되돌릴 수 없습니다. 비밀번호를 입력해 확인해주세요.
+      </p>
+      <form onSubmit={onSubmit} className="mt-2 flex items-center gap-2">
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="비밀번호"
+          className="w-40 rounded border border-ink-500 bg-white px-2 py-1.5 outline-none focus:border-[var(--color-wa)]"
+        />
+        <button
+          type="submit"
+          disabled={submitting || !password}
+          className="rounded bg-[var(--color-wa)] px-3 py-1.5 font-bold text-white hover:opacity-85 disabled:opacity-60"
+        >
+          {submitting ? '처리 중...' : '탈퇴'}
+        </button>
+      </form>
+      {error && <p className="mt-2 text-[var(--color-wa)]">{error}</p>}
     </div>
   );
 }
