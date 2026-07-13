@@ -81,6 +81,16 @@ export function ProblemListPage() {
                     to={`/problems/${p.slug}`}
                     className="flex items-center gap-1.5 text-[var(--color-brand)] hover:underline"
                   >
+                    {p.myStatus === 'solved' && (
+                      <span className="font-bold text-[var(--color-ac)]" title="맞았습니다">
+                        ✓
+                      </span>
+                    )}
+                    {p.myStatus === 'attempted' && (
+                      <span className="font-bold text-[var(--color-wa)]" title="틀렸습니다">
+                        ✗
+                      </span>
+                    )}
                     <DifficultyBadge level={p.level} />
                     {p.title}
                   </Link>

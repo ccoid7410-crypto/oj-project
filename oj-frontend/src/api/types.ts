@@ -33,6 +33,7 @@ export interface ProblemSummary {
   acceptedCount: number;
   solvedCount: number;
   accuracy: number;
+  myStatus: 'solved' | 'attempted' | null; // 로그인한 사용자의 정답/오답 여부 (비로그인은 null)
 }
 
 export interface TestCase {

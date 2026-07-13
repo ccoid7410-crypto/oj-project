@@ -216,7 +216,7 @@ export class ProblemsService {
     };
   }
 
-  async findAllPublished() {
+  async findAllPublished(userId?: string) {
     const problems = await this.prisma.problem.findMany({
       where: {
         status: 'PUBLISHED',
@@ -235,7 +235,32 @@ export class ProblemsService {
       orderBy: { displayId: 'asc' },
     });
     const stats = await this.getStats(problems.map((p) => p.id));
-    return problems.map((p) => ({ ...p, ...(stats.get(p.id) ?? this.emptyStats()) }));
+
+    // 로그인한 사용자의 문제별 상태: 한 번이라도 맞았으면 solved, 제출은 했지만 못 맞췄으면 attempted
+    const myStatus = new Map<string, 'solved' | 'attempted'>();
+    if (userId && problems.length > 0) {
+      const ids = problems.map((p) => p.id);
+      const [attempted, solved] = await Promise.all([
+        this.prisma.submission.findMany({
+          where: { userId, problemId: { in: ids } },
+          select: { problemId: true },
+          distinct: ['problemId'],
+        }),
+        this.prisma.submission.findMany({
+          where: { userId, problemId: { in: ids }, status: 'ACCEPTED' },
+          select: { problemId: true },
+          distinct: ['problemId'],
+        }),
+      ]);
+      for (const s of attempted) myStatus.set(s.problemId, 'attempted');
+      for (const s of solved) myStatus.set(s.problemId, 'solved');
+    }
+
+    return problems.map((p) => ({
+      ...p,
+      ...(stats.get(p.id) ?? this.emptyStats()),
+      myStatus: myStatus.get(p.id) ?? null,
+    }));
   }
 
   /** 어드민: 상태 무관 전체 문제 목록(관리/삭제용). */
