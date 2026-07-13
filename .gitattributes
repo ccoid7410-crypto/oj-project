@@ -1,0 +1,8 @@
+# 줄바꿈을 LF로 통일한다. Windows/리눅스가 섞인 협업에서 줄바꿈만 바뀐
+# 가짜 diff가 생기는 것을 막고, 리눅스 서버에서 실행되는 스크립트가 깨지지 않게 한다.
+* text=auto eol=lf
+
+# 이미지 등 바이너리는 변환하지 않는다
+*.png binary
+*.jpg binary
+*.svg text eol=lf
