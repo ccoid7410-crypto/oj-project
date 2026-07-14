@@ -158,12 +158,15 @@ async function render(username) {
   wrap.appendChild(header);
 
   if (me.bio) {
-    wrap.appendChild(el("p", { class: "profile-bio" }, me.bio));
+    // 소개는 OJ 프로필과 동일하게 마크다운 + TeX로 렌더링한다.
+    const bioNode = window.renderMarkdown ? window.renderMarkdown(me.bio) : el("p", {}, me.bio);
+    bioNode.classList.add("profile-bio");
+    wrap.appendChild(bioNode);
   }
 
   // ---- OJ 마이페이지 바로가기 (레이팅/푼 문제 등은 여기서 확인) ----
   wrap.appendChild(
-    el("a", { class: "btn btn-primary oj-profile-btn", href: `/users/${encodeURIComponent(username)}` }, "OJ 마이페이지 (레이팅·푼 문제) →"),
+    el("a", { class: "btn btn-primary oj-profile-btn", href: `/users/${encodeURIComponent(username)}` }, "OJ 마이페이지 →"),
   );
 
   // ---- 프로필 설정(이미지/배너/소개/사이트) ----
