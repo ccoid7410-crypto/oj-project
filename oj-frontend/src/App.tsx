@@ -36,6 +36,7 @@ import { ClassesAdminPage } from './pages/admin/ClassesAdminPage';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminProblemsPage } from './pages/admin/AdminProblemsPage';
 import { MailSettingsPage } from './pages/admin/MailSettingsPage';
+import { BannerSettingsPage } from './pages/admin/BannerSettingsPage';
 import { ClassListPage } from './pages/classes/ClassListPage';
 import { ClassDetailPage } from './pages/classes/ClassDetailPage';
 
@@ -79,6 +80,7 @@ export default function App() {
                 <Route path="/admin/users/bulk" element={<BulkUsersPage />} />
                 <Route path="/admin/judge-config" element={<JudgeConfigPage />} />
                 <Route path="/admin/mail" element={<MailSettingsPage />} />
+                <Route path="/admin/banner" element={<BannerSettingsPage />} />
                 <Route path="/admin/api-keys" element={<ApiKeysPage />} />
                 <Route path="/admin/accounts" element={<AccountsPage />} />
                 <Route path="/admin/notifications" element={<NotificationsPage />} />

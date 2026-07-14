@@ -8,9 +8,19 @@ import { StudentIdModule } from '../student-id/student-id.module';
 import { ProblemsModule } from '../problems/problems.module';
 import { AdminStatsService } from './admin-stats.service';
 import { MailModule } from '../mail/mail.module';
+import { BannerModule } from '../banner/banner.module';
 
 @Module({
-  imports: [UsersModule, JudgeConfigModule, RatingModule, NotificationsModule, StudentIdModule, ProblemsModule, MailModule],
+  imports: [
+    UsersModule,
+    JudgeConfigModule,
+    RatingModule,
+    NotificationsModule,
+    StudentIdModule,
+    ProblemsModule,
+    MailModule,
+    BannerModule,
+  ],
   controllers: [AdminController],
   providers: [AdminStatsService],
 })

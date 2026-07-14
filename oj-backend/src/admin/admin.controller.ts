@@ -1,4 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { randomUUID } from 'crypto';
+import { extname } from 'path';
 import {
   IsArray,
   IsDateString,
@@ -28,6 +45,9 @@ import { StudentIdService } from '../student-id/student-id.service';
 import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
 import { MailService } from '../mail/mail.service';
+import { BannerService, UPLOADS_ROOT } from '../banner/banner.service';
+
+const BANNER_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 class SetStudentIdWindowDto {
   @IsOptional() @IsDateString() startsAt?: string;
@@ -87,6 +107,16 @@ class SaveGmailConfigDto {
   smtpPass?: string;
 }
 
+// multipart/form-data 필드는 전부 문자열로 들어오므로 boolean은 'true'/'false' 문자열로 받는다.
+class SetBannerDto {
+  @IsIn(['true', 'false'])
+  enabled: 'true' | 'false';
+
+  @IsOptional()
+  @IsString()
+  linkUrl?: string;
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin')
@@ -100,6 +130,7 @@ export class AdminController {
     private readonly stats: AdminStatsService,
     private readonly problems: ProblemsService,
     private readonly mail: MailService,
+    private readonly banner: BannerService,
   ) {}
 
   // ---- 전체 현황 대시보드 ----
@@ -226,5 +257,44 @@ export class AdminController {
       user.userId,
     );
     return { ...window, isOpen: await this.studentId.isWindowOpen() };
+  }
+
+  // ---- 동아리 홈페이지 상단 배너 ----
+  @Get('banner')
+  getBanner() {
+    return this.banner.getAdmin();
+  }
+
+  @Put('banner')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: `${UPLOADS_ROOT}/banner`,
+        filename: (_req, file, cb) => cb(null, `${randomUUID()}${extname(file.originalname)}`),
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB - 배너 하나에 그 이상은 과하다
+      fileFilter: (_req, file, cb) => {
+        if (!BANNER_ALLOWED_MIME.has(file.mimetype)) {
+          cb(new BadRequestException('png/jpeg/webp/gif 이미지만 업로드할 수 있습니다.'), false);
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  setBanner(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetBannerDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    return this.banner.save(
+      { enabled: dto.enabled === 'true', linkUrl: dto.linkUrl?.trim() || null, newFile: image },
+      user.userId,
+    );
+  }
+
+  @Delete('banner')
+  removeBanner(@CurrentUser() user: RequestUser) {
+    return this.banner.remove(user.userId);
   }
 }

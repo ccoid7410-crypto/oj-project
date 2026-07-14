@@ -13,6 +13,9 @@ dist/
 # judge runtime data (host bind-mount target, machine-specific)
 oj-backend/judge-tmp/
 
+# banner 등 업로드 파일 (로컬 개발 시 생성됨, 운영에서는 docker volume에 보관)
+oj-backend/uploads/
+
 # editor / OS
 .DS_Store
 Thumbs.db

@@ -90,6 +90,10 @@ services:
       # 내부망으로 프록시한다. 3000을 외부에 열면 보안 헤더/프록시를 우회해 API에 직접
       # 접근할 수 있으니 막는다.
       - "127.0.0.1:${API_PORT:-3000}:3000"
+    volumes:
+      # 배너 이미지 등 업로드 파일. 볼륨에 담아둬야 build --no-cache/컨테이너 재생성 후에도
+      # 관리자가 올린 파일이 사라지지 않는다.
+      - banner_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,3 +181,4 @@ services:
 
 volumes:
   pg_data:
+  banner_uploads:

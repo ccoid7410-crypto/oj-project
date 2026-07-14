@@ -3,7 +3,9 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json, urlencoded } from 'express';
 import helmet from 'helmet';
+import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { UPLOADS_ROOT } from './banner/banner.service';
 
 function resolveCorsOrigins(): string[] | boolean {
   const raw = process.env.CORS_ORIGIN;
@@ -29,6 +31,13 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableShutdownHooks();
+
+  // 배너 업로드 대상 디렉토리는 볼륨 마운트 시 컨테이너 재생성 때마다 비어있을 수 있으니
+  // 멀터가 파일을 쓰기 전에 항상 존재를 보장해둔다.
+  mkdirSync(`${UPLOADS_ROOT}/banner`, { recursive: true });
+  // 업로드된 배너 이미지는 /api/uploads/... 로 nginx가 그대로 프록시해 서빙한다(정적 파일이라
+  // 인증 불필요, helmet의 crossOriginResourcePolicy: same-site 설정과도 충돌 없음).
+  app.useStaticAssets(UPLOADS_ROOT, { prefix: '/uploads' });
 
   // 모든 외부 트래픽은 프론트 nginx(단일 홉)를 거쳐 들어온다. trust proxy를 켜야
   // req.ip가 nginx가 붙여준 X-Forwarded-For의 실제 클라이언트 IP가 되어, rate limit이

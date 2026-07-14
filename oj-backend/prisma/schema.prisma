@@ -296,6 +296,20 @@ model MailConfig {
   @@map("mail_config")
 }
 
+/// 동아리 홈페이지 상단에 노출하는 이미지 배너(단일 행 설정). 이미지 파일 자체는 디스크에
+/// 저장하고(멀터 업로드) DB에는 상대 경로만 남긴다 - MailConfig의 smtpPass와 달리 비밀값이
+/// 아니라 그냥 정적 자산이라 API 응답에 그대로 내려줘도 된다.
+model SiteBanner {
+  id          Int      @id @default(1)
+  enabled     Boolean  @default(false)
+  imagePath   String? // uploads/ 기준 상대 경로. null이면 업로드된 이미지가 없다.
+  linkUrl     String? // 배너 클릭 시 이동할 주소(선택). 없으면 클릭 불가.
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_banner")
+}
+
 model Contest {
   id          String   @id @default(uuid())
   title       String

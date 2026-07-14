@@ -13,6 +13,7 @@ const TABS = [
   { to: '/admin/users/bulk', label: '대량 계정 생성' },
   { to: '/admin/judge-config', label: '채점 설정' },
   { to: '/admin/mail', label: '메일 설정' },
+  { to: '/admin/banner', label: '배너 설정' },
   { to: '/admin/api-keys', label: 'API 키' },
   { to: '/admin/notifications', label: '알림' },
 ];
