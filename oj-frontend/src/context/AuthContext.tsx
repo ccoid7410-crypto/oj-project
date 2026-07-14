@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { resetSocket } from '../lib/socket';
+import { setTheme } from '../lib/theme';
 import type { User } from '../api/types';
 
 interface AuthContextValue {
@@ -25,6 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 계정에 저장된 테마를 이 기기에도 적용한다(계정 값이 로컬 선택보다 우선).
+  function adoptUser(u: User) {
+    setUser(u);
+    if (u.theme) setTheme(u.theme);
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('oj_token');
     if (!token) {
@@ -36,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((u) => {
         // 이 요청이 떠 있는 동안 login/signup-verify 등으로 토큰이 이미 바뀌었을 수 있다.
         // 그 사이 값이 바뀌었으면(=더 최신 로그인이 있었으면) 이 응답으로 덮어쓰지 않는다.
-        if (localStorage.getItem('oj_token') === token) setUser(u);
+        if (localStorage.getItem('oj_token') === token) adoptUser(u);
       })
       .catch(() => {
         if (localStorage.getItem('oj_token') === token) localStorage.removeItem('oj_token');
@@ -45,10 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await api.post<{ accessToken: string; user: User }>('/auth/login', { email, password });
+    // identifier: 전체 이메일 / 이메일 아이디(cbsh123) / 숫자만(123) / 사용자명 모두 허용
+    const res = await api.post<{ accessToken: string; user: User }>('/auth/login', {
+      identifier: email,
+      password,
+    });
     localStorage.setItem('oj_token', res.accessToken);
     resetSocket(); // 새 토큰으로 소켓 재연결(WS 인증 핸드셰이크)
-    setUser(res.user);
+    adoptUser(res.user);
   }
 
   async function signup(email: string, username: string, name: string, password: string, studentId?: string) {

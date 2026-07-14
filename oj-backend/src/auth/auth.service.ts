@@ -80,8 +80,36 @@ export class AuthService {
     };
   }
 
+  /**
+   * 로그인 식별자를 실제 계정으로 해석한다. 이메일 전체 / 이메일 아이디만 /
+   * 숫자만(cbsh 접두 자동) / 사용자명 순으로 시도해서 처음 일치하는 계정을 쓴다.
+   */
+  private async resolveLoginUser(identifier: string) {
+    const id = identifier.trim();
+    const domain = this.allowedEmailDomain;
+
+    if (id.includes('@')) {
+      return this.prisma.user.findUnique({ where: { email: id.toLowerCase() } });
+    }
+
+    // 사용자명 우선 (이메일 아이디와 겹치면 어차피 같은 사람일 가능성이 높다)
+    const byUsername = await this.prisma.user.findUnique({ where: { username: id } });
+    if (byUsername) return byUsername;
+
+    // 숫자만 입력 → 학교 이메일 접두(cbsh) 자동 완성. ex) 123 → cbsh123@cbsh.hs.kr
+    if (/^\d+$/.test(id)) {
+      const byNumber = await this.prisma.user.findUnique({
+        where: { email: `cbsh${id}@${domain}`.toLowerCase() },
+      });
+      if (byNumber) return byNumber;
+    }
+
+    // 이메일 아이디만 입력 → 도메인 자동 완성. ex) cbsh123 → cbsh123@cbsh.hs.kr
+    return this.prisma.user.findUnique({ where: { email: `${id}@${domain}`.toLowerCase() } });
+  }
+
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.resolveLoginUser(dto.identifier);
     if (!user) {
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
@@ -164,6 +192,7 @@ export class AuthService {
     role: string;
     rating?: number;
     studentId?: string | null;
+    theme?: string;
     mustChangePassword?: boolean;
   }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
@@ -179,6 +208,7 @@ export class AuthService {
         role: user.role,
         rating: user.rating ?? 0,
         studentId: user.studentId ?? null,
+        theme: user.theme ?? 'system',
         mustChangePassword: user.mustChangePassword ?? false,
       },
     };

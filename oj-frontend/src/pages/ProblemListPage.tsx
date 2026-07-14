@@ -103,6 +103,7 @@ export function ProblemListPage() {
                         <span
                           key={t}
                           className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                          data-tag-chip
                           style={{ backgroundColor: c.bg, color: c.fg }}
                         >
                           {t}

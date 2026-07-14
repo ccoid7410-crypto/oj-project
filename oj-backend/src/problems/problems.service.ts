@@ -527,6 +527,15 @@ export class ProblemsService {
     });
   }
 
+  /**
+   * 일반 사용자가 공개된 문제를 고치면 다시 검토를 받아야 한다(공개도 내려간다).
+   * 어드민 수정이나 아직 공개 전(초안/검토중/반려) 문제는 상태를 건드리지 않는다.
+   */
+  private reReviewData(problem: { status: string }, requesterRole: string) {
+    if (requesterRole === 'ADMIN' || problem.status !== 'PUBLISHED') return {};
+    return { status: 'PENDING_REVIEW' as const, isPublished: false, reviewNote: null };
+  }
+
   async update(id: string, requesterId: string, requesterRole: string, dto: UpdateProblemDto) {
     const problem = await this.prisma.problem.findUnique({ where: { id } });
     if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
@@ -539,6 +548,7 @@ export class ProblemsService {
       data: {
         ...dto,
         ...(level != null ? { level, difficulty: tierOfLevel(level) as any } : { difficulty: dto.difficulty as any }),
+        ...this.reReviewData(problem, requesterRole),
       },
     });
   }
@@ -580,6 +590,14 @@ export class ProblemsService {
     return problem;
   }
 
+  /** 테스트케이스 변경도 문제 내용 변경이므로, 일반 사용자의 변경이면 재검토 상태로 되돌린다. */
+  private async applyReReview(problem: { id: string; status: string }, requesterRole: string) {
+    const data = this.reReviewData(problem, requesterRole);
+    if (Object.keys(data).length > 0) {
+      await this.prisma.problem.update({ where: { id: problem.id }, data });
+    }
+  }
+
   /** 작성자/어드민: 테스트케이스 전체 목록(히든 포함) 조회. */
   async listTestCases(problemId: string, requesterId: string, requesterRole: string) {
     await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
@@ -588,9 +606,9 @@ export class ProblemsService {
 
   /** 작성자/어드민: 테스트케이스 추가(맨 뒤에 붙는다). */
   async addTestCase(problemId: string, requesterId: string, requesterRole: string, dto: CreateTestCaseDto) {
-    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const problem = await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
     const count = await this.prisma.testCase.count({ where: { problemId } });
-    return this.prisma.testCase.create({
+    const created = await this.prisma.testCase.create({
       data: {
         problemId,
         input: dto.input,
@@ -599,6 +617,8 @@ export class ProblemsService {
         order: count,
       },
     });
+    await this.applyReReview(problem, requesterRole);
+    return created;
   }
 
   /** 작성자/어드민: 여러 테스트케이스를 한 번에 추가(zip 업로드용). 모두 맨 뒤에 순서대로 붙는다. */
@@ -608,7 +628,7 @@ export class ProblemsService {
     requesterRole: string,
     testCases: CreateTestCaseDto[],
   ) {
-    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const problem = await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
     const count = await this.prisma.testCase.count({ where: { problemId } });
     // 하나라도 실패하면 전부 롤백해서, 절반만 추가된 애매한 상태가 남지 않게 한다.
     await this.prisma.testCase.createMany({
@@ -620,6 +640,7 @@ export class ProblemsService {
         order: count + idx,
       })),
     });
+    await this.applyReReview(problem, requesterRole);
     return { addedCount: testCases.length };
   }
 
@@ -636,7 +657,7 @@ export class ProblemsService {
     requesterRole: string,
     items: Array<{ id?: string; input: string; output: string; isSample?: boolean }>,
   ) {
-    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const problem = await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
     const existing = await this.prisma.testCase.findMany({
       where: { problemId },
       select: { id: true },
@@ -673,6 +694,7 @@ export class ProblemsService {
       ),
     ]);
 
+    await this.applyReReview(problem, requesterRole);
     return this.prisma.testCase.findMany({ where: { problemId }, orderBy: { order: 'asc' } });
   }
 
@@ -684,29 +706,40 @@ export class ProblemsService {
     requesterRole: string,
     dto: UpdateTestCaseDto,
   ) {
-    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const problem = await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
     const tc = await this.prisma.testCase.findUnique({ where: { id: testCaseId } });
     if (!tc || tc.problemId !== problemId) throw new NotFoundException('테스트케이스를 찾을 수 없습니다.');
-    return this.prisma.testCase.update({ where: { id: testCaseId }, data: dto });
+    const updated = await this.prisma.testCase.update({ where: { id: testCaseId }, data: dto });
+    await this.applyReReview(problem, requesterRole);
+    return updated;
   }
 
   /** 작성자/어드민: 테스트케이스 삭제. */
   async deleteTestCase(problemId: string, testCaseId: string, requesterId: string, requesterRole: string) {
-    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const problem = await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
     const tc = await this.prisma.testCase.findUnique({ where: { id: testCaseId } });
     if (!tc || tc.problemId !== problemId) throw new NotFoundException('테스트케이스를 찾을 수 없습니다.');
     await this.prisma.testCase.delete({ where: { id: testCaseId } });
+    await this.applyReReview(problem, requesterRole);
     return { success: true };
   }
 
   // ---- 문제 Q&A 게시판 ----
 
   async listComments(problemId: string) {
-    return this.prisma.problemComment.findMany({
+    const comments = await this.prisma.problemComment.findMany({
       where: { problemId },
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { username: true } } },
+      include: { user: { select: { username: true, avatarUpdatedAt: true } } },
     });
+    // 아바타는 바이트 대신 버전만 내려서 프론트가 /users/:username/avatar?v=로 그리게 한다.
+    return comments.map((c) => ({
+      ...c,
+      user: {
+        username: c.user.username,
+        avatarVersion: c.user.avatarUpdatedAt ? c.user.avatarUpdatedAt.getTime() : null,
+      },
+    }));
   }
 
   async addComment(problemId: string, userId: string, content: string, parentId?: string) {

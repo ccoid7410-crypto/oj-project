@@ -52,14 +52,18 @@ export function LoginPage() {
       <h1 className="text-2xl font-bold">로그인</h1>
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          이메일
+          이메일 또는 사용자명
           <input
-            type="email"
+            type="text"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="cbsh123 / 123 / 사용자명"
             className="rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
+          <span className="text-[10px] text-fg-muted">
+            학교 이메일은 아이디만(cbsh123) 또는 숫자만(123) 입력해도 됩니다.
+          </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           비밀번호

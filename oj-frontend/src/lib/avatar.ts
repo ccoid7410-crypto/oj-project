@@ -36,3 +36,31 @@ export async function fileToAvatarPayload(file: File): Promise<{ mime: string; d
     bitmap.close();
   }
 }
+
+export function bannerUrl(username: string, bannerVersion: number | null): string | null {
+  if (bannerVersion == null) return null;
+  return `${API_URL}/users/${encodeURIComponent(username)}/banner?v=${bannerVersion}`;
+}
+
+const BANNER_MAX_WIDTH = 1600; // 배너는 크롭 없이 폭만 줄인다 (비율 유지)
+
+/** 선택한 이미지를 폭 최대 1600px로 축소해 배너 업로드 바디로 변환한다. */
+export async function fileToBannerPayload(file: File): Promise<{ mime: string; data: string }> {
+  const bitmap = await createImageBitmap(file).catch(() => {
+    throw new Error('이미지 파일을 읽을 수 없습니다.');
+  });
+  try {
+    const scale = Math.min(1, BANNER_MAX_WIDTH / bitmap.width);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    // 배너는 사진일 가능성이 높아 JPEG(품질 0.85)로 내보내 용량을 줄인다.
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const [, data] = dataUrl.split(',', 2);
+    return { mime: 'image/jpeg', data };
+  } finally {
+    bitmap.close();
+  }
+}

@@ -95,15 +95,23 @@ export function MyProblemsPage() {
                 </td>
                 <td className="border border-ink-600 px-3 py-1.5 text-xs text-fg-muted">{p.reviewNote ?? '-'}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center">
-                  {(p.status === 'DRAFT' || p.status === 'REJECTED') && (
-                    <button
-                      onClick={() => submitForReview(p.id)}
-                      disabled={busyId === p.id}
-                      className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+                  <span className="inline-flex items-center gap-1.5">
+                    <Link
+                      to={`/problems/${p.slug}/edit`}
+                      className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
                     >
-                      {busyId === p.id ? '요청 중...' : '검토 요청'}
-                    </button>
-                  )}
+                      수정
+                    </Link>
+                    {(p.status === 'DRAFT' || p.status === 'REJECTED') && (
+                      <button
+                        onClick={() => submitForReview(p.id)}
+                        disabled={busyId === p.id}
+                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+                      >
+                        {busyId === p.id ? '요청 중...' : '검토 요청'}
+                      </button>
+                    )}
+                  </span>
                 </td>
               </tr>
             ))}

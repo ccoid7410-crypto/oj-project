@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 import type { Difficulty, Language } from '../../api/types';
@@ -14,26 +14,92 @@ function emptyTestCase(isSample: boolean): TestCaseInput {
   return { input: '', output: '', isSample };
 }
 
+// ===== 임시 저장 =====
+// 작성 중인 폼 전체를 localStorage에 자동 저장해서, 실수로 창을 닫아도 이어서 쓸 수 있게 한다.
+const DRAFT_KEY = 'oj_problem_draft';
+
+interface ProblemDraft {
+  title: string;
+  slug: string;
+  description: string;
+  tier: Difficulty;
+  subRank: number;
+  timeLimitMs: number;
+  memoryLimitMb: number;
+  tags: string[];
+  testCases: TestCaseInput[];
+  contestOnly: boolean;
+  verificationLanguage: Language;
+  verificationCode: string;
+}
+
+function loadDraft(): ProblemDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as ProblemDraft;
+    // 완전히 빈 초안은 복원할 가치가 없다
+    if (!d.title && !d.slug && !d.description) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 export function NewProblemPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [description, setDescription] = useState('');
-  const [tier, setTier] = useState<Difficulty>('BRONZE');
-  const [subRank, setSubRank] = useState(5); // 1(V, 가장 쉬움) ~ 5(I, 가장 어려움)
+  // 임시 저장본이 있으면 그 값으로 시작한다 (lazy initializer라 최초 렌더 1회만 읽음)
+  const [restored] = useState<ProblemDraft | null>(loadDraft);
+  const [draftNotice, setDraftNotice] = useState(restored != null);
+  const [title, setTitle] = useState(restored?.title ?? '');
+  const [slug, setSlug] = useState(restored?.slug ?? '');
+  const [description, setDescription] = useState(restored?.description ?? '');
+  const [tier, setTier] = useState<Difficulty>(restored?.tier ?? 'BRONZE');
+  const [subRank, setSubRank] = useState(restored?.subRank ?? 5); // 1(V, 가장 쉬움) ~ 5(I, 가장 어려움)
   const level = (TIER_OPTIONS.find((t) => t.difficulty === tier)?.base ?? 0) + subRank;
-  const [timeLimitMs, setTimeLimitMs] = useState(2000);
-  const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-  const [tags, setTags] = useState<string[]>([]);
-  const [testCases, setTestCases] = useState<TestCaseInput[]>([emptyTestCase(true)]);
+  const [timeLimitMs, setTimeLimitMs] = useState(restored?.timeLimitMs ?? 2000);
+  const [memoryLimitMb, setMemoryLimitMb] = useState(restored?.memoryLimitMb ?? 256);
+  const [tags, setTags] = useState<string[]>(restored?.tags ?? []);
+  const [testCases, setTestCases] = useState<TestCaseInput[]>(
+    restored?.testCases?.length ? restored.testCases : [emptyTestCase(true)],
+  );
   const [publishNow, setPublishNow] = useState(isAdmin);
-  const [contestOnly, setContestOnly] = useState(false);
-  const [verificationLanguage, setVerificationLanguage] = useState<Language>('CPP');
-  const [verificationCode, setVerificationCode] = useState(DEFAULT_TEMPLATE.CPP);
+  const [contestOnly, setContestOnly] = useState(restored?.contestOnly ?? false);
+  const [verificationLanguage, setVerificationLanguage] = useState<Language>(
+    restored?.verificationLanguage ?? 'CPP',
+  );
+  const [verificationCode, setVerificationCode] = useState(
+    restored?.verificationCode ?? DEFAULT_TEMPLATE.CPP,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 입력이 멈춘 뒤 1초 후에 저장(디바운스). 대용량 테스트케이스 연타 저장으로 인한 렉 방지.
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const draft: ProblemDraft = {
+        title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb,
+        tags, testCases, contestOnly, verificationLanguage, verificationCode,
+      };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch {
+        // localStorage 용량 초과(대형 테스트케이스) 등 — 임시 저장만 조용히 포기한다
+      }
+    }, 1000);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb, tags, testCases, contestOnly, verificationLanguage, verificationCode]);
+
+  function discardDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    window.location.reload(); // 빈 폼으로 재시작
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,6 +119,7 @@ export function NewProblemPage() {
           ? { contestOnly }
           : { verificationLanguage, verificationCode }),
       });
+      localStorage.removeItem(DRAFT_KEY); // 생성 성공 → 임시 저장본 폐기
       if (isAdmin && publishNow) {
         await api.patch(`/problems/${created.id}/publish`, { isPublished: true });
         navigate(`/problems/${slug}`);
@@ -75,6 +142,17 @@ export function NewProblemPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">문제 추가</h1>
+      {draftNotice && (
+        <p className="mt-2 flex items-center gap-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
+          작성 중이던 임시 저장본을 불러왔습니다.
+          <button type="button" onClick={discardDraft} className="underline hover:text-[var(--color-wa)]">
+            버리고 새로 쓰기
+          </button>
+          <button type="button" onClick={() => setDraftNotice(false)} className="underline hover:text-[var(--color-brand)]">
+            닫기
+          </button>
+        </p>
+      )}
 
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">

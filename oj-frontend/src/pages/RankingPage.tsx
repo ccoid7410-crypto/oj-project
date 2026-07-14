@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Avatar } from '../components/Avatar';
 import { api } from '../api/client';
 import type { RankingRow } from '../api/types';
 
@@ -42,7 +43,8 @@ export function RankingPage() {
               <tr key={r.username} className="hover:bg-ink-700/60">
                 <td className="border border-ink-600 px-2 py-1.5 text-center font-bold">{r.rank}</td>
                 <td className="border border-ink-600 px-3 py-1.5">
-                  <Link to={`/users/${r.username}`} className="text-[var(--color-brand)] hover:underline">
+                  <Link to={`/users/${r.username}`} className="inline-flex items-center gap-1.5 text-[var(--color-brand)] hover:underline">
+                    <Avatar username={r.username} avatarVersion={r.avatarVersion} size={20} />
                     {r.username}
                   </Link>
                 </td>

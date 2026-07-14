@@ -20,6 +20,7 @@ const DEFAULT_ROOT_ADMIN_USERNAME = 'jihun1050';
 // 프로필 이미지는 클라이언트가 축소해서 올리지만(256px), 서버에서도 상한을 강제한다.
 // DB(bytea)에 저장되므로 큰 이미지를 허용하면 저사양 호스트의 DB가 금방 부푼다.
 const AVATAR_MAX_BYTES = 1024 * 1024; // 1MB
+const BANNER_MAX_BYTES = 2 * 1024 * 1024; // 2MB (배너는 폭이 넓어 아바타보다 여유를 준다)
 const AVATAR_ALLOWED_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 // 파일 시그니처(매직 넘버) 검사: Content-Type만 믿으면 SVG 등 스크립트 실행 가능한
 // 포맷을 이미지로 위장해 올릴 수 있다.
@@ -54,8 +55,10 @@ export class UsersService {
         mustChangePassword: true,
         createdAt: true,
         bio: true,
-        website: true,
+        websites: true,
+        theme: true,
         avatarUpdatedAt: true,
+        bannerUpdatedAt: true,
       },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
@@ -75,8 +78,9 @@ export class UsersService {
         role: true,
         rating: true,
         bio: true,
-        website: true,
+        websites: true,
         avatarUpdatedAt: true,
+        bannerUpdatedAt: true,
       },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
@@ -104,27 +108,36 @@ export class UsersService {
       role: user.role,
       rating: user.rating,
       bio: user.bio,
-      website: user.website,
+      websites: user.websites,
       // 이미지 바이트 대신 버전(타임스탬프)만 내려준다. 프론트는 이 값으로
       // /users/:username/avatar?v=... URL을 만들고, null이면 기본(회색) 아바타를 그린다.
       avatarVersion: user.avatarUpdatedAt ? user.avatarUpdatedAt.getTime() : null,
+      bannerVersion: user.bannerUpdatedAt ? user.bannerUpdatedAt.getTime() : null,
       solvedCount: solved.length,
       rank,
       solvedProblems,
     };
   }
 
-  /** 본인 프로필 커스터마이징(bio/사이트). 값 검증은 컨트롤러 DTO가 담당한다. */
-  async updateProfile(userId: string, dto: { bio?: string | null; website?: string | null }) {
-    const data: { bio?: string | null; website?: string | null } = {};
+  /** 본인 프로필 커스터마이징(bio/사이트 목록). 값 검증은 컨트롤러 DTO가 담당한다. */
+  async updateProfile(userId: string, dto: { bio?: string | null; websites?: string[] }) {
+    const data: { bio?: string | null; websites?: string[] } = {};
     if (dto.bio !== undefined) data.bio = dto.bio?.trim() || null;
-    if (dto.website !== undefined) data.website = dto.website?.trim() || null;
+    if (dto.websites !== undefined) {
+      data.websites = dto.websites.map((w) => w.trim()).filter((w) => w !== '');
+    }
     const user = await this.prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, username: true, bio: true, website: true },
+      select: { id: true, username: true, bio: true, websites: true },
     });
     return user;
+  }
+
+  /** 테마 설정(system/light/dark)을 계정에 저장한다. */
+  async updateTheme(userId: string, theme: 'system' | 'light' | 'dark') {
+    await this.prisma.user.update({ where: { id: userId }, data: { theme } });
+    return { theme };
   }
 
   /** 프로필 이미지 업로드(base64). 형식/크기를 서버에서도 강제한다. */
@@ -168,6 +181,57 @@ export class UsersService {
     return { avatarVersion: null };
   }
 
+  /** 프로필 배너 업로드(base64). 아바타와 같은 검증에 크기 상한만 다르다. */
+  async updateBanner(userId: string, mime: string, base64Data: string) {
+    if (!AVATAR_ALLOWED_MIMES.has(mime)) {
+      throw new BadRequestException('PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.');
+    }
+    let bytes: Buffer;
+    try {
+      bytes = Buffer.from(base64Data, 'base64');
+    } catch {
+      throw new BadRequestException('이미지 데이터가 올바르지 않습니다.');
+    }
+    if (bytes.length === 0) throw new BadRequestException('이미지 데이터가 비어 있습니다.');
+    if (bytes.length > BANNER_MAX_BYTES) {
+      throw new BadRequestException('배너 이미지는 2MB 이하여야 합니다.');
+    }
+    const magic = AVATAR_MAGIC.find((m) => m.mime === mime)!;
+    const matches =
+      bytes.length > 12 &&
+      magic.bytes.every((b, i) => bytes[i] === b) &&
+      (mime !== 'image/webp' || bytes.subarray(8, 12).toString('ascii') === 'WEBP');
+    if (!matches) {
+      throw new BadRequestException('이미지 파일 내용이 형식과 일치하지 않습니다.');
+    }
+    const updatedAt = new Date();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { banner: new Uint8Array(bytes), bannerMime: mime, bannerUpdatedAt: updatedAt },
+    });
+    return { bannerVersion: updatedAt.getTime() };
+  }
+
+  /** 프로필 배너 삭제. */
+  async deleteBanner(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { banner: null, bannerMime: null, bannerUpdatedAt: null },
+    });
+    return { bannerVersion: null };
+  }
+
+  /** 공개 배너 이미지 조회. 없으면 null → 404 응답. */
+  async getBanner(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: { banner: true, bannerMime: true },
+    });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (!user.banner || !user.bannerMime) return null;
+    return { bytes: Buffer.from(user.banner), mime: user.bannerMime };
+  }
+
   /** 공개 아바타 이미지 조회. 없으면 null(프론트가 기본 회색을 그림 → 404 응답). */
   async getAvatar(username: string) {
     const user = await this.prisma.user.findUnique({
@@ -189,7 +253,7 @@ export class UsersService {
       where: { rating: { gt: 0 } },
       orderBy: { rating: 'desc' },
       take,
-      select: { id: true, username: true, rating: true },
+      select: { id: true, username: true, rating: true, avatarUpdatedAt: true },
     });
     if (users.length === 0) return [];
 
@@ -206,6 +270,7 @@ export class UsersService {
       rank: i + 1,
       username: u.username,
       rating: u.rating,
+      avatarVersion: u.avatarUpdatedAt ? u.avatarUpdatedAt.getTime() : null,
       solvedCount: solvedCounts.get(u.id) ?? 0,
     }));
   }

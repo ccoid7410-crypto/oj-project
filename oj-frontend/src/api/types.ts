@@ -1,5 +1,7 @@
 export type Role = 'USER' | 'MEMBER' | 'ADMIN';
 
+export type ThemePref = 'system' | 'light' | 'dark';
+
 export interface User {
   id: string;
   email: string;
@@ -9,6 +11,7 @@ export interface User {
   role: Role;
   rating: number;
   studentId: string | null;
+  theme?: ThemePref; // 계정에 저장된 UI 테마 설정
   mustChangePassword?: boolean;
 }
 
@@ -210,6 +213,7 @@ export interface RankingRow {
   rank: number;
   username: string;
   rating: number;
+  avatarVersion: number | null;
   solvedCount: number;
 }
 
@@ -228,8 +232,9 @@ export interface UserProfile {
   role: Role;
   rating: number;
   bio: string | null;
-  website: string | null;
+  websites: string[];
   avatarVersion: number | null; // 아바타 캐시 무효화용 타임스탬프. null이면 기본(회색) 아바타
+  bannerVersion: number | null; // 배너 캐시 무효화용. null이면 배너 없음
   solvedCount: number;
   rank: number | null;
   solvedProblems: UserProfileProblem[];
@@ -345,5 +350,5 @@ export interface ProblemComment {
   content: string;
   parentId: string | null;
   createdAt: string;
-  user: { username: string };
+  user: { username: string; avatarVersion: number | null };
 }

@@ -124,6 +124,11 @@ export function EditProblemPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">문제 수정 — {problem.title}</h1>
+      {user?.role !== 'ADMIN' && (
+        <p className="mt-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
+          공개된 문제를 수정하면 다시 검토 대기 상태가 되어, 관리자 승인 전까지 문제가 비공개로 전환됩니다.
+        </p>
+      )}
 
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">

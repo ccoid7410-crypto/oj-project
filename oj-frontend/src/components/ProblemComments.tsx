@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
 import type { ProblemComment } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { Avatar } from './Avatar';
 
 export function ProblemComments({ problemId }: { problemId: string }) {
   const { user } = useAuth();
@@ -111,7 +112,10 @@ function CommentRow({
   return (
     <div>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold">{comment.user.username}</span>
+        <span className="flex items-center gap-1.5 text-xs font-bold">
+          <Avatar username={comment.user.username} avatarVersion={comment.user.avatarVersion} size={18} />
+          {comment.user.username}
+        </span>
         <span className="text-xs text-fg-muted">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
       </div>
       <p className="mt-1 whitespace-pre-wrap text-sm">{comment.content}</p>

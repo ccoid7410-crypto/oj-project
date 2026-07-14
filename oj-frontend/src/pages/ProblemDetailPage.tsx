@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Language, ProblemDetail } from '../api/types';
@@ -7,6 +7,11 @@ import { useAuth } from '../context/AuthContext';
 import { DEFAULT_TEMPLATE, LANGUAGE_OPTIONS } from '../lib/languages';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
 import { ProblemComments } from '../components/ProblemComments';
+
+// KaTeX(수식) 번들이 커서 문제 페이지에서만 lazy load 한다.
+const MarkdownView = lazy(() =>
+  import('../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
+);
 
 export function ProblemDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -181,7 +186,13 @@ export function ProblemDetailPage() {
         </div>
 
         <h2 className="mt-6 border-b border-ink-500 pb-1 text-base font-bold">문제</h2>
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg">{problem.description}</p>
+        <Suspense
+          fallback={
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg">{problem.description}</p>
+          }
+        >
+          <MarkdownView content={problem.description} className="mt-3 text-fg" />
+        </Suspense>
 
         {problem.testCases.length > 0 && (
           <div className="mt-8 space-y-5">

@@ -1,12 +1,17 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Language, StudentIdWindow, UserProfile } from '../api/types';
 import { LANGUAGE_OPTIONS } from '../lib/languages';
 import { Avatar } from '../components/Avatar';
-import { fileToAvatarPayload } from '../lib/avatar';
+import { bannerUrl, fileToAvatarPayload, fileToBannerPayload } from '../lib/avatar';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
+
+// KaTeX(수식) 번들이 커서 소개(bio)가 있을 때만 lazy load 한다.
+const MarkdownView = lazy(() =>
+  import('../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
+);
 
 export function ProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -29,8 +34,17 @@ export function ProfilePage() {
 
   const isSelf = user?.username === profile.username;
 
+  const banner = bannerUrl(profile.username, profile.bannerVersion);
+
   return (
     <div>
+      {banner && (
+        <img
+          src={banner}
+          alt={`${profile.username} 배너`}
+          className="mb-4 h-40 w-full rounded border border-ink-600 object-cover"
+        />
+      )}
       <div className="flex items-center gap-3">
         <Avatar username={profile.username} avatarVersion={profile.avatarVersion} size={56} />
         <div>
@@ -42,21 +56,32 @@ export function ProfilePage() {
               </span>
             )}
           </div>
-          {profile.website && (
-            <a
-              href={profile.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-fg-muted underline hover:text-[var(--color-brand)]"
-            >
-              {profile.website}
-            </a>
+          {profile.websites.length > 0 && (
+            <span className="flex flex-wrap gap-x-3">
+              {profile.websites.map((site) => (
+                <a
+                  key={site}
+                  href={site}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-fg-muted underline hover:text-[var(--color-brand)]"
+                >
+                  {site}
+                </a>
+              ))}
+            </span>
           )}
         </div>
       </div>
 
       {profile.bio && (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg">{profile.bio}</p>
+        <Suspense
+          fallback={
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg">{profile.bio}</p>
+          }
+        >
+          <MarkdownView content={profile.bio} className="mt-3 text-fg" />
+        </Suspense>
       )}
 
       <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-ink-500 bg-ink-500 text-center text-xs">
@@ -266,7 +291,9 @@ function NameSection() {
 
 function ProfileSettingsSection({ profile, onUpdated }: { profile: UserProfile; onUpdated: () => void }) {
   const [bio, setBio] = useState(profile.bio ?? '');
-  const [website, setWebsite] = useState(profile.website ?? '');
+  const [websites, setWebsites] = useState<string[]>(
+    profile.websites.length > 0 ? profile.websites : [''],
+  );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -310,13 +337,50 @@ function ProfileSettingsSection({ profile, onUpdated }: { profile: UserProfile; 
     }
   }
 
+  async function onPickBanner(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const payload = await fileToBannerPayload(file);
+      await api.put('/users/me/banner', payload);
+      setNotice('배너가 변경됐습니다.');
+      onUpdated();
+    } catch (err) {
+      report(err, '배너 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onRemoveBanner() {
+    setUploading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.delete('/users/me/banner');
+      setNotice('배너를 제거했습니다.');
+      onUpdated();
+    } catch (err) {
+      report(err, '배너 삭제에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function onSave(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
     setNotice(null);
     try {
-      await api.patch('/users/me/profile', { bio, website });
+      await api.patch('/users/me/profile', {
+        bio,
+        websites: websites.map((w) => w.trim()).filter((w) => w !== ''),
+      });
       setNotice('프로필이 저장됐습니다.');
       onUpdated();
     } catch (err) {
@@ -352,6 +416,27 @@ function ProfileSettingsSection({ profile, onUpdated }: { profile: UserProfile; 
             기본 이미지로
           </button>
         )}
+        <span className="mx-1 text-ink-500">|</span>
+        <label className="cursor-pointer rounded border border-ink-500 px-2 py-1 text-fg-muted hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]">
+          {uploading ? '처리 중...' : '배너 업로드'}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={onPickBanner}
+            disabled={uploading}
+            className="hidden"
+          />
+        </label>
+        {profile.bannerVersion != null && (
+          <button
+            type="button"
+            onClick={onRemoveBanner}
+            disabled={uploading}
+            className="text-fg-muted underline hover:text-[var(--color-wa)] disabled:opacity-60"
+          >
+            배너 제거
+          </button>
+        )}
       </div>
 
       <form onSubmit={onSave} className="mt-3 space-y-2">
@@ -369,16 +454,38 @@ function ProfileSettingsSection({ profile, onUpdated }: { profile: UserProfile; 
           </label>
         </div>
         <div>
-          <label className="text-fg-muted">
-            사이트
-            <input
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              maxLength={200}
-              placeholder="https://example.com"
-              className="mt-1 w-full rounded border border-ink-500 bg-white px-2 py-1.5 text-fg outline-none focus:border-[var(--color-brand)]"
-            />
-          </label>
+          <span className="text-fg-muted">사이트 (최대 5개)</span>
+          <div className="mt-1 space-y-1.5">
+            {websites.map((site, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={site}
+                  onChange={(e) =>
+                    setWebsites((prev) => prev.map((w, j) => (j === i ? e.target.value : w)))
+                  }
+                  maxLength={200}
+                  placeholder="https://example.com"
+                  className="w-full rounded border border-ink-500 bg-white px-2 py-1.5 text-fg outline-none focus:border-[var(--color-brand)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setWebsites((prev) => prev.filter((_, j) => j !== i))}
+                  className="shrink-0 text-fg-muted hover:text-[var(--color-wa)]"
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+          {websites.length < 5 && (
+            <button
+              type="button"
+              onClick={() => setWebsites((prev) => [...prev, ''])}
+              className="mt-1.5 rounded border border-ink-500 px-2 py-1 text-fg-muted hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+            >
+              + 사이트 추가
+            </button>
+          )}
         </div>
         <button
           type="submit"

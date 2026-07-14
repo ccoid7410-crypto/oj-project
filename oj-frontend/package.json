@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dompurify": "^3.4.12",
     "fflate": "^0.8.3",
+    "katex": "^0.17.0",
+    "marked": "^18.0.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

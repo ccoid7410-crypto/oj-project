@@ -68,11 +68,15 @@ model User {
   bannedReason String?
   bannedAt     DateTime?
   studentId    String?      @unique // 학번. 가입 시 자유 입력, 이후 수정은 관리자가 연 기간에만 가능. (NULL은 여러 개 허용, 값이 있으면 유일해야 함)
-  bio          String? // 프로필 자기소개 (공개)
-  website      String? // 프로필에 표시할 개인 사이트 URL (공개, http/https만 허용)
+  bio          String? // 프로필 자기소개 (공개, 마크다운/TeX 지원)
+  websites     String[] @default([]) // 프로필에 표시할 개인 사이트 URL 목록 (공개, http/https만 허용, 최대 5개)
+  theme        String   @default("system") // UI 테마 설정: system | light | dark (계정 귀속)
   avatar          Bytes?    // 프로필 이미지 원본 바이트. 클라이언트에서 축소해 올리므로 작다(수십 KB). NULL이면 기본(회색) 아바타.
   avatarMime      String?   // avatar의 Content-Type (image/png 등)
   avatarUpdatedAt DateTime? // 아바타 캐시 무효화용(이미지 URL의 ?v= 값)
+  banner          Bytes?    // 프로필 배너 이미지 (아바타와 동일 패턴, 폭 1600px로 축소 업로드)
+  bannerMime      String?
+  bannerUpdatedAt DateTime?
   emailVerified Boolean     @default(false) // 이메일 인증 전에는 로그인 불가(auth.service 참고)
   mustChangePassword Boolean @default(false) // 어드민이 대량 생성한 계정은 최초 로그인 후 비밀번호 변경을 강제한다
   createdAt    DateTime     @default(now())
