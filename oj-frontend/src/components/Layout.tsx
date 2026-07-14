@@ -64,7 +64,7 @@ export function Layout() {
                   to={`/users/${user.username}`}
                   className="flex items-center gap-2 hover:text-[var(--color-brand)]"
                 >
-                  <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={32} />
+                  <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={20} />
                   {user.username}
                 </Link>
                 <button
