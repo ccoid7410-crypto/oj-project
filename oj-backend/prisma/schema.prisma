@@ -387,6 +387,15 @@ model QueuePassState {
   @@map("queue_pass_state")
 }
 
+/// 문제에 붙일 수 있는 태그 목록(관리자가 추가/삭제). 문제의 tags 배열과는 이름 문자열로 연결된다.
+model TagOption {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("tag_options")
+}
+
 /// "수업" — 어드민이 만들고 학생을 등록해서 전용 문제집/공지/랭킹을 운영하는 단위.
 /// 통계 필터링만 하는 가벼운 Group과 달리 자체 콘텐츠(문제/공지)를 가진다.
 model ClassRoom {
