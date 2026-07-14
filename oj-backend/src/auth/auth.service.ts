@@ -81,8 +81,8 @@ export class AuthService {
   }
 
   /**
-   * 로그인 식별자를 실제 계정으로 해석한다. 이메일 전체 / 이메일 아이디만 /
-   * 숫자만(cbsh 접두 자동) / 사용자명 순으로 시도해서 처음 일치하는 계정을 쓴다.
+   * 로그인 식별자를 실제 계정으로 해석한다. 이메일 전체 / 이메일 아이디만(도메인 자동 완성) /
+   * 사용자명(username은 유일값이라 그대로 조회) 순으로 시도해서 처음 일치하는 계정을 쓴다.
    */
   private async resolveLoginUser(identifier: string) {
     const id = identifier.trim();
@@ -96,15 +96,7 @@ export class AuthService {
     const byUsername = await this.prisma.user.findUnique({ where: { username: id } });
     if (byUsername) return byUsername;
 
-    // 숫자만 입력 → 학교 이메일 접두(cbsh) 자동 완성. ex) 123 → cbsh123@cbsh.hs.kr
-    if (/^\d+$/.test(id)) {
-      const byNumber = await this.prisma.user.findUnique({
-        where: { email: `cbsh${id}@${domain}`.toLowerCase() },
-      });
-      if (byNumber) return byNumber;
-    }
-
-    // 이메일 아이디만 입력 → 도메인 자동 완성. ex) cbsh123 → cbsh123@cbsh.hs.kr
+    // 이메일 아이디만 입력 → 도메인 자동 완성. ex) cbsh12345 → cbsh12345@cbsh.hs.kr
     return this.prisma.user.findUnique({ where: { email: `${id}@${domain}`.toLowerCase() } });
   }
 

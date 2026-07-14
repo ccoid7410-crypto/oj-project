@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client';
 import type { Language, StudentIdWindow, UserProfile } from '../api/types';
 import { LANGUAGE_OPTIONS } from '../lib/languages';
 import { Avatar } from '../components/Avatar';
+import { ThemeButtons } from '../components/ThemeButtons';
 import { bannerUrl, fileToAvatarPayload, fileToBannerPayload } from '../lib/avatar';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
@@ -100,6 +101,7 @@ export function ProfilePage() {
       </div>
 
       {isSelf && <ProfileSettingsSection profile={profile} onUpdated={load} />}
+      {isSelf && <AccountInfoSection />}
       {isSelf && <NameSection />}
       {isSelf && <StudentIdSection onUpdated={() => refreshUser().then(load)} />}
       {isSelf && <PreferredLanguageSection />}
@@ -285,6 +287,39 @@ function NameSection() {
       </form>
       {notice && <p className="mt-2 text-[var(--color-ac)]">{notice}</p>}
       {error && <p className="mt-2 text-[var(--color-wa)]">{error}</p>}
+    </div>
+  );
+}
+
+const ROLE_LABEL: Record<string, string> = { ADMIN: '관리자', MEMBER: '부원', USER: '일반 회원' };
+
+/** 홈페이지 마이페이지에만 있던 정보(기수/권한/가입일/색상 설정)를 본인 프로필에도 노출한다. */
+function AccountInfoSection() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <div className="mt-4 rounded border border-ink-500 p-3 text-xs">
+      <p className="font-bold text-fg">계정 정보</p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
+        <div>
+          <dt className="text-fg-muted">기수</dt>
+          <dd className="font-medium text-fg">{user.generation ? `${user.generation}기` : '-'}</dd>
+        </div>
+        <div>
+          <dt className="text-fg-muted">권한</dt>
+          <dd className="font-medium text-fg">{ROLE_LABEL[user.role] ?? user.role}</dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-fg-muted">가입일</dt>
+          <dd className="font-medium text-fg">
+            {user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : '-'}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-fg-muted">색상 설정</p>
+      <div className="mt-1.5">
+        <ThemeButtons />
+      </div>
     </div>
   );
 }

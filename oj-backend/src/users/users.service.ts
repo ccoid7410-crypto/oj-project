@@ -62,7 +62,15 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
-    return user;
+    // 기수: 이메일 아이디에서 처음 나오는 두 자리 숫자 (hallOfFame/clubProfile과 동일 규칙)
+    const match = user.email.split('@')[0].match(/\d{2}/);
+    const { avatarUpdatedAt, bannerUpdatedAt, ...rest } = user;
+    return {
+      ...rest,
+      generation: match ? match[0] : null,
+      avatarVersion: avatarUpdatedAt ? avatarUpdatedAt.getTime() : null,
+      bannerVersion: bannerUpdatedAt ? bannerUpdatedAt.getTime() : null,
+    };
   }
 
   /**

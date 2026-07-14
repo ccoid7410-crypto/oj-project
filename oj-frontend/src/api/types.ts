@@ -12,6 +12,9 @@ export interface User {
   rating: number;
   studentId: string | null;
   theme?: ThemePref; // 계정에 저장된 UI 테마 설정
+  createdAt?: string; // GET /users/me 응답에만 포함 (본인 전용)
+  generation?: string | null; // 기수. GET /users/me 응답에만 포함 (본인 전용)
+  avatarVersion?: number | null; // 아바타 캐시 무효화용. null이면 기본(회색) 아바타
   mustChangePassword?: boolean;
 }
 

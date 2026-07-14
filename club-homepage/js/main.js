@@ -33,9 +33,22 @@ function renderLoggedOut() {
 function renderLoggedIn(user) {
   setHeroActionsVisible(false);
   authArea.innerHTML = "";
+  // 마이페이지가 OJ 프로필 페이지로 통합됐으므로 곧바로 그리로 연결한다.
   const profile = document.createElement("a");
-  profile.href = "account.html";
-  profile.textContent = user.username;
+  profile.href = `/users/${encodeURIComponent(user.username)}`;
+  profile.className = "auth-profile-link";
+
+  // OJ 헤더와 동일하게 닉네임 왼쪽에 프로필 사진(없으면 회색 원)을 보여준다.
+  const avatar = document.createElement("span");
+  avatar.className = "auth-avatar";
+  if (user.avatarVersion) {
+    const img = document.createElement("img");
+    img.src = `${API_BASE}/users/${encodeURIComponent(user.username)}/avatar?v=${user.avatarVersion}`;
+    img.alt = "";
+    avatar.appendChild(img);
+  }
+  profile.appendChild(avatar);
+  profile.appendChild(document.createTextNode(user.username));
   const logoutBtn = document.createElement("button");
   logoutBtn.type = "button";
   logoutBtn.textContent = "로그아웃";

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
 import { api } from '../api/client';
 import { setTheme, storedTheme, type ThemePref } from '../lib/theme';
+import { Avatar } from './Avatar';
 
 const THEME_OPTIONS: Array<{ value: ThemePref; label: string; icon: string }> = [
   { value: 'system', label: '시스템', icon: '💻' },
@@ -160,7 +161,11 @@ export function Layout() {
             <ThemeSelect />
             {user ? (
               <>
-                <Link to={`/users/${user.username}`} className="hover:text-[var(--color-brand)]">
+                <Link
+                  to={`/users/${user.username}`}
+                  className="flex items-center gap-1.5 hover:text-[var(--color-brand)]"
+                >
+                  <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={20} />
                   {user.username}
                   <span className="ml-1 text-[var(--color-brand)]">{user.rating}</span>
                 </Link>

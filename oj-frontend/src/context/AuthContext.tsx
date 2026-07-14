@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    // identifier: 전체 이메일 / 이메일 아이디(cbsh123) / 숫자만(123) / 사용자명 모두 허용
+    // identifier: 전체 이메일 / 이메일 아이디(cbsh12345, 도메인 자동 완성) / 사용자명 모두 허용
     const res = await api.post<{ accessToken: string; user: User }>('/auth/login', {
       identifier: email,
       password,
