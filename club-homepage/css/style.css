@@ -811,3 +811,8 @@ body.gate-pending .site-footer {
   border-color: var(--color-brand);
   color: var(--color-brand);
 }
+
+.oj-profile-btn {
+  display: inline-block;
+  margin-top: 16px;
+}

@@ -115,12 +115,11 @@ async function main() {
 
 async function render(username) {
   root.innerHTML = "";
-  let me, publicProfile;
+  // 레이팅/랭킹/푼 문제 같은 OJ 통계는 이 페이지에서 다루지 않으므로(아래 OJ 마이페이지
+  // 버튼으로 넘긴다) 공개 프로필은 조회하지 않고 본인 정보(/users/me)만 쓴다.
+  let me;
   try {
-    [me, publicProfile] = await Promise.all([
-      authJson("/users/me"),
-      authJson(`/users/${encodeURIComponent(username)}`),
-    ]);
+    me = await authJson("/users/me");
   } catch {
     root.appendChild(el("p", { class: "error" }, "프로필을 불러오지 못했습니다."));
     return;
@@ -129,11 +128,11 @@ async function render(username) {
   const wrap = el("div", { class: "profile-page" });
 
   // ---- 배너 ----
-  if (publicProfile.bannerVersion) {
+  if (me.bannerVersion) {
     wrap.appendChild(
       el("img", {
         class: "profile-banner",
-        src: `/api/users/${encodeURIComponent(username)}/banner?v=${publicProfile.bannerVersion}`,
+        src: `/api/users/${encodeURIComponent(username)}/banner?v=${me.bannerVersion}`,
         alt: "배너",
       }),
     );
@@ -141,38 +140,34 @@ async function render(username) {
 
   // ---- 헤더: 아바타 + 아이디 + 권한 + 사이트 ----
   const header = el("div", { class: "profile-header" }, [
-    avatarNode(username, publicProfile.avatarVersion, 56),
+    avatarNode(username, me.avatarVersion, 56),
     el("div", {}, [
       el("div", { class: "profile-title-row" }, [
         el("h1", {}, username),
-        publicProfile.role === "ADMIN" ? el("span", { class: "role-badge" }, "ADMIN") : null,
+        me.role === "ADMIN" ? el("span", { class: "role-badge" }, "ADMIN") : null,
       ]),
-      publicProfile.websites?.length
+      me.websites?.length
         ? el(
             "div",
             { class: "profile-websites" },
-            publicProfile.websites.map((site) => el("a", { href: site, target: "_blank", rel: "noopener noreferrer" }, site)),
+            me.websites.map((site) => el("a", { href: site, target: "_blank", rel: "noopener noreferrer" }, site)),
           )
         : null,
     ]),
   ]);
   wrap.appendChild(header);
 
-  if (publicProfile.bio) {
-    wrap.appendChild(el("p", { class: "profile-bio" }, publicProfile.bio));
+  if (me.bio) {
+    wrap.appendChild(el("p", { class: "profile-bio" }, me.bio));
   }
 
-  // ---- 통계 ----
+  // ---- OJ 마이페이지 바로가기 (레이팅/푼 문제 등은 여기서 확인) ----
   wrap.appendChild(
-    el("div", { class: "profile-stats" }, [
-      el("div", { class: "profile-stat" }, [el("div", { class: "stat-label" }, "레이팅"), el("div", { class: "stat-value stat-brand" }, String(publicProfile.rating))]),
-      el("div", { class: "profile-stat" }, [el("div", { class: "stat-label" }, "랭킹"), el("div", { class: "stat-value" }, publicProfile.rank ? `#${publicProfile.rank}` : "-")]),
-      el("div", { class: "profile-stat" }, [el("div", { class: "stat-label" }, "해결한 문제"), el("div", { class: "stat-value" }, String(publicProfile.solvedCount))]),
-    ]),
+    el("a", { class: "btn btn-primary oj-profile-btn", href: `/users/${encodeURIComponent(username)}` }, "OJ 마이페이지 (레이팅·푼 문제) →"),
   );
 
   // ---- 프로필 설정(이미지/배너/소개/사이트) ----
-  wrap.appendChild(renderProfileSettings(username, me, publicProfile));
+  wrap.appendChild(renderProfileSettings(username, me));
 
   // ---- 계정 정보(기수/권한/가입일) + 색상 설정 ----
   wrap.appendChild(renderAccountInfo(me));
@@ -185,37 +180,18 @@ async function render(username) {
   wrap.appendChild(studentIdSection);
   renderStudentIdSection(me).then((node) => studentIdSection.replaceWith(node));
 
-  // ---- 기본 제출 언어 ----
-  wrap.appendChild(renderPreferredLanguageSection(me));
-
   // ---- 회원 탈퇴 ----
   if (me.role !== "ADMIN") {
     wrap.appendChild(renderDeleteAccountSection());
   }
 
-  // ---- 푼 문제 ----
-  wrap.appendChild(el("h2", { class: "solved-heading" }, "푼 문제 (난이도 높은 순)"));
-  if (!publicProfile.solvedProblems?.length) {
-    wrap.appendChild(el("p", { class: "empty" }, "아직 푼 문제가 없습니다."));
-  } else {
-    wrap.appendChild(
-      el(
-        "ul",
-        { class: "solved-list" },
-        publicProfile.solvedProblems.map((p) =>
-          el("li", {}, el("a", { href: `/problems/${p.slug}` }, [`#${p.displayId} `, p.title])),
-        ),
-      ),
-    );
-  }
-
   root.appendChild(wrap);
 }
 
-function renderProfileSettings(username, me, publicProfile) {
+function renderProfileSettings(username, me) {
   const card = el("div", { class: "settings-card" }, el("p", { class: "settings-title" }, "프로필 설정"));
 
-  const avatarRow = el("div", { class: "settings-avatar-row" }, avatarNode(username, publicProfile.avatarVersion, 48));
+  const avatarRow = el("div", { class: "settings-avatar-row" }, avatarNode(username, me.avatarVersion, 48));
   const avatarInput = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp", class: "hidden-file-input" });
   const bannerInput = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp", class: "hidden-file-input" });
   const imageNotice = fieldNotice();
@@ -236,7 +212,7 @@ function renderProfileSettings(username, me, publicProfile) {
   });
   avatarRow.appendChild(avatarLabel);
 
-  if (publicProfile.avatarVersion) {
+  if (me.avatarVersion) {
     avatarRow.appendChild(
       el("button", { type: "button", class: "link-btn", onclick: async () => {
         try {
@@ -265,7 +241,7 @@ function renderProfileSettings(username, me, publicProfile) {
       imageNotice.fail(err);
     }
   });
-  if (publicProfile.bannerVersion) {
+  if (me.bannerVersion) {
     avatarRow.appendChild(
       el("button", { type: "button", class: "link-btn", onclick: async () => {
         try {
@@ -287,7 +263,7 @@ function renderProfileSettings(username, me, publicProfile) {
   card.appendChild(el("div", { class: "field" }, [bioLabel, bioTextarea]));
 
   const websiteFields = el("div", { class: "website-fields" });
-  const websiteValues = publicProfile.websites?.length ? [...publicProfile.websites] : [""];
+  const websiteValues = me.websites?.length ? [...me.websites] : [""];
   function renderWebsiteInputs() {
     websiteFields.innerHTML = "";
     websiteValues.forEach((value, i) => {
@@ -428,42 +404,6 @@ async function renderStudentIdSection(me) {
     card.appendChild(el("div", { class: "inline-form" }, [input, btn]));
     card.append(...notice.nodes);
   }
-  return card;
-}
-
-const LANGUAGE_OPTIONS = [
-  ["CPP", "C++17"],
-  ["C", "C"],
-  ["JAVA", "Java (class Main)"],
-  ["PYTHON3", "Python 3"],
-  ["JAVASCRIPT", "Node.js"],
-  ["GO", "Go"],
-];
-
-function renderPreferredLanguageSection(me) {
-  const card = el("div", { class: "settings-card" }, el("p", { class: "settings-title" }, "기본 제출 언어"));
-  card.appendChild(el("p", { class: "field-hint" }, "문제 페이지에서 이 언어가 자동으로 선택됩니다."));
-  const select = el("select", { class: "field-select" }, [
-    el("option", { value: "", disabled: "true" }, "언어 선택"),
-    ...LANGUAGE_OPTIONS.map(([value, label]) => {
-      const opt = el("option", { value }, label);
-      if (me.preferredLanguage === value) opt.setAttribute("selected", "true");
-      return opt;
-    }),
-  ]);
-  const notice = fieldNotice();
-  const btn = el("button", { type: "button", class: "btn btn-primary btn-sm" }, "저장");
-  btn.addEventListener("click", async () => {
-    if (!select.value) return;
-    try {
-      await authJson("/users/me/preferred-language", { method: "PATCH", body: JSON.stringify({ language: select.value }) });
-      notice.ok("기본 제출 언어가 저장됐습니다.");
-    } catch (err) {
-      notice.fail(err);
-    }
-  });
-  card.appendChild(el("div", { class: "inline-form" }, [select, btn]));
-  card.append(...notice.nodes);
   return card;
 }
 
