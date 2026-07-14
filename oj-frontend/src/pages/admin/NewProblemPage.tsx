@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
 import { TestCaseTextField } from '../../components/TestCaseTextField';
+import { TestCaseZipUploader } from '../../components/TestCaseZipUploader';
 import { TagPicker } from '../../components/TagPicker';
 
 interface TestCaseInput {
@@ -32,6 +33,7 @@ export function NewProblemPage() {
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
   const [tags, setTags] = useState<string[]>([]);
   const [testCases, setTestCases] = useState<TestCaseInput[]>([emptyTestCase(true)]);
+  const [tcMode, setTcMode] = useState<'text' | 'zip'>('text');
   const [publishNow, setPublishNow] = useState(isAdmin);
   const [contestOnly, setContestOnly] = useState(false);
   const [verificationLanguage, setVerificationLanguage] = useState<Language>('CPP');
@@ -49,6 +51,11 @@ export function NewProblemPage() {
 
   function removeTestCase(index: number) {
     setTestCases((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // zip에서 파싱한 케이스를 로컬 목록에 이어붙인다. 처음에 있던 빈 케이스는 정리한다.
+  async function onZipAdd(cases: TestCaseInput[]) {
+    setTestCases((prev) => [...prev.filter((tc) => tc.input !== '' || tc.output !== ''), ...cases]);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -173,14 +180,49 @@ export function NewProblemPage() {
         <div>
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-fg-muted">테스트케이스</h2>
-            <button
-              type="button"
-              onClick={addTestCase}
-              className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)]"
-            >
-              + 추가
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 입력 방식 선택: 직접 입력 vs zip 업로드 */}
+              <div className="flex overflow-hidden rounded border border-ink-500 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTcMode('text')}
+                  className={
+                    tcMode === 'text'
+                      ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
+                      : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
+                  }
+                >
+                  직접 입력
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTcMode('zip')}
+                  className={
+                    tcMode === 'zip'
+                      ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
+                      : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
+                  }
+                >
+                  파일 업로드(zip)
+                </button>
+              </div>
+              {tcMode === 'text' && (
+                <button
+                  type="button"
+                  onClick={addTestCase}
+                  className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)]"
+                >
+                  + 추가
+                </button>
+              )}
+            </div>
           </div>
+
+          {tcMode === 'zip' && (
+            <div className="mt-3">
+              <TestCaseZipUploader onAdd={onZipAdd} />
+            </div>
+          )}
 
           <div className="mt-3 flex flex-col gap-4">
             {testCases.map((tc, i) => (
