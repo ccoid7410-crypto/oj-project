@@ -60,8 +60,12 @@ export function Layout() {
           <div className="flex items-center gap-3 text-xs text-fg-muted">
             {user ? (
               <>
-                <Link to={`/users/${user.username}`} title={user.username}>
+                <Link
+                  to={`/users/${user.username}`}
+                  className="flex items-center gap-2 hover:text-[var(--color-brand)]"
+                >
                   <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={32} />
+                  {user.username}
                 </Link>
                 <button
                   onClick={() => {
