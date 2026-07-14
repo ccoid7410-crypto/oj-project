@@ -36,12 +36,6 @@ function renderLoggedIn(user) {
   const profile = document.createElement("a");
   profile.href = "account.html";
   profile.textContent = user.username;
-  if (user.rating !== undefined && user.rating !== null) {
-    const rating = document.createElement("span");
-    rating.className = "rating";
-    rating.textContent = user.rating;
-    profile.appendChild(rating);
-  }
   const logoutBtn = document.createElement("button");
   logoutBtn.type = "button";
   logoutBtn.textContent = "로그아웃";

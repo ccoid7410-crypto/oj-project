@@ -121,11 +121,6 @@ body.gate-pending .site-footer {
   text-decoration: none;
 }
 
-.auth-area .rating {
-  margin-left: 4px;
-  color: var(--color-brand);
-}
-
 .auth-area button {
   border: none;
   background: none;
