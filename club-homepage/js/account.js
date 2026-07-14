@@ -1,5 +1,54 @@
 const accountInfo = document.getElementById("account-info");
 
+function renderThemeSetting() {
+  const wrap = document.createElement("div");
+  wrap.className = "theme-setting";
+
+  const label = document.createElement("p");
+  label.className = "theme-setting-label";
+  label.textContent = "색상 설정";
+
+  const group = document.createElement("div");
+  group.className = "theme-options";
+
+  function refresh() {
+    for (const btn of group.children) {
+      btn.classList.toggle("active", btn.dataset.value === window.ojTheme.stored());
+    }
+  }
+
+  for (const [value, text] of [
+    ["system", "시스템"],
+    ["light", "라이트"],
+    ["dark", "다크"],
+  ]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.value = value;
+    btn.textContent = text;
+    btn.addEventListener("click", () => {
+      window.ojTheme.set(value);
+      refresh();
+      const token = localStorage.getItem("oj_token");
+      if (token) {
+        fetch("/api/users/me/theme", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ theme: value }),
+        }).catch(() => {});
+      }
+    });
+    group.appendChild(btn);
+  }
+  refresh();
+
+  wrap.append(label, group);
+  return wrap;
+}
+
 window.clubProfileReady.then((profile) => {
   if (!profile || !accountInfo) return;
 
@@ -38,5 +87,5 @@ window.clubProfileReady.then((profile) => {
   editStudentId.className = "btn btn-ghost";
   actions.append(ojProfile, editStudentId);
 
-  accountInfo.append(table, actions);
+  accountInfo.append(table, renderThemeSetting(), actions);
 });
