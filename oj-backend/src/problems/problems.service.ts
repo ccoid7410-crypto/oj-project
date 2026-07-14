@@ -601,6 +601,28 @@ export class ProblemsService {
     });
   }
 
+  /** 작성자/어드민: 여러 테스트케이스를 한 번에 추가(zip 업로드용). 모두 맨 뒤에 순서대로 붙는다. */
+  async bulkAddTestCases(
+    problemId: string,
+    requesterId: string,
+    requesterRole: string,
+    testCases: CreateTestCaseDto[],
+  ) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const count = await this.prisma.testCase.count({ where: { problemId } });
+    // 하나라도 실패하면 전부 롤백해서, 절반만 추가된 애매한 상태가 남지 않게 한다.
+    await this.prisma.testCase.createMany({
+      data: testCases.map((tc, idx) => ({
+        problemId,
+        input: tc.input,
+        output: tc.output,
+        isSample: tc.isSample ?? false,
+        order: count + idx,
+      })),
+    });
+    return { addedCount: testCases.length };
+  }
+
   /** 작성자/어드민: 테스트케이스 수정. */
   async updateTestCase(
     problemId: string,

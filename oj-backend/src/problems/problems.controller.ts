@@ -20,7 +20,7 @@ import type { RequestUser } from '../auth/jwt.strategy';
 import { ProblemsService } from './problems.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
-import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
+import { BulkCreateTestCasesDto, CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
 import { CreateCommentDto } from './dto/comment.dto';
 
 class VoteDifficultyDto {
@@ -148,6 +148,16 @@ export class ProblemsController {
     @Body() dto: CreateTestCaseDto,
   ) {
     return this.problemsService.addTestCase(id, user.userId, user.role, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/testcases/bulk')
+  bulkAddTestCases(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: BulkCreateTestCasesDto,
+  ) {
+    return this.problemsService.bulkAddTestCases(id, user.userId, user.role, dto.testCases);
   }
 
   @UseGuards(JwtAuthGuard)

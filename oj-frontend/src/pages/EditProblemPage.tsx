@@ -5,6 +5,7 @@ import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 import { TestCaseTextField } from '../components/TestCaseTextField';
+import { TestCaseZipUploader } from '../components/TestCaseZipUploader';
 import { TagPicker } from '../components/TagPicker';
 
 export function EditProblemPage() {
@@ -30,6 +31,7 @@ export function EditProblemPage() {
   const [newOutput, setNewOutput] = useState('');
   const [newIsSample, setNewIsSample] = useState(false);
   const [savingTc, setSavingTc] = useState(false);
+  const [tcMode, setTcMode] = useState<'text' | 'zip'>('text');
 
   const level = (TIER_OPTIONS.find((t) => t.difficulty === tier)?.base ?? 0) + subRank;
 
@@ -79,6 +81,15 @@ export function EditProblemPage() {
     } finally {
       setSavingTc(false);
     }
+  }
+
+  async function onBulkAddTestCases(
+    cases: { input: string; output: string; isSample: boolean }[],
+  ) {
+    if (!problem) return;
+    setTcError(null);
+    await api.post(`/problems/${problem.id}/testcases/bulk`, { testCases: cases });
+    await reloadTestCases();
   }
 
   async function onToggleSample(tc: TestCase) {
@@ -295,24 +306,58 @@ export function EditProblemPage() {
           {testCases.length === 0 && <p className="text-sm text-fg-muted">아직 테스트케이스가 없습니다.</p>}
         </ul>
 
-        <form onSubmit={onAddTestCase} className="mt-6 flex flex-col gap-3 rounded border border-ink-500 p-4">
-          <p className="text-sm font-bold">새 테스트케이스 추가</p>
-          <div className="grid grid-cols-2 gap-3">
-            <TestCaseTextField label="입력" value={newInput} onChange={setNewInput} rows={4} className={`${inputClass} font-mono`} />
-            <TestCaseTextField label="출력" value={newOutput} onChange={setNewOutput} rows={4} className={`${inputClass} font-mono`} />
+        <div className="mt-6 flex flex-col gap-3 rounded border border-ink-500 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold">새 테스트케이스 추가</p>
+            {/* 입력 방식 선택: 직접 입력 vs zip 업로드 */}
+            <div className="flex overflow-hidden rounded border border-ink-500 text-xs">
+              <button
+                type="button"
+                onClick={() => setTcMode('text')}
+                className={
+                  tcMode === 'text'
+                    ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
+                    : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
+                }
+              >
+                직접 입력
+              </button>
+              <button
+                type="button"
+                onClick={() => setTcMode('zip')}
+                className={
+                  tcMode === 'zip'
+                    ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
+                    : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
+                }
+              >
+                파일 업로드(zip)
+              </button>
+            </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={newIsSample} onChange={(e) => setNewIsSample(e.target.checked)} />
-            샘플로 공개(문제 페이지에 노출)
-          </label>
-          <button
-            type="submit"
-            disabled={savingTc}
-            className="self-start rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
-          >
-            {savingTc ? '추가 중...' : '테스트케이스 추가'}
-          </button>
-        </form>
+
+          {tcMode === 'text' ? (
+            <form onSubmit={onAddTestCase} className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <TestCaseTextField label="입력" value={newInput} onChange={setNewInput} rows={4} className={`${inputClass} font-mono`} />
+                <TestCaseTextField label="출력" value={newOutput} onChange={setNewOutput} rows={4} className={`${inputClass} font-mono`} />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={newIsSample} onChange={(e) => setNewIsSample(e.target.checked)} />
+                샘플로 공개(문제 페이지에 노출)
+              </label>
+              <button
+                type="submit"
+                disabled={savingTc}
+                className="self-start rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+              >
+                {savingTc ? '추가 중...' : '테스트케이스 추가'}
+              </button>
+            </form>
+          ) : (
+            <TestCaseZipUploader onAdd={onBulkAddTestCases} />
+          )}
+        </div>
       </div>
     </div>
   );
