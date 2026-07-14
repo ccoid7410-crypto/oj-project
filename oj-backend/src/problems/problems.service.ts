@@ -129,8 +129,22 @@ export class ProblemsService {
       }
     }
 
+    // test 태그 문제는 1~1000번대를 쓴다 (관리자 전용 점검 문제). 일반 문제는 시퀀스가 1001부터 부여.
+    let testDisplayId: number | undefined;
+    if (tags.includes('test')) {
+      const maxTest = await this.prisma.problem.aggregate({
+        _max: { displayId: true },
+        where: { displayId: { lte: 1000 } },
+      });
+      testDisplayId = (maxTest._max.displayId ?? 0) + 1;
+      if (testDisplayId > 1000) {
+        throw new BadRequestException('test 문제 번호(1~1000)가 모두 사용되었습니다.');
+      }
+    }
+
     const problem = await this.prisma.problem.create({
       data: {
+        ...(testDisplayId !== undefined ? { displayId: testDisplayId } : {}),
         title: dto.title,
         slug: dto.slug,
         description: dto.description,
@@ -216,11 +230,13 @@ export class ProblemsService {
     };
   }
 
-  async findAllPublished() {
+  async findAllPublished(userId?: string, requesterRole?: string) {
     const problems = await this.prisma.problem.findMany({
       where: {
         status: 'PUBLISHED',
         OR: [{ contestOnly: false }, { contestOnly: true, ...this.contestOnlyVisibleFilter() }],
+        // test 태그 문제(채점기 점검용, 1~1000번대)는 관리자에게만 보인다
+        ...(requesterRole !== 'ADMIN' ? { NOT: { tags: { has: 'test' } } } : {}),
       },
       select: {
         id: true,
@@ -235,7 +251,32 @@ export class ProblemsService {
       orderBy: { displayId: 'asc' },
     });
     const stats = await this.getStats(problems.map((p) => p.id));
-    return problems.map((p) => ({ ...p, ...(stats.get(p.id) ?? this.emptyStats()) }));
+
+    // 로그인한 사용자의 문제별 상태: 한 번이라도 맞았으면 solved, 제출은 했지만 못 맞췄으면 attempted
+    const myStatus = new Map<string, 'solved' | 'attempted'>();
+    if (userId && problems.length > 0) {
+      const ids = problems.map((p) => p.id);
+      const [attempted, solved] = await Promise.all([
+        this.prisma.submission.findMany({
+          where: { userId, problemId: { in: ids } },
+          select: { problemId: true },
+          distinct: ['problemId'],
+        }),
+        this.prisma.submission.findMany({
+          where: { userId, problemId: { in: ids }, status: 'ACCEPTED' },
+          select: { problemId: true },
+          distinct: ['problemId'],
+        }),
+      ]);
+      for (const s of attempted) myStatus.set(s.problemId, 'attempted');
+      for (const s of solved) myStatus.set(s.problemId, 'solved');
+    }
+
+    return problems.map((p) => ({
+      ...p,
+      ...(stats.get(p.id) ?? this.emptyStats()),
+      myStatus: myStatus.get(p.id) ?? null,
+    }));
   }
 
   /** 어드민: 상태 무관 전체 문제 목록(관리/삭제용). */
@@ -358,6 +399,11 @@ export class ProblemsService {
       throw new NotFoundException('문제를 찾을 수 없습니다.');
     }
 
+    // test 태그 문제(채점기 점검용)는 관리자/작성자만 볼 수 있다.
+    if (problem.tags.includes('test') && !isAdmin && !isAuthor) {
+      throw new NotFoundException('문제를 찾을 수 없습니다.');
+    }
+
     // 대회 전용 문제는 공개 전환되기 전까지 대회 참가자(제출 화면에서 contestId를 넘긴 경우)만 볼 수 있다.
     if (problem.contestOnly && !isAdmin && !isAuthor) {
       const publiclyVisible = await this.prisma.problem.count({
@@ -398,6 +444,19 @@ export class ProblemsService {
         })) > 0
       : false;
 
+    // 내 정답/오답 상태: 맞은 적 있으면 solved(=canVote와 같은 조건), 제출만 했으면 attempted
+    let myStatus: 'solved' | 'attempted' | null = null;
+    if (requesterId) {
+      if (canVote) {
+        myStatus = 'solved';
+      } else {
+        const attempted = await this.prisma.submission.count({
+          where: { problemId: problem.id, userId: requesterId },
+        });
+        if (attempted > 0) myStatus = 'attempted';
+      }
+    }
+
     return {
       ...problem,
       ...(stats.get(problem.id) ?? this.emptyStats()),
@@ -405,6 +464,7 @@ export class ProblemsService {
       difficultyVoteAverage: voteAgg._avg.level != null ? Math.round(voteAgg._avg.level * 10) / 10 : null,
       myDifficultyVote: myVote?.level ?? null,
       canVoteDifficulty: canVote,
+      myStatus,
     };
   }
 
@@ -539,6 +599,81 @@ export class ProblemsService {
         order: count,
       },
     });
+  }
+
+  /** 작성자/어드민: 여러 테스트케이스를 한 번에 추가(zip 업로드용). 모두 맨 뒤에 순서대로 붙는다. */
+  async bulkAddTestCases(
+    problemId: string,
+    requesterId: string,
+    requesterRole: string,
+    testCases: CreateTestCaseDto[],
+  ) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const count = await this.prisma.testCase.count({ where: { problemId } });
+    // 하나라도 실패하면 전부 롤백해서, 절반만 추가된 애매한 상태가 남지 않게 한다.
+    await this.prisma.testCase.createMany({
+      data: testCases.map((tc, idx) => ({
+        problemId,
+        input: tc.input,
+        output: tc.output,
+        isSample: tc.isSample ?? false,
+        order: count + idx,
+      })),
+    });
+    return { addedCount: testCases.length };
+  }
+
+  /**
+   * 작성자/어드민: 테스트케이스 전체를 주어진 목록으로 맞춘다(수정 페이지 통합 편집용).
+   * - id가 있는 항목은 내용/샘플여부/순서를 업데이트한다(제출 기록 유지).
+   * - id가 없는 항목은 새로 만든다.
+   * - 목록에 없는 기존 케이스는 삭제한다.
+   * 순서는 배열 인덱스를 따른다. 전부 한 트랜잭션으로 처리해 중간 실패 시 롤백된다.
+   */
+  async syncTestCases(
+    problemId: string,
+    requesterId: string,
+    requesterRole: string,
+    items: Array<{ id?: string; input: string; output: string; isSample?: boolean }>,
+  ) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const existing = await this.prisma.testCase.findMany({
+      where: { problemId },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((t) => t.id));
+    const keepIds = new Set(items.filter((i) => i.id).map((i) => i.id!));
+
+    // 목록에 없는 id를 클라이언트가 보냈다면(다른 문제 것이거나 이미 삭제됨) 막는다.
+    for (const id of keepIds) {
+      if (!existingIds.has(id)) {
+        throw new NotFoundException('존재하지 않는 테스트케이스가 포함돼 있습니다.');
+      }
+    }
+
+    const toDelete = [...existingIds].filter((id) => !keepIds.has(id));
+
+    await this.prisma.$transaction([
+      ...(toDelete.length ? [this.prisma.testCase.deleteMany({ where: { id: { in: toDelete } } })] : []),
+      ...items.map((item, idx) =>
+        item.id
+          ? this.prisma.testCase.update({
+              where: { id: item.id },
+              data: { input: item.input, output: item.output, isSample: item.isSample ?? false, order: idx },
+            })
+          : this.prisma.testCase.create({
+              data: {
+                problemId,
+                input: item.input,
+                output: item.output,
+                isSample: item.isSample ?? false,
+                order: idx,
+              },
+            }),
+      ),
+    ]);
+
+    return this.prisma.testCase.findMany({ where: { problemId }, orderBy: { order: 'asc' } });
   }
 
   /** 작성자/어드민: 테스트케이스 수정. */

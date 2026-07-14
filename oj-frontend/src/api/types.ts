@@ -5,6 +5,7 @@ export interface User {
   email: string;
   username: string;
   name: string | null;
+  preferredLanguage: Language | null;
   role: Role;
   rating: number;
   studentId: string | null;
@@ -32,6 +33,7 @@ export interface ProblemSummary {
   acceptedCount: number;
   solvedCount: number;
   accuracy: number;
+  myStatus: 'solved' | 'attempted' | null; // 로그인한 사용자의 정답/오답 여부 (비로그인은 null)
 }
 
 export interface TestCase {
@@ -225,6 +227,9 @@ export interface UserProfile {
   username: string;
   role: Role;
   rating: number;
+  bio: string | null;
+  website: string | null;
+  avatarVersion: number | null; // 아바타 캐시 무효화용 타임스탬프. null이면 기본(회색) 아바타
   solvedCount: number;
   rank: number | null;
   solvedProblems: UserProfileProblem[];

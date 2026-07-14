@@ -46,10 +46,10 @@ export function labelOfLevel(level: number): string {
   return `${TIERS[tierIndexOfLevel(l)].label} ${romanOfLevel(l)}`;
 }
 
-/** 예: "G3" (Gold, 티어 내 3번째 서브랭크) */
+/** 예: "G3" (골드 III). 숫자는 로마 숫자와 같은 값이어야 한다 (V=5 … I=1, 낮을수록 어려움). */
 export function shortLabelOfLevel(level: number): string {
   const l = clampLevel(level);
-  return `${TIERS[tierIndexOfLevel(l)].difficulty[0]}${subRankOfLevel(l)}`;
+  return `${TIERS[tierIndexOfLevel(l)].difficulty[0]}${6 - subRankOfLevel(l)}`;
 }
 
 export const TIER_OPTIONS: { difficulty: Difficulty; label: string; base: number }[] = [

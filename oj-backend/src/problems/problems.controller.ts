@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -20,7 +21,12 @@ import type { RequestUser } from '../auth/jwt.strategy';
 import { ProblemsService } from './problems.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
-import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
+import {
+  BulkCreateTestCasesDto,
+  CreateTestCaseDto,
+  SyncTestCasesDto,
+  UpdateTestCaseDto,
+} from './dto/testcase.dto';
 import { CreateCommentDto } from './dto/comment.dto';
 
 class VoteDifficultyDto {
@@ -34,9 +40,11 @@ class VoteDifficultyDto {
 export class ProblemsController {
   constructor(private readonly problemsService: ProblemsService) {}
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  findAll() {
-    return this.problemsService.findAllPublished();
+  findAll(@Req() req: any) {
+    // 로그인은 선택: 토큰이 있으면 각 문제에 내 정답/오답 여부(myStatus)를 같이 내려준다.
+    return this.problemsService.findAllPublished(req.user?.userId, req.user?.role);
   }
 
   // 정적 경로는 반드시 ':slug' 파라미터 라우트보다 먼저 선언해야 매칭이 가로채이지 않는다.
@@ -146,6 +154,26 @@ export class ProblemsController {
     @Body() dto: CreateTestCaseDto,
   ) {
     return this.problemsService.addTestCase(id, user.userId, user.role, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/testcases/bulk')
+  bulkAddTestCases(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: BulkCreateTestCasesDto,
+  ) {
+    return this.problemsService.bulkAddTestCases(id, user.userId, user.role, dto.testCases);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/testcases')
+  syncTestCases(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SyncTestCasesDto,
+  ) {
+    return this.problemsService.syncTestCases(id, user.userId, user.role, dto.testCases);
   }
 
   @UseGuards(JwtAuthGuard)

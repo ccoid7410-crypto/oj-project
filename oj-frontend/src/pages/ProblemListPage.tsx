@@ -66,7 +66,7 @@ export function ProblemListPage() {
             <tr className="bg-ink-700 text-fg-muted">
               <th className="w-16 border border-ink-600 px-2 py-1.5 text-center font-medium">문제</th>
               <th className="border border-ink-600 px-3 py-1.5 font-medium">문제 제목</th>
-              <th className="w-40 border border-ink-600 px-2 py-1.5 font-medium">정보</th>
+              <th className="w-40 border border-ink-600 px-2 py-1.5 font-medium">태그</th>
               <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">맞힌 사람</th>
               <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">제출</th>
               <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">정답 비율</th>
@@ -81,13 +81,23 @@ export function ProblemListPage() {
                     to={`/problems/${p.slug}`}
                     className="flex items-center gap-1.5 text-[var(--color-brand)] hover:underline"
                   >
+                    {p.myStatus === 'solved' && (
+                      <span className="shrink-0 rounded bg-[var(--color-ac)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        정답
+                      </span>
+                    )}
+                    {p.myStatus === 'attempted' && (
+                      <span className="shrink-0 rounded bg-[var(--color-wa)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        오답
+                      </span>
+                    )}
                     <DifficultyBadge level={p.level} />
                     {p.title}
                   </Link>
                 </td>
                 <td className="border border-ink-600 px-2 py-1.5">
                   <span className="flex flex-wrap gap-1">
-                    {p.tags.slice(0, 3).map((t) => {
+                    {p.tags.map((t) => {
                       const c = tagColor(t);
                       return (
                         <span

@@ -55,6 +55,12 @@ export function ProblemDetailPage() {
     setCode((prev) => (Object.values(DEFAULT_TEMPLATE).includes(prev) ? DEFAULT_TEMPLATE[next] : prev));
   }
 
+  // 프로필에 설정한 기본 제출 언어를 자동 선택한다.
+  useEffect(() => {
+    if (user?.preferredLanguage) onLanguageChange(user.preferredLanguage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.preferredLanguage]);
+
   async function onSubmit() {
     if (!problem) return;
     setSubmitting(true);
@@ -85,6 +91,16 @@ export function ProblemDetailPage() {
           {contestId && <span className="font-bold text-[var(--color-brand)]">대회 제출 모드</span>}
         </div>
         <div className="mt-1 flex items-center gap-2">
+          {problem.myStatus === 'solved' && (
+            <span className="rounded bg-[var(--color-ac)] px-2 py-0.5 text-xs font-bold text-white">
+              정답
+            </span>
+          )}
+          {problem.myStatus === 'attempted' && (
+            <span className="rounded bg-[var(--color-wa)] px-2 py-0.5 text-xs font-bold text-white">
+              오답
+            </span>
+          )}
           <DifficultyBadge level={problem.level} />
           <h1 className="text-2xl font-bold">{problem.title}</h1>
           {user && (user.role === 'ADMIN' || user.id === problem.authorId) && (

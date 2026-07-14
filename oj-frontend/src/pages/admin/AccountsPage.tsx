@@ -48,6 +48,25 @@ export function AccountsPage() {
     }
   }
 
+  async function removeAccount(id: string, username: string) {
+    if (
+      !window.confirm(
+        `${username} 계정을 완전히 삭제할까요?\n제출 기록·댓글 등 모든 활동이 함께 삭제되며 되돌릴 수 없습니다.`,
+      )
+    )
+      return;
+    setBusyId(id);
+    setError(null);
+    try {
+      await api.delete(`/admin/users/${id}`);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '계정 삭제에 실패했습니다.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function setRole(id: string, username: string, role: Role) {
     if (!window.confirm(`${username} 계정의 권한을 '${ROLE_LABEL[role]}'(으)로 변경할까요?`)) {
       load(); // 취소 시 select 표시를 원래 값으로 되돌리기 위해 다시 불러온다
@@ -163,6 +182,15 @@ export function AccountsPage() {
                           </button>
                         </>
                       ))}
+                    {u.role !== 'ADMIN' && (
+                      <button
+                        onClick={() => removeAccount(u.id, u.username)}
+                        disabled={busyId === u.id}
+                        className="rounded bg-[var(--color-wa)] px-2 py-1 text-xs font-bold text-white hover:opacity-85 disabled:opacity-60"
+                      >
+                        삭제
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

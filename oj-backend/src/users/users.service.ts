@@ -17,6 +17,18 @@ const RANKING_MAX_LIMIT = 100;
 // 서버 .env의 ROOT_ADMIN_USERNAME이 설정돼 있으면 그 값이 우선한다.
 const DEFAULT_ROOT_ADMIN_USERNAME = 'jihun1050';
 
+// 프로필 이미지는 클라이언트가 축소해서 올리지만(256px), 서버에서도 상한을 강제한다.
+// DB(bytea)에 저장되므로 큰 이미지를 허용하면 저사양 호스트의 DB가 금방 부푼다.
+const AVATAR_MAX_BYTES = 1024 * 1024; // 1MB
+const AVATAR_ALLOWED_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+// 파일 시그니처(매직 넘버) 검사: Content-Type만 믿으면 SVG 등 스크립트 실행 가능한
+// 포맷을 이미지로 위장해 올릴 수 있다.
+const AVATAR_MAGIC: Array<{ mime: string; bytes: number[] }> = [
+  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF (+ 8~11바이트가 WEBP)
+];
+
 function randomPassword(): string {
   // 사람이 옮겨적기 쉬운 12자리 임시 비밀번호
   return randomBytes(9).toString('base64').replace(/[+/=]/g, '').slice(0, 12) + '1';
@@ -35,11 +47,15 @@ export class UsersService {
         email: true,
         username: true,
         name: true,
+        preferredLanguage: true,
         role: true,
         rating: true,
         studentId: true,
         mustChangePassword: true,
         createdAt: true,
+        bio: true,
+        website: true,
+        avatarUpdatedAt: true,
       },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
@@ -53,7 +69,15 @@ export class UsersService {
   async findByUsername(username: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
-      select: { id: true, username: true, role: true, rating: true },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        rating: true,
+        bio: true,
+        website: true,
+        avatarUpdatedAt: true,
+      },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
 
@@ -79,10 +103,80 @@ export class UsersService {
       username: user.username,
       role: user.role,
       rating: user.rating,
+      bio: user.bio,
+      website: user.website,
+      // 이미지 바이트 대신 버전(타임스탬프)만 내려준다. 프론트는 이 값으로
+      // /users/:username/avatar?v=... URL을 만들고, null이면 기본(회색) 아바타를 그린다.
+      avatarVersion: user.avatarUpdatedAt ? user.avatarUpdatedAt.getTime() : null,
       solvedCount: solved.length,
       rank,
       solvedProblems,
     };
+  }
+
+  /** 본인 프로필 커스터마이징(bio/사이트). 값 검증은 컨트롤러 DTO가 담당한다. */
+  async updateProfile(userId: string, dto: { bio?: string | null; website?: string | null }) {
+    const data: { bio?: string | null; website?: string | null } = {};
+    if (dto.bio !== undefined) data.bio = dto.bio?.trim() || null;
+    if (dto.website !== undefined) data.website = dto.website?.trim() || null;
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, username: true, bio: true, website: true },
+    });
+    return user;
+  }
+
+  /** 프로필 이미지 업로드(base64). 형식/크기를 서버에서도 강제한다. */
+  async updateAvatar(userId: string, mime: string, base64Data: string) {
+    if (!AVATAR_ALLOWED_MIMES.has(mime)) {
+      throw new BadRequestException('PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.');
+    }
+    let bytes: Buffer;
+    try {
+      bytes = Buffer.from(base64Data, 'base64');
+    } catch {
+      throw new BadRequestException('이미지 데이터가 올바르지 않습니다.');
+    }
+    if (bytes.length === 0) throw new BadRequestException('이미지 데이터가 비어 있습니다.');
+    if (bytes.length > AVATAR_MAX_BYTES) {
+      throw new BadRequestException('이미지는 1MB 이하여야 합니다.');
+    }
+    const magic = AVATAR_MAGIC.find((m) => m.mime === mime)!;
+    const matches =
+      bytes.length > 12 &&
+      magic.bytes.every((b, i) => bytes[i] === b) &&
+      (mime !== 'image/webp' || bytes.subarray(8, 12).toString('ascii') === 'WEBP');
+    if (!matches) {
+      throw new BadRequestException('이미지 파일 내용이 형식과 일치하지 않습니다.');
+    }
+    const updatedAt = new Date();
+    await this.prisma.user.update({
+      where: { id: userId },
+      // Prisma 6의 Bytes는 Uint8Array 타입이라 Buffer를 그대로 못 넘긴다.
+      data: { avatar: new Uint8Array(bytes), avatarMime: mime, avatarUpdatedAt: updatedAt },
+    });
+    return { avatarVersion: updatedAt.getTime() };
+  }
+
+  /** 프로필 이미지 삭제 → 기본(회색) 아바타로 되돌린다. */
+  async deleteAvatar(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatar: null, avatarMime: null, avatarUpdatedAt: null },
+    });
+    return { avatarVersion: null };
+  }
+
+  /** 공개 아바타 이미지 조회. 없으면 null(프론트가 기본 회색을 그림 → 404 응답). */
+  async getAvatar(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: { avatar: true, avatarMime: true, avatarUpdatedAt: true },
+    });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (!user.avatar || !user.avatarMime) return null;
+    return { bytes: Buffer.from(user.avatar), mime: user.avatarMime, updatedAt: user.avatarUpdatedAt };
   }
 
   /**
@@ -247,6 +341,77 @@ export class UsersService {
       createdAt: user.createdAt,
       generation: match ? match[0] : null,
     };
+  }
+
+  /** 기본 제출 언어 설정. 문제 페이지에서 자동 선택된다. */
+  async updatePreferredLanguage(userId: string, language: 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO') {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { preferredLanguage: language },
+      select: { id: true, preferredLanguage: true },
+    });
+  }
+
+  /**
+   * 계정과 활동 기록(제출/댓글/투표/참가)을 완전히 삭제한다.
+   * 이 계정이 만든 콘텐츠(문제/대회/수업/공지)가 있으면 다른 회원의 기록까지 얽혀 있어 막는다.
+   */
+  private async purgeAccount(id: string) {
+    const [problemCount, contestCount, classCount, noticeCount] = await Promise.all([
+      this.prisma.problem.count({ where: { authorId: id } }),
+      this.prisma.contest.count({ where: { createdById: id } }),
+      this.prisma.classRoom.count({ where: { createdById: id } }),
+      this.prisma.classNotice.count({ where: { createdById: id } }),
+    ]);
+    if (problemCount > 0) {
+      throw new BadRequestException('이 계정이 만든 문제가 있어 삭제할 수 없습니다. 문제를 먼저 삭제해주세요.');
+    }
+    if (contestCount > 0) {
+      throw new BadRequestException('이 계정이 만든 대회가 있어 삭제할 수 없습니다. 대회를 먼저 삭제해주세요.');
+    }
+    if (classCount > 0) {
+      throw new BadRequestException('이 계정이 만든 수업이 있어 삭제할 수 없습니다. 수업을 먼저 삭제해주세요.');
+    }
+    if (noticeCount > 0) {
+      throw new BadRequestException('이 계정이 작성한 수업 공지가 있어 삭제할 수 없습니다. 공지를 먼저 삭제해주세요.');
+    }
+
+    await this.prisma.$transaction([
+      // 남겨야 하는 기록에서 이 계정을 가리키는 참조만 비운다
+      this.prisma.adminNotification.updateMany({ where: { voterId: id }, data: { voterId: null } }),
+      this.prisma.problem.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } }),
+      // 본인의 활동 기록 삭제 (제출의 테스트 결과, 댓글의 대댓글은 cascade로 함께 삭제됨)
+      this.prisma.submission.deleteMany({ where: { userId: id } }),
+      this.prisma.problemComment.deleteMany({ where: { userId: id } }),
+      this.prisma.problemDifficultyVote.deleteMany({ where: { userId: id } }),
+      this.prisma.contestParticipant.deleteMany({ where: { userId: id } }),
+      this.prisma.classMembership.deleteMany({ where: { userId: id } }),
+      this.prisma.apiKey.deleteMany({ where: { createdById: id } }),
+      this.prisma.user.delete({ where: { id } }),
+    ]);
+    return { success: true };
+  }
+
+  /** 관리자: 계정 삭제. 관리자 계정은 먼저 권한을 해제해야 한다. */
+  async adminDeleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('관리자 계정은 삭제할 수 없습니다. 먼저 관리자 권한을 해제하세요.');
+    }
+    return this.purgeAccount(id);
+  }
+
+  /** 본인 탈퇴. 비밀번호 확인 필수, 관리자는 권한을 해제한 뒤에만 가능. */
+  async deleteOwnAccount(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('관리자 계정은 탈퇴할 수 없습니다. 다른 관리자에게 권한 해제를 먼저 요청하세요.');
+    }
+    const matches = await bcrypt.compare(password, user.passwordHash);
+    if (!matches) throw new ForbiddenException('비밀번호가 올바르지 않습니다.');
+    return this.purgeAccount(userId);
   }
 
   /** 본인 이름(실명) 등록/수정. */

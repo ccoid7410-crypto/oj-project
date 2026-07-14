@@ -4,7 +4,8 @@ import { api, ApiError } from '../api/client';
 import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
-import { TestCaseTextField } from '../components/TestCaseTextField';
+import { TestCaseDraftList, type TestCaseDraft } from '../components/TestCaseDraftList';
+import { TagPicker } from '../components/TagPicker';
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -18,19 +19,23 @@ export function EditProblemPage() {
   const [subRank, setSubRank] = useState(5);
   const [timeLimitMs, setTimeLimitMs] = useState(2000);
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [tcError, setTcError] = useState<string | null>(null);
-  const [newInput, setNewInput] = useState('');
-  const [newOutput, setNewOutput] = useState('');
-  const [newIsSample, setNewIsSample] = useState(false);
+  const [tcNotice, setTcNotice] = useState<string | null>(null);
+  // 기존 저장된 케이스와 새로 추가할 케이스를 하나의 편집 목록으로 다룬다.
+  // id가 있으면 기존 케이스(저장 시 업데이트), 없으면 새 케이스(저장 시 생성).
+  const [drafts, setDrafts] = useState<TestCaseDraft[]>([]);
   const [savingTc, setSavingTc] = useState(false);
 
   const level = (TIER_OPTIONS.find((t) => t.difficulty === tier)?.base ?? 0) + subRank;
+
+  function tcToDraft(tc: TestCase): TestCaseDraft {
+    return { id: tc.id, input: tc.input, output: tc.output, isSample: tc.isSample };
+  }
 
   function load() {
     if (!slug) return;
@@ -44,62 +49,30 @@ export function EditProblemPage() {
         setSubRank(((p.level - 1) % 5) + 1);
         setTimeLimitMs(p.timeLimitMs);
         setMemoryLimitMb(p.memoryLimitMb);
-        setTags(p.tags.join(', '));
+        setTags(p.tags);
         return api.get<TestCase[]>(`/problems/${p.id}/testcases`);
       })
-      .then((tcs) => setTestCases(tcs))
+      .then((tcs) => setDrafts(tcs.map(tcToDraft)))
       .catch(() => setError('문제를 찾을 수 없습니다.'));
   }
 
   useEffect(load, [slug]);
 
-  async function reloadTestCases() {
+  async function onSaveTestCases() {
     if (!problem) return;
-    setTestCases(await api.get<TestCase[]>(`/problems/${problem.id}/testcases`));
-  }
-
-  async function onAddTestCase(e: FormEvent) {
-    e.preventDefault();
-    if (!problem) return;
+    // 입력·출력이 모두 빈 행은 저장하지 않는다.
+    const cases = drafts.filter((d) => d.input !== '' || d.output !== '');
     setSavingTc(true);
     setTcError(null);
+    setTcNotice(null);
     try {
-      await api.post(`/problems/${problem.id}/testcases`, {
-        input: newInput,
-        output: newOutput,
-        isSample: newIsSample,
-      });
-      setNewInput('');
-      setNewOutput('');
-      setNewIsSample(false);
-      await reloadTestCases();
+      const saved = await api.put<TestCase[]>(`/problems/${problem.id}/testcases`, { testCases: cases });
+      setDrafts(saved.map(tcToDraft));
+      setTcNotice('테스트케이스를 저장했습니다.');
     } catch (err) {
-      setTcError(err instanceof ApiError ? err.message : '테스트케이스 추가에 실패했습니다.');
+      setTcError(err instanceof ApiError ? err.message : '테스트케이스 저장에 실패했습니다.');
     } finally {
       setSavingTc(false);
-    }
-  }
-
-  async function onToggleSample(tc: TestCase) {
-    if (!problem) return;
-    setTcError(null);
-    try {
-      await api.patch(`/problems/${problem.id}/testcases/${tc.id}`, { isSample: !tc.isSample });
-      await reloadTestCases();
-    } catch (err) {
-      setTcError(err instanceof ApiError ? err.message : '수정에 실패했습니다.');
-    }
-  }
-
-  async function onDeleteTestCase(tc: TestCase) {
-    if (!problem) return;
-    if (!confirm('이 테스트케이스를 삭제할까요?')) return;
-    setTcError(null);
-    try {
-      await api.delete(`/problems/${problem.id}/testcases/${tc.id}`);
-      await reloadTestCases();
-    } catch (err) {
-      setTcError(err instanceof ApiError ? err.message : '삭제에 실패했습니다.');
     }
   }
 
@@ -117,10 +90,7 @@ export function EditProblemPage() {
         level,
         timeLimitMs,
         memoryLimitMb,
-        tags: tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags,
       });
       navigate(`/problems/${slug}`);
     } catch (err) {
@@ -236,10 +206,7 @@ export function EditProblemPage() {
           </div>
         )}
 
-        <label className="flex flex-col gap-1 text-sm">
-          태그 (쉼표로 구분)
-          <input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} />
-        </label>
+        <TagPicker value={tags} onChange={setTags} />
 
         {notice && <p className="text-xs text-[var(--color-ac)]">{notice}</p>}
         {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
@@ -256,68 +223,24 @@ export function EditProblemPage() {
       <div className="mt-10 border-t border-ink-500 pt-6">
         <h2 className="text-lg font-bold">테스트케이스 관리</h2>
         <p className="mt-1 text-xs text-fg-muted">
-          샘플로 표시한 테스트케이스는 문제 페이지에 공개되고, 아닌 것은 채점에만 쓰이는 히든 케이스입니다.
+          기존 케이스가 아래에 그대로 불러와집니다. 직접 수정하거나 zip으로 채운 뒤 저장하세요. 삭제한 행은
+          저장 시 실제로 삭제되고, 샘플로 표시한 케이스만 문제 페이지에 공개됩니다.
         </p>
 
         {tcError && <p className="mt-2 text-xs text-[var(--color-wa)]">{tcError}</p>}
+        {tcNotice && <p className="mt-2 text-xs text-[var(--color-ac)]">{tcNotice}</p>}
 
-        <ul className="mt-4 flex flex-col gap-2">
-          {testCases.map((tc, idx) => (
-            <li key={tc.id} className="rounded border border-ink-500 p-3 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-bold">
-                  #{idx + 1} {tc.isSample && <span className="text-[var(--color-ac)]">(샘플)</span>}
-                </span>
-                <div className="flex gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => onToggleSample(tc)}
-                    className="rounded border border-ink-500 px-2 py-1 hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-                  >
-                    {tc.isSample ? '샘플 해제' : '샘플로 표시'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteTestCase(tc)}
-                    className="rounded border border-ink-500 px-2 py-1 hover:border-[var(--color-wa)] hover:text-[var(--color-wa)]"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-fg-muted">입력</p>
-                  <pre className="mt-1 overflow-x-auto rounded bg-ink-700 p-2 text-xs whitespace-pre-wrap">{tc.input}</pre>
-                </div>
-                <div>
-                  <p className="text-xs text-fg-muted">출력</p>
-                  <pre className="mt-1 overflow-x-auto rounded bg-ink-700 p-2 text-xs whitespace-pre-wrap">{tc.output}</pre>
-                </div>
-              </div>
-            </li>
-          ))}
-          {testCases.length === 0 && <p className="text-sm text-fg-muted">아직 테스트케이스가 없습니다.</p>}
-        </ul>
-
-        <form onSubmit={onAddTestCase} className="mt-6 flex flex-col gap-3 rounded border border-ink-500 p-4">
-          <p className="text-sm font-bold">새 테스트케이스 추가</p>
-          <div className="grid grid-cols-2 gap-3">
-            <TestCaseTextField label="입력" value={newInput} onChange={setNewInput} rows={4} className={`${inputClass} font-mono`} />
-            <TestCaseTextField label="출력" value={newOutput} onChange={setNewOutput} rows={4} className={`${inputClass} font-mono`} />
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={newIsSample} onChange={(e) => setNewIsSample(e.target.checked)} />
-            샘플로 공개(문제 페이지에 노출)
-          </label>
-          <button
-            type="submit"
-            disabled={savingTc}
-            className="self-start rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
-          >
-            {savingTc ? '추가 중...' : '테스트케이스 추가'}
-          </button>
-        </form>
+        <div className="mt-4">
+          <TestCaseDraftList value={drafts} onChange={setDrafts} inputClass={`${inputClass} font-mono`} />
+        </div>
+        <button
+          type="button"
+          onClick={onSaveTestCases}
+          disabled={savingTc}
+          className="mt-3 rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+        >
+          {savingTc ? '저장 중...' : '테스트케이스 저장'}
+        </button>
       </div>
     </div>
   );
