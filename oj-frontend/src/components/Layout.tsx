@@ -1,108 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
 import { api } from '../api/client';
-import { setTheme, storedTheme, type ThemePref } from '../lib/theme';
-
-const THEME_OPTIONS: Array<{ value: ThemePref; label: string; icon: string }> = [
-  { value: 'system', label: '시스템', icon: '💻' },
-  { value: 'light', label: '라이트', icon: '☀️' },
-  { value: 'dark', label: '다크', icon: '🌙' },
-];
-
-/** OS 기본 select 팝업 대신 사이트 스타일에 맞춘 커스텀 테마 드롭다운. */
-function ThemeSelect() {
-  const { user } = useAuth();
-  const [pref, setPref] = useState<ThemePref>(storedTheme());
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  // 로그인 시 계정 테마가 적용(setTheme)되면 표시값도 따라가게 한다.
-  useEffect(() => {
-    const sync = () => setPref(storedTheme());
-    window.addEventListener('theme-changed', sync);
-    return () => window.removeEventListener('theme-changed', sync);
-  }, []);
-
-  // 바깥 클릭 / ESC로 닫기
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  function choose(next: ThemePref) {
-    setPref(next);
-    setTheme(next);
-    setOpen(false);
-    // 로그인 상태면 계정에도 저장해 다른 기기에서도 이어지게 한다.
-    if (user) api.patch('/users/me/theme', { theme: next }).catch(() => {});
-  }
-
-  const current = THEME_OPTIONS.find((o) => o.value === pref)!;
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title="테마"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={`flex items-center gap-1.5 rounded border px-2 py-1 text-xs transition-colors ${
-          open
-            ? 'border-[var(--color-brand)] text-[var(--color-brand)]'
-            : 'border-ink-500 text-fg-muted hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]'
-        }`}
-      >
-        <span aria-hidden>{current.icon}</span>
-        {current.label}
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden
-          className={`transition-transform ${open ? 'rotate-180' : ''}`}>
-          <path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-
-      {open && (
-        <ul
-          role="listbox"
-          className="absolute right-0 z-50 mt-1 w-32 overflow-hidden rounded border border-ink-500 bg-white py-1 shadow-lg"
-        >
-          {THEME_OPTIONS.map((opt) => (
-            <li key={opt.value} role="option" aria-selected={pref === opt.value}>
-              <button
-                type="button"
-                onClick={() => choose(opt.value)}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-ink-700 ${
-                  pref === opt.value ? 'font-bold text-[var(--color-brand)]' : 'text-fg'
-                }`}
-              >
-                <span aria-hidden>{opt.icon}</span>
-                {opt.label}
-                {pref === opt.value && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="ml-auto">
-                    <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -157,7 +57,6 @@ export function Layout() {
             </div>
           </Link>
           <div className="flex items-center gap-3 text-xs text-fg-muted">
-            <ThemeSelect />
             {user ? (
               <>
                 <Link to={`/users/${user.username}`} className="hover:text-[var(--color-brand)]">
