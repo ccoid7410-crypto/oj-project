@@ -623,6 +623,59 @@ export class ProblemsService {
     return { addedCount: testCases.length };
   }
 
+  /**
+   * 작성자/어드민: 테스트케이스 전체를 주어진 목록으로 맞춘다(수정 페이지 통합 편집용).
+   * - id가 있는 항목은 내용/샘플여부/순서를 업데이트한다(제출 기록 유지).
+   * - id가 없는 항목은 새로 만든다.
+   * - 목록에 없는 기존 케이스는 삭제한다.
+   * 순서는 배열 인덱스를 따른다. 전부 한 트랜잭션으로 처리해 중간 실패 시 롤백된다.
+   */
+  async syncTestCases(
+    problemId: string,
+    requesterId: string,
+    requesterRole: string,
+    items: Array<{ id?: string; input: string; output: string; isSample?: boolean }>,
+  ) {
+    await this.assertCanManageTestCases(problemId, requesterId, requesterRole);
+    const existing = await this.prisma.testCase.findMany({
+      where: { problemId },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((t) => t.id));
+    const keepIds = new Set(items.filter((i) => i.id).map((i) => i.id!));
+
+    // 목록에 없는 id를 클라이언트가 보냈다면(다른 문제 것이거나 이미 삭제됨) 막는다.
+    for (const id of keepIds) {
+      if (!existingIds.has(id)) {
+        throw new NotFoundException('존재하지 않는 테스트케이스가 포함돼 있습니다.');
+      }
+    }
+
+    const toDelete = [...existingIds].filter((id) => !keepIds.has(id));
+
+    await this.prisma.$transaction([
+      ...(toDelete.length ? [this.prisma.testCase.deleteMany({ where: { id: { in: toDelete } } })] : []),
+      ...items.map((item, idx) =>
+        item.id
+          ? this.prisma.testCase.update({
+              where: { id: item.id },
+              data: { input: item.input, output: item.output, isSample: item.isSample ?? false, order: idx },
+            })
+          : this.prisma.testCase.create({
+              data: {
+                problemId,
+                input: item.input,
+                output: item.output,
+                isSample: item.isSample ?? false,
+                order: idx,
+              },
+            }),
+      ),
+    ]);
+
+    return this.prisma.testCase.findMany({ where: { problemId }, orderBy: { order: 'asc' } });
+  }
+
   /** 작성자/어드민: 테스트케이스 수정. */
   async updateTestCase(
     problemId: string,

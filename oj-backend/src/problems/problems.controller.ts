@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -20,7 +21,12 @@ import type { RequestUser } from '../auth/jwt.strategy';
 import { ProblemsService } from './problems.service';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
-import { BulkCreateTestCasesDto, CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
+import {
+  BulkCreateTestCasesDto,
+  CreateTestCaseDto,
+  SyncTestCasesDto,
+  UpdateTestCaseDto,
+} from './dto/testcase.dto';
 import { CreateCommentDto } from './dto/comment.dto';
 
 class VoteDifficultyDto {
@@ -158,6 +164,16 @@ export class ProblemsController {
     @Body() dto: BulkCreateTestCasesDto,
   ) {
     return this.problemsService.bulkAddTestCases(id, user.userId, user.role, dto.testCases);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/testcases')
+  syncTestCases(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SyncTestCasesDto,
+  ) {
+    return this.problemsService.syncTestCases(id, user.userId, user.role, dto.testCases);
   }
 
   @UseGuards(JwtAuthGuard)

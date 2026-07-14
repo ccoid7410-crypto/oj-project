@@ -37,3 +37,30 @@ export class UpdateTestCaseDto {
   @IsBoolean()
   isSample?: boolean;
 }
+
+export class SyncTestCaseItemDto {
+  // 기존 케이스면 id가 있고(=업데이트), 없으면 새로 만든다.
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsString()
+  input: string;
+
+  @IsString()
+  output: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isSample?: boolean;
+}
+
+export class SyncTestCasesDto {
+  // 문제의 테스트케이스 전체를 이 목록으로 맞춘다(수정 페이지의 통합 편집용).
+  // 빈 목록도 허용(전부 삭제). 상한은 bulk와 동일.
+  @IsArray()
+  @ArrayMaxSize(300)
+  @ValidateNested({ each: true })
+  @Type(() => SyncTestCaseItemDto)
+  testCases: SyncTestCaseItemDto[];
+}

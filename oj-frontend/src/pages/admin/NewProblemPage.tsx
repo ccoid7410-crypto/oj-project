@@ -5,15 +5,10 @@ import type { Difficulty, Language } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
-import { TestCaseTextField } from '../../components/TestCaseTextField';
-import { TestCaseZipUploader } from '../../components/TestCaseZipUploader';
+import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCaseDraftList';
 import { TagPicker } from '../../components/TagPicker';
 
-interface TestCaseInput {
-  input: string;
-  output: string;
-  isSample: boolean;
-}
+type TestCaseInput = TestCaseDraft;
 
 function emptyTestCase(isSample: boolean): TestCaseInput {
   return { input: '', output: '', isSample };
@@ -33,30 +28,12 @@ export function NewProblemPage() {
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
   const [tags, setTags] = useState<string[]>([]);
   const [testCases, setTestCases] = useState<TestCaseInput[]>([emptyTestCase(true)]);
-  const [tcMode, setTcMode] = useState<'text' | 'zip'>('text');
   const [publishNow, setPublishNow] = useState(isAdmin);
   const [contestOnly, setContestOnly] = useState(false);
   const [verificationLanguage, setVerificationLanguage] = useState<Language>('CPP');
   const [verificationCode, setVerificationCode] = useState(DEFAULT_TEMPLATE.CPP);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function updateTestCase(index: number, patch: Partial<TestCaseInput>) {
-    setTestCases((prev) => prev.map((tc, i) => (i === index ? { ...tc, ...patch } : tc)));
-  }
-
-  function addTestCase() {
-    setTestCases((prev) => [...prev, emptyTestCase(false)]);
-  }
-
-  function removeTestCase(index: number) {
-    setTestCases((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  // zip에서 파싱한 케이스를 로컬 목록에 이어붙인다. 처음에 있던 빈 케이스는 정리한다.
-  async function onZipAdd(cases: TestCaseInput[]) {
-    setTestCases((prev) => [...prev.filter((tc) => tc.input !== '' || tc.output !== ''), ...cases]);
-  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -178,90 +155,12 @@ export function NewProblemPage() {
         <TagPicker value={tags} onChange={setTags} />
 
         <div>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-fg-muted">테스트케이스</h2>
-            <div className="flex items-center gap-2">
-              {/* 입력 방식 선택: 직접 입력 vs zip 업로드 */}
-              <div className="flex overflow-hidden rounded border border-ink-500 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setTcMode('text')}
-                  className={
-                    tcMode === 'text'
-                      ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
-                      : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
-                  }
-                >
-                  직접 입력
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTcMode('zip')}
-                  className={
-                    tcMode === 'zip'
-                      ? 'bg-[var(--color-brand)] px-3 py-1 font-bold text-white'
-                      : 'px-3 py-1 text-fg-muted hover:text-[var(--color-brand)]'
-                  }
-                >
-                  파일 업로드(zip)
-                </button>
-              </div>
-              {tcMode === 'text' && (
-                <button
-                  type="button"
-                  onClick={addTestCase}
-                  className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)]"
-                >
-                  + 추가
-                </button>
-              )}
-            </div>
-          </div>
-
-          {tcMode === 'zip' && (
-            <div className="mt-3">
-              <TestCaseZipUploader onAdd={onZipAdd} />
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-col gap-4">
-            {testCases.map((tc, i) => (
-              <div key={i} className="rounded border border-ink-500 bg-ink-700 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-xs text-fg-muted">
-                    <input
-                      type="checkbox"
-                      checked={tc.isSample}
-                      onChange={(e) => updateTestCase(i, { isSample: e.target.checked })}
-                    />
-                    예제로 공개 (sample)
-                  </label>
-                  {testCases.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeTestCase(i)}
-                      className="text-xs text-fg-muted hover:text-fg"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <TestCaseTextField
-                    label="input"
-                    value={tc.input}
-                    onChange={(text) => updateTestCase(i, { input: text })}
-                    className={`${inputClass} resize-y`}
-                  />
-                  <TestCaseTextField
-                    label="output"
-                    value={tc.output}
-                    onChange={(text) => updateTestCase(i, { output: text })}
-                    className={`${inputClass} resize-y`}
-                  />
-                </div>
-              </div>
-            ))}
+          <h2 className="text-sm font-bold text-fg-muted">테스트케이스</h2>
+          <p className="mt-1 text-xs text-fg-muted">
+            직접 입력하거나, zip을 올리면 각 케이스가 아래 칸에 채워집니다. 채워진 뒤에도 수정할 수 있어요.
+          </p>
+          <div className="mt-3">
+            <TestCaseDraftList value={testCases} onChange={setTestCases} inputClass={inputClass} />
           </div>
         </div>
 
