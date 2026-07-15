@@ -33,9 +33,9 @@ function renderLoggedOut() {
 function renderLoggedIn(user) {
   setHeroActionsVisible(false);
   authArea.innerHTML = "";
-  // 헤더의 계정 버튼(사진+아이디)이 마이페이지 입구다 (메뉴의 마이페이지 버튼은 없앰)
+  // 헤더의 계정 버튼(사진+아이디)은 OJ 프로필로 연결한다 (마이페이지는 제거됨)
   const profile = document.createElement("a");
-  profile.href = "account.html";
+  profile.href = `/users/${encodeURIComponent(user.username)}`;
   profile.className = "auth-profile-link";
 
   // OJ 헤더와 동일하게 닉네임 왼쪽에 프로필 사진(없으면 회색 원)을 보여준다.

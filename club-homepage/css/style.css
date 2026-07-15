@@ -322,42 +322,6 @@ body.gate-pending .site-footer {
   width: 110px;
 }
 
-.theme-setting {
-  margin-top: 24px;
-}
-
-.theme-setting-label {
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.theme-options {
-  display: flex;
-  gap: 8px;
-}
-
-.theme-options button {
-  border: 1px solid var(--color-ink-500);
-  background: none;
-  color: var(--color-fg-muted);
-  border-radius: 4px;
-  padding: 8px 16px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.theme-options button:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-}
-
-.theme-options button.active {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  color: #ffffff;
-  font-weight: 700;
-}
-
 .hof-generation {
   margin-top: 24px;
 }
