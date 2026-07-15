@@ -730,13 +730,14 @@ export class ProblemsService {
     const comments = await this.prisma.problemComment.findMany({
       where: { problemId },
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { username: true, avatarUpdatedAt: true } } },
+      include: { user: { select: { username: true, customTitle: true, avatarUpdatedAt: true } } },
     });
     // 아바타는 바이트 대신 버전만 내려서 프론트가 /users/:username/avatar?v=로 그리게 한다.
     return comments.map((c) => ({
       ...c,
       user: {
         username: c.user.username,
+        customTitle: c.user.customTitle,
         avatarVersion: c.user.avatarUpdatedAt ? c.user.avatarUpdatedAt.getTime() : null,
       },
     }));

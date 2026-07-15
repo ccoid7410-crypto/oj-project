@@ -50,6 +50,7 @@ export class UsersService {
         name: true,
         preferredLanguage: true,
         role: true,
+        customTitle: true,
         rating: true,
         studentId: true,
         mustChangePassword: true,
@@ -84,6 +85,7 @@ export class UsersService {
         id: true,
         username: true,
         role: true,
+        customTitle: true,
         rating: true,
         bio: true,
         websites: true,
@@ -114,6 +116,7 @@ export class UsersService {
       id: user.id,
       username: user.username,
       role: user.role,
+      customTitle: user.customTitle,
       rating: user.rating,
       bio: user.bio,
       websites: user.websites,
@@ -261,7 +264,7 @@ export class UsersService {
       where: { rating: { gt: 0 } },
       orderBy: { rating: 'desc' },
       take,
-      select: { id: true, username: true, rating: true, avatarUpdatedAt: true },
+      select: { id: true, username: true, customTitle: true, rating: true, avatarUpdatedAt: true },
     });
     if (users.length === 0) return [];
 
@@ -277,6 +280,7 @@ export class UsersService {
     return users.map((u, i) => ({
       rank: i + 1,
       username: u.username,
+      customTitle: u.customTitle,
       rating: u.rating,
       avatarVersion: u.avatarUpdatedAt ? u.avatarUpdatedAt.getTime() : null,
       solvedCount: solvedCounts.get(u.id) ?? 0,
@@ -363,6 +367,7 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
+        customTitle: true,
         rating: true,
         banned: true,
         bannedReason: true,
@@ -393,6 +398,18 @@ export class UsersService {
       where: { id },
       data: { banned: false, bannedReason: null, bannedAt: null },
       select: { id: true, username: true, banned: true },
+    });
+  }
+
+  /** 관리자가 지정하는 공개 칭호. 공백만 입력하면 칭호를 해제한다. */
+  async setCustomTitle(id: string, title: string) {
+    const customTitle = title.trim() || null;
+    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    return this.prisma.user.update({
+      where: { id },
+      data: { customTitle },
+      select: { id: true, username: true, customTitle: true },
     });
   }
 

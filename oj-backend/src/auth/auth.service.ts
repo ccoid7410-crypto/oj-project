@@ -130,7 +130,7 @@ export class AuthService {
         expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
       },
     });
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://oj.jikun.uk');
     const verifyUrl = `${frontendUrl}/verify-email?token=${raw}`;
     try {
       await this.mail.sendVerificationEmail(email, verifyUrl);
@@ -182,6 +182,7 @@ export class AuthService {
     name?: string | null;
     preferredLanguage?: string | null;
     role: string;
+    customTitle?: string | null;
     rating?: number;
     studentId?: string | null;
     theme?: string;
@@ -198,6 +199,7 @@ export class AuthService {
         name: user.name ?? null,
         preferredLanguage: user.preferredLanguage ?? null,
         role: user.role,
+        customTitle: user.customTitle ?? null,
         rating: user.rating ?? 0,
         studentId: user.studentId ?? null,
         theme: user.theme ?? 'system',

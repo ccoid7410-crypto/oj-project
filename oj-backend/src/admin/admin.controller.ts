@@ -22,6 +22,8 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  MaxLength,
+  Matches,
   IsObject,
   IsOptional,
   IsString,
@@ -63,6 +65,13 @@ class BanUserDto {
 class SetRoleDto {
   @IsIn(['USER', 'MEMBER', 'ADMIN'])
   role: 'USER' | 'MEMBER' | 'ADMIN';
+}
+
+class SetCustomTitleDto {
+  @IsString()
+  @MaxLength(20, { message: '칭호는 20자 이하여야 합니다.' })
+  @Matches(/^[^\r\n<>]*$/, { message: '칭호에 줄바꿈이나 <, > 문자를 사용할 수 없습니다.' })
+  title: string;
 }
 
 // role은 의도적으로 받지 않는다: bulk 생성 경로로는 절대 ADMIN을 만들 수 없다
@@ -174,6 +183,12 @@ export class AdminController {
   @Post('users/:id/role')
   setUserRole(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: SetRoleDto) {
     return this.users.setRole(id, dto.role, user.userId);
+  }
+
+  // ---- 사용자별 공개 칭호 지정/해제 ----
+  @Put('users/:id/custom-title')
+  setUserCustomTitle(@Param('id') id: string, @Body() dto: SetCustomTitleDto) {
+    return this.users.setCustomTitle(id, dto.title);
   }
 
   // ---- 계정 삭제 (활동 기록 포함, 되돌릴 수 없음) ----

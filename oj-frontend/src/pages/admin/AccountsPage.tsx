@@ -12,6 +12,7 @@ export function AccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
+  const [customTitles, setCustomTitles] = useState<Record<string, string>>({});
 
   function load() {
     api
@@ -85,6 +86,19 @@ export function AccountsPage() {
     }
   }
 
+  async function setCustomTitle(id: string) {
+    setBusyId(id);
+    setError(null);
+    try {
+      await api.put(`/admin/users/${id}/custom-title`, { title: customTitles[id] ?? '' });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '칭호 변경에 실패했습니다.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div>
       <form
@@ -120,6 +134,7 @@ export function AccountsPage() {
               <th className="border border-ink-600 px-2 py-1.5 font-medium">username</th>
               <th className="border border-ink-600 px-2 py-1.5 font-medium">email</th>
               <th className="w-16 border border-ink-600 px-2 py-1.5 font-medium">권한</th>
+              <th className="w-44 border border-ink-600 px-2 py-1.5 font-medium">커스텀 칭호</th>
               <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">레이팅</th>
               <th className="w-24 border border-ink-600 px-2 py-1.5 font-medium">상태</th>
               <th className="border border-ink-600 px-2 py-1.5 font-medium">조치</th>
@@ -132,6 +147,25 @@ export function AccountsPage() {
                 <td className="border border-ink-600 px-2 py-1.5 font-medium">{u.username}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{u.email}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{ROLE_LABEL[u.role] ?? u.role}</td>
+                <td className="border border-ink-600 px-2 py-1.5">
+                  <div className="flex items-center gap-1">
+                    <input
+                      value={customTitles[u.id] ?? u.customTitle ?? ''}
+                      onChange={(e) => setCustomTitles((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                      maxLength={20}
+                      placeholder="칭호 없음"
+                      className="min-w-0 flex-1 rounded border border-ink-500 px-1.5 py-1 text-xs outline-none focus:border-[var(--color-brand)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomTitle(u.id)}
+                      disabled={busyId === u.id}
+                      className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] disabled:opacity-60"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{u.rating}</td>
                 <td
                   className={`border border-ink-600 px-2 py-1.5 font-bold ${

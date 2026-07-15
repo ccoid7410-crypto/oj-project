@@ -3,6 +3,7 @@ import { api, ApiError } from '../api/client';
 import type { ProblemComment } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './Avatar';
+import { UserTitleBadge } from './UserTitleBadge';
 
 export function ProblemComments({ problemId }: { problemId: string }) {
   const { user } = useAuth();
@@ -114,6 +115,7 @@ function CommentRow({
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-bold">
           <Avatar username={comment.user.username} avatarVersion={comment.user.avatarVersion} size={18} />
+          <UserTitleBadge title={comment.user.customTitle} />
           {comment.user.username}
         </span>
         <span className="text-xs text-fg-muted">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>

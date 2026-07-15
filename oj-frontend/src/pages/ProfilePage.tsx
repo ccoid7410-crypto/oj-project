@@ -8,6 +8,7 @@ import { ThemeButtons } from '../components/ThemeButtons';
 import { bannerUrl, fileToAvatarPayload, fileToBannerPayload } from '../lib/avatar';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
+import { UserTitleBadge } from '../components/UserTitleBadge';
 
 // KaTeX(수식) 번들이 커서 소개(bio)가 있을 때만 lazy load 한다.
 const MarkdownView = lazy(() =>
@@ -50,6 +51,7 @@ export function ProfilePage() {
         <Avatar username={profile.username} avatarVersion={profile.avatarVersion} size={56} />
         <div>
           <div className="flex items-center gap-3">
+            <UserTitleBadge title={profile.customTitle} />
             <h1 className="text-2xl font-bold">{profile.username}</h1>
             {profile.role === 'ADMIN' && (
               <span className="rounded bg-[var(--color-brand)]/10 px-2 py-0.5 text-xs font-bold text-[var(--color-brand)]">

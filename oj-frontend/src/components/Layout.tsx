@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
 import { api } from '../api/client';
 import { Avatar } from './Avatar';
+import { UserTitleBadge } from './UserTitleBadge';
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -65,6 +66,7 @@ export function Layout() {
                   className="flex items-center gap-2 hover:text-[var(--color-brand)]"
                 >
                   <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={20} />
+                  <UserTitleBadge title={user.customTitle} />
                   {user.username}
                 </Link>
                 <button

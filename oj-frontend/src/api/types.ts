@@ -9,6 +9,7 @@ export interface User {
   name: string | null;
   preferredLanguage: Language | null;
   role: Role;
+  customTitle: string | null;
   rating: number;
   studentId: string | null;
   theme?: ThemePref; // 계정에 저장된 UI 테마 설정
@@ -215,6 +216,7 @@ export interface BulkCreateResult {
 export interface RankingRow {
   rank: number;
   username: string;
+  customTitle: string | null;
   rating: number;
   avatarVersion: number | null;
   solvedCount: number;
@@ -233,6 +235,7 @@ export interface UserProfile {
   id: string;
   username: string;
   role: Role;
+  customTitle: string | null;
   rating: number;
   bio: string | null;
   websites: string[];
@@ -249,6 +252,7 @@ export interface AdminUser {
   name: string | null;
   email: string;
   role: Role;
+  customTitle: string | null;
   rating: number;
   banned: boolean;
   bannedReason: string | null;
@@ -353,5 +357,5 @@ export interface ProblemComment {
   content: string;
   parentId: string | null;
   createdAt: string;
-  user: { username: string; avatarVersion: number | null };
+  user: { username: string; customTitle: string | null; avatarVersion: number | null };
 }

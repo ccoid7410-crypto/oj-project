@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { api } from '../api/client';
 import type { RankingRow } from '../api/types';
+import { UserTitleBadge } from '../components/UserTitleBadge';
 
 export function RankingPage() {
   const [rows, setRows] = useState<RankingRow[] | null>(null);
@@ -45,6 +46,7 @@ export function RankingPage() {
                 <td className="border border-ink-600 px-3 py-1.5">
                   <Link to={`/users/${r.username}`} className="inline-flex items-center gap-1.5 text-[var(--color-brand)] hover:underline">
                     <Avatar username={r.username} avatarVersion={r.avatarVersion} size={20} />
+                    <UserTitleBadge title={r.customTitle} />
                     {r.username}
                   </Link>
                 </td>
