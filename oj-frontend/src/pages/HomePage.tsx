@@ -1,13 +1,46 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
+
+interface SiteBanner {
+  enabled: boolean;
+  imageUrl: string | null;
+  linkUrl: string | null;
+}
 
 export function HomePage() {
   const { user } = useAuth();
   const brandName = useBrandName();
+  const [banner, setBanner] = useState<SiteBanner | null>(null);
+
+  // 관리자가 설정한 글로벌 배너. 부가 요소라 실패해도 조용히 숨긴다.
+  useEffect(() => {
+    api
+      .get<SiteBanner>('/site-banner')
+      .then(setBanner)
+      .catch(() => {});
+  }, []);
+
+  const bannerImg = banner?.enabled && banner.imageUrl && (
+    <img src={banner.imageUrl} alt="배너" className="block max-h-[220px] w-full object-cover" />
+  );
 
   return (
     <div className="flex flex-col items-start">
+      {bannerImg && (
+        <div className="mb-8 w-full overflow-hidden rounded">
+          {banner?.linkUrl ? (
+            <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer">
+              {bannerImg}
+            </a>
+          ) : (
+            bannerImg
+          )}
+        </div>
+      )}
+
       <h1 className="max-w-xl text-4xl font-black leading-tight">
         <span className="text-[var(--color-brand)]">{brandName}</span>
         <br />
