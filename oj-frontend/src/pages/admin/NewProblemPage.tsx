@@ -298,25 +298,13 @@ export function NewProblemPage() {
 
         <label className="flex flex-col gap-1 text-sm">
           설명
-          <Suspense
-            fallback={
-              <textarea
-                required
-                rows={5}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className={`${inputClass} resize-y leading-relaxed`}
-              />
-            }
-          >
-            <CodeEditor
-              value={description}
-              onChange={setDescription}
-              mode="markdown"
-              autoGrow
-              minLines={5}
-            />
-          </Suspense>
+          <textarea
+            required
+            rows={5}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={`${inputClass} resize-y leading-relaxed`}
+          />
         </label>
 
         <div className="grid grid-cols-4 gap-3">
