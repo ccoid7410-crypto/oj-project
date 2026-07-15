@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "ace-builds": "^1.44.0",
     "dompurify": "^3.4.12",
     "fflate": "^0.8.3",
     "katex": "^0.17.0",

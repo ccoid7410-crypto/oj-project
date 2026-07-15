@@ -179,11 +179,66 @@ export class ProblemsService {
   }
 
   /**
+   * 임시 저장: 작성 중인 문제를 검토에 넣지 않고 초안(DRAFT)으로만 저장한다.
+   * 검증(정답 코드 채점)이나 테스트케이스 필수 검사를 하지 않아, 내용이 미완성이어도 저장되고
+   * 나중에 '내 문제'에서 이어서 작성할 수 있다. 문제 등록 권한(부원/어드민)은 동일하게 요구한다.
+   */
+  async createDraft(authorId: string, authorRole: string, dto: CreateProblemDto) {
+    if (authorRole !== 'ADMIN' && authorRole !== 'MEMBER') {
+      throw new ForbiddenException('동아리 부원만 문제를 등록할 수 있습니다.');
+    }
+    // 초안이라도 문제를 식별할 최소한의 정보(제목/주소)는 있어야 한다. slug는 unique라 빈 값이면 충돌한다.
+    if (!dto.title?.trim() || !dto.slug?.trim()) {
+      throw new BadRequestException('임시 저장하려면 제목과 주소(slug)를 입력해주세요.');
+    }
+    const level = dto.level != null ? clampLevel(dto.level) : (dto.difficulty ? MID_LEVEL_OF_TIER[dto.difficulty] : 1);
+    const contestOnly = authorRole === 'ADMIN' && !!dto.contestOnly;
+    const tags = dto.tags ?? [];
+    if (contestOnly && !tags.includes('대회전용')) tags.push('대회전용');
+
+    return this.prisma.problem.create({
+      data: {
+        title: dto.title,
+        slug: dto.slug,
+        description: dto.description ?? '',
+        difficulty: tierOfLevel(level) as any,
+        level,
+        timeLimitMs: dto.timeLimitMs ?? 2000,
+        memoryLimitMb: dto.memoryLimitMb ?? 256,
+        allowedLanguages: (dto.allowedLanguages ?? []) as any,
+        tags,
+        contestOnly,
+        authorId,
+        status: 'DRAFT',
+        testCases: dto.testCases
+          ? {
+              create: dto.testCases.map((tc, idx) => ({
+                input: tc.input,
+                output: tc.output,
+                isSample: tc.isSample ?? false,
+                order: idx,
+              })),
+            }
+          : undefined,
+      },
+      include: { testCases: true },
+    });
+  }
+
+  /**
    * 일반 사용자가 제안한 문제는 반드시 "실제로 그 문제를 통과하는 코드"를 같이 내야 한다.
    * 검증 제출을 채점 큐에 넣고 끝날 때까지 기다린 뒤, ACCEPTED가 아니면 방금 만든 문제를
    * (테스트케이스까지 cascade로) 롤백하고 실패 사유를 알려준다.
    */
-  private async verifyWithSolution(problemId: string, authorId: string, language: string, sourceCode: string) {
+  private async verifyWithSolution(
+    problemId: string,
+    authorId: string,
+    language: string,
+    sourceCode: string,
+    // 새로 만든 문제(create)는 검증 실패 시 문제 자체를 롤백한다. 반면 임시 저장본(draft)을
+    // 제출할 때는 실패해도 초안을 지우면 안 되므로(작성 내용 보존) false로 넘긴다.
+    deleteProblemOnFailure = true,
+  ) {
     const submission = await this.prisma.submission.create({
       data: { userId: authorId, problemId, language: language as any, sourceCode, status: 'PENDING' },
     });
@@ -207,11 +262,13 @@ export class ProblemsService {
 
     if (finalStatus === 'ACCEPTED') return;
 
-    // 실패(또는 타임아웃): 문제 자체를 없던 일로 되돌린다.
-    // Submission.problem엔 onDelete cascade가 없어서(제출 기록 보존 목적), 검증용 제출부터 먼저 지워야
-    // 문제 삭제가 외래키 위반 없이 된다(테스트케이스 등 나머지는 Problem 삭제에 cascade로 같이 지워짐).
-    await this.prisma.submission.delete({ where: { id: submission.id } }).catch(() => undefined);
-    await this.prisma.problem.delete({ where: { id: problemId } });
+    if (deleteProblemOnFailure) {
+      // 실패(또는 타임아웃): 문제 자체를 없던 일로 되돌린다.
+      // Submission.problem엔 onDelete cascade가 없어서(제출 기록 보존 목적), 검증용 제출부터 먼저 지워야
+      // 문제 삭제가 외래키 위반 없이 된다(테스트케이스 등 나머지는 Problem 삭제에 cascade로 같이 지워짐).
+      await this.prisma.submission.delete({ where: { id: submission.id } }).catch(() => undefined);
+      await this.prisma.problem.delete({ where: { id: problemId } });
+    }
 
     if (finalStatus === 'PENDING' || finalStatus === 'JUDGING') {
       throw new BadRequestException('채점이 너무 오래 걸려서 검증에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -344,6 +401,40 @@ export class ProblemsService {
     return this.prisma.problem.update({
       where: { id },
       data: { status: 'PENDING_REVIEW', reviewNote: null },
+    });
+  }
+
+  /**
+   * 임시 저장본(초안)을 검증까지 거쳐 검토 대기로 제출한다. 일반 사용자의 문제 제안은 반드시
+   * "실제로 통과하는 코드"로 검증돼야 하므로(create와 동일 규칙), 여기서도 정답 코드를 채점해
+   * ACCEPTED일 때만 PENDING_REVIEW로 넘긴다. 검증에 실패해도 초안은 지우지 않는다.
+   */
+  async verifyAndSubmitForReview(
+    id: string,
+    requesterId: string,
+    requesterRole: string,
+    language: string,
+    sourceCode: string,
+  ) {
+    const problem = await this.prisma.problem.findUnique({ where: { id }, include: { testCases: true } });
+    if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
+    if (problem.authorId !== requesterId && requesterRole !== 'ADMIN') {
+      throw new ForbiddenException('이 문제를 제출할 권한이 없습니다.');
+    }
+    if (problem.status === 'PUBLISHED' || problem.status === 'PENDING_REVIEW') {
+      throw new BadRequestException('이미 검토 중이거나 공개된 문제입니다.');
+    }
+    if (problem.testCases.length === 0) {
+      throw new BadRequestException('테스트케이스를 최소 1개 이상 넣어야 합니다.');
+    }
+    if (!language || !sourceCode) {
+      throw new BadRequestException('제안하는 문제는 그 문제를 실제로 푸는 코드를 같이 제출해서 검증해야 합니다.');
+    }
+    // 검증 실패 시 초안을 삭제하지 않는다(deleteProblemOnFailure=false).
+    await this.verifyWithSolution(id, requesterId, language, sourceCode, false);
+    return this.prisma.problem.update({
+      where: { id },
+      data: { status: 'PENDING_REVIEW', isPublished: false, reviewNote: null },
     });
   }
 

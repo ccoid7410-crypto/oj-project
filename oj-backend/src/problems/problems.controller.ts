@@ -11,7 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, IsString, Max, Min } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -34,6 +34,14 @@ class VoteDifficultyDto {
   @Min(1)
   @Max(30)
   level: number;
+}
+
+class VerifySubmitDto {
+  @IsString()
+  verificationLanguage: string;
+
+  @IsString()
+  verificationCode: string;
 }
 
 @Controller('problems')
@@ -84,10 +92,34 @@ export class ProblemsController {
     return this.problemsService.create(user.userId, user.role, dto);
   }
 
+  /** 임시 저장: 검토에 넣지 않고 초안(DRAFT)으로만 저장한다. */
+  @UseGuards(JwtAuthGuard)
+  @Post('draft')
+  createDraft(@CurrentUser() user: RequestUser, @Body() dto: CreateProblemDto) {
+    return this.problemsService.createDraft(user.userId, user.role, dto);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Patch(':id/submit-review')
   submitReview(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.problemsService.submitForReview(id, user.userId, user.role);
+  }
+
+  /** 임시 저장본을 검증(정답 코드 채점)까지 거쳐 검토 대기로 제출한다. */
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/verify-submit')
+  verifySubmit(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: VerifySubmitDto,
+  ) {
+    return this.problemsService.verifyAndSubmitForReview(
+      id,
+      user.userId,
+      user.role,
+      dto.verificationLanguage,
+      dto.verificationCode,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

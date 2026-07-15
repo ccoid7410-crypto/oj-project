@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
@@ -6,6 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 import { TestCaseDraftList, type TestCaseDraft } from '../components/TestCaseDraftList';
 import { TagPicker } from '../components/TagPicker';
+
+// Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
+const CodeEditor = lazy(() =>
+  import('../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
+);
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -138,13 +143,25 @@ export function EditProblemPage() {
 
         <label className="flex flex-col gap-1 text-sm">
           설명
-          <textarea
-            required
-            rows={8}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={`${inputClass} resize-y leading-relaxed`}
-          />
+          <Suspense
+            fallback={
+              <textarea
+                required
+                rows={8}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={`${inputClass} resize-y leading-relaxed`}
+              />
+            }
+          >
+            <CodeEditor
+              value={description}
+              onChange={setDescription}
+              mode="markdown"
+              autoGrow
+              minLines={8}
+            />
+          </Suspense>
         </label>
 
         <div className="grid grid-cols-4 gap-3">

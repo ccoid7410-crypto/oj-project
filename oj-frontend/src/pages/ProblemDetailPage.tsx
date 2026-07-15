@@ -8,6 +8,11 @@ import { DEFAULT_TEMPLATE, LANGUAGE_OPTIONS } from '../lib/languages';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
 import { ProblemComments } from '../components/ProblemComments';
 
+// Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
+const CodeEditor = lazy(() =>
+  import('../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
+);
+
 // KaTeX(수식) 번들이 커서 문제 페이지에서만 lazy load 한다.
 const MarkdownView = lazy(() =>
   import('../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
@@ -224,12 +229,20 @@ export function ProblemDetailPage() {
           {!user && <span className="text-xs text-fg-muted">제출하려면 로그인하세요</span>}
         </div>
 
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck={false}
-          className="mt-3 h-[420px] w-full resize-none rounded border border-ink-500 bg-white p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--color-brand)]"
-        />
+        <div className="mt-3">
+          <Suspense
+            fallback={
+              <textarea
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                spellCheck={false}
+                className="h-[420px] w-full resize-none rounded border border-ink-500 bg-white p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--color-brand)]"
+              />
+            }
+          >
+            <CodeEditor value={code} onChange={setCode} mode={language} heightClass="h-[420px]" />
+          </Suspense>
+        </div>
 
         {error && <p className="mt-2 text-xs text-[var(--color-wa)]">{error}</p>}
 

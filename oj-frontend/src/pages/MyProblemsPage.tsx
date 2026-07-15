@@ -96,13 +96,23 @@ export function MyProblemsPage() {
                 <td className="border border-ink-600 px-3 py-1.5 text-xs text-fg-muted">{p.reviewNote ?? '-'}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center">
                   <span className="inline-flex items-center gap-1.5">
-                    <Link
-                      to={`/problems/${p.slug}/edit`}
-                      className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-                    >
-                      수정
-                    </Link>
-                    {(p.status === 'DRAFT' || p.status === 'REJECTED') && (
+                    {/* 초안은 작성 화면에서 이어서 완성·검증까지 하도록 안내한다(검토 요청은 그쪽에서). */}
+                    {p.status === 'DRAFT' ? (
+                      <Link
+                        to={`/problems/new?resume=${encodeURIComponent(p.slug)}`}
+                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+                      >
+                        이어서 작성
+                      </Link>
+                    ) : (
+                      <Link
+                        to={`/problems/${p.slug}/edit`}
+                        className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+                      >
+                        수정
+                      </Link>
+                    )}
+                    {p.status === 'REJECTED' && (
                       <button
                         onClick={() => submitForReview(p.id)}
                         disabled={busyId === p.id}
