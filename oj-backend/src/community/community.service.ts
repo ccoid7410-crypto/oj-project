@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { REACTION_EMOJIS, type Board, type PostType } from './dto/community.dto';
+import type { Board, PostType } from './dto/community.dto';
 
 // 작성자 표시용 최소 정보(문제 Q&A 댓글과 동일 규칙): 아바타는 버전만 내려서
 // 프론트가 /users/:username/avatar?v= 로 그리게 한다.
@@ -29,21 +29,6 @@ function summarizeVotes(votes: Array<{ value: number; userId: string }>, request
     if (requesterId && v.userId === requesterId) myVote = v.value;
   }
   return { likeCount, dislikeCount, myVote };
-}
-
-/** 이모지 공감 배열을 {reactions:[{emoji,count}], myReaction}로 요약한다(고정 순서). */
-function summarizeReactions(reactions: Array<{ emoji: string; userId: string }>, requesterId?: string) {
-  const counts = new Map<string, number>();
-  let myReaction: string | null = null;
-  for (const r of reactions) {
-    counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1);
-    if (requesterId && r.userId === requesterId) myReaction = r.emoji;
-  }
-  const list = REACTION_EMOJIS.filter((e) => counts.has(e)).map((emoji) => ({
-    emoji,
-    count: counts.get(emoji)!,
-  }));
-  return { reactions: list, myReaction };
 }
 
 @Injectable()
@@ -87,13 +72,11 @@ export class CommunityService {
       include: {
         author: AUTHOR_SELECT,
         votes: { select: { value: true, userId: true } },
-        reactions: { select: { emoji: true, userId: true } },
         comments: {
           orderBy: { createdAt: 'asc' },
           include: {
             user: AUTHOR_SELECT,
             votes: { select: { value: true, userId: true } },
-            reactions: { select: { emoji: true, userId: true } },
           },
         },
       },
@@ -111,7 +94,6 @@ export class CommunityService {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       ...summarizeVotes(post.votes, requesterId),
-      ...summarizeReactions(post.reactions, requesterId),
       comments: post.comments.map((c) => ({
         id: c.id,
         content: c.content,
@@ -119,7 +101,6 @@ export class CommunityService {
         createdAt: c.createdAt,
         user: mapAuthor(c.user),
         ...summarizeVotes(c.votes, requesterId),
-        ...summarizeReactions(c.reactions, requesterId),
       })),
     };
   }
@@ -232,54 +213,6 @@ export class CommunityService {
       select: { value: true, userId: true },
     });
     return summarizeVotes(votes, userId);
-  }
-
-  /** 게시글 이모지 공감. 같은 이모지를 다시 누르면 취소, 다른 이모지면 교체(유저당 1개). */
-  async reactPost(postId: string, userId: string, emoji: string) {
-    const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
-    if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
-    const existing = await this.prisma.communityPostReaction.findUnique({
-      where: { postId_userId: { postId, userId } },
-    });
-    if (existing && existing.emoji === emoji) {
-      await this.prisma.communityPostReaction.delete({ where: { postId_userId: { postId, userId } } });
-    } else {
-      await this.prisma.communityPostReaction.upsert({
-        where: { postId_userId: { postId, userId } },
-        create: { postId, userId, emoji },
-        update: { emoji },
-      });
-    }
-    const reactions = await this.prisma.communityPostReaction.findMany({
-      where: { postId },
-      select: { emoji: true, userId: true },
-    });
-    return summarizeReactions(reactions, userId);
-  }
-
-  /** 댓글/답글 이모지 공감. 게시글과 동일 규칙. */
-  async reactComment(commentId: string, userId: string, emoji: string) {
-    const comment = await this.prisma.communityComment.findUnique({ where: { id: commentId } });
-    if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.');
-    const existing = await this.prisma.communityCommentReaction.findUnique({
-      where: { commentId_userId: { commentId, userId } },
-    });
-    if (existing && existing.emoji === emoji) {
-      await this.prisma.communityCommentReaction.delete({
-        where: { commentId_userId: { commentId, userId } },
-      });
-    } else {
-      await this.prisma.communityCommentReaction.upsert({
-        where: { commentId_userId: { commentId, userId } },
-        create: { commentId, userId, emoji },
-        update: { emoji },
-      });
-    }
-    const reactions = await this.prisma.communityCommentReaction.findMany({
-      where: { commentId },
-      select: { emoji: true, userId: true },
-    });
-    return summarizeReactions(reactions, userId);
   }
 
   // ---- 태그(보드별 태그 풀) ----

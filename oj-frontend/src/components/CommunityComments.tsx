@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
-import type { CommunityComment, ReactionState, VoteSummary } from '../api/types';
+import type { CommunityComment, VoteSummary } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
 import { VoteButtons } from './VoteButtons';
-import { ReactionBar } from './ReactionBar';
 
 /**
  * 커뮤니티 게시글의 댓글/답글. 문제 Q&A 댓글(ProblemComments)과 같은 구조에
@@ -61,16 +60,6 @@ export function CommunityComments({
       setList((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...summary } : c)));
     } catch {
       /* 투표 실패는 조용히 무시(다음 로드에서 정정됨) */
-    }
-  }
-
-  async function onReact(commentId: string, emoji: string) {
-    if (!user) return;
-    try {
-      const state = await api.post<ReactionState>(`/community/comments/${commentId}/reaction`, { emoji });
-      setList((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...state } : c)));
-    } catch {
-      /* 무시 */
     }
   }
 
@@ -130,7 +119,6 @@ export function CommunityComments({
               canVote={!!user}
               canManage={canManage(c)}
               onVote={(v) => onVote(c.id, v)}
-              onReact={(e) => onReact(c.id, e)}
               onDelete={() => onDelete(c.id)}
               onReply={() => setReplyTo(c.id)}
             />
@@ -143,7 +131,6 @@ export function CommunityComments({
                       canVote={!!user}
                       canManage={canManage(r)}
                       onVote={(v) => onVote(r.id, v)}
-                      onReact={(e) => onReact(r.id, e)}
                       onDelete={() => onDelete(r.id)}
                     />
                   </li>
@@ -193,7 +180,6 @@ function CommentRow({
   canVote,
   canManage,
   onVote,
-  onReact,
   onDelete,
   onReply,
 }: {
@@ -201,7 +187,6 @@ function CommentRow({
   canVote: boolean;
   canManage: boolean;
   onVote: (value: 1 | -1) => void;
-  onReact: (emoji: string) => void;
   onDelete: () => void;
   onReply?: () => void;
 }) {
@@ -216,9 +201,8 @@ function CommentRow({
         <span className="text-xs text-fg-muted">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
       </div>
       <p className="mt-1 whitespace-pre-wrap text-sm">{comment.content}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-fg-muted">
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-fg-muted">
         <VoteButtons summary={comment} onVote={onVote} disabled={!canVote} />
-        <ReactionBar state={comment} onReact={onReact} disabled={!canVote} />
         {onReply && (
           <button type="button" onClick={onReply} className="hover:text-[var(--color-brand)]">
             답글

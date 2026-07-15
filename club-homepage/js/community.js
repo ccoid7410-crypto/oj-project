@@ -95,27 +95,6 @@ function voteButtons(summary, onVote, size) {
   return wrap;
 }
 
-// 카톡 공감처럼 고를 수 있는 이모지(백엔드 REACTION_EMOJIS와 동일).
-const REACTION_EMOJIS = ["👍", "❤️", "😆", "😮", "😢", "😡"];
-
-/** 이모지 공감 바. state={reactions:[{emoji,count}], myReaction}. 버튼 모양/크기는 좋아요/싫어요와 동일. */
-function reactionBar(state, onReact, size) {
-  const md = size === "md" ? " c-md" : "";
-  const wrap = el("div", { class: "c-reactions" });
-  for (const r of state.reactions || []) {
-    wrap.appendChild(
-      el("button", { type: "button", class: "c-reaction" + md + (state.myReaction === r.emoji ? " active" : ""), onclick: () => onReact(r.emoji) }, `${r.emoji} ${r.count}`),
-    );
-  }
-  const picker = el("div", { class: "c-react-picker" });
-  for (const e of REACTION_EMOJIS) {
-    picker.appendChild(el("button", { type: "button", class: "c-react-opt", onclick: () => { picker.classList.remove("open"); onReact(e); } }, e));
-  }
-  const addBtn = el("button", { type: "button", class: "c-react-add" + md, onclick: () => picker.classList.toggle("open") }, "😊+");
-  wrap.append(el("span", { class: "c-react-picker-wrap" }, [addBtn, picker]));
-  return wrap;
-}
-
 function go(query) {
   window.location.href = "community.html" + query;
 }
@@ -136,6 +115,7 @@ function main() {
 
 async function renderList(profile) {
   root.innerHTML = "";
+  root.className = ""; // 목록은 넓게(OJ 목록과 동일)
   const header = el("div", { class: "c-list-header" }, [
     el("h2", {}, "커뮤니티"),
     el("a", { class: "btn btn-primary btn-sm", href: "community.html?new" }, "글쓰기"),
@@ -185,6 +165,7 @@ async function renderList(profile) {
 
 async function renderDetail(profile, postId) {
   root.innerHTML = "";
+  root.className = "c-narrow"; // 상세는 좁은 중앙 컬럼(OJ max-w-2xl과 동일)
   let post;
   try {
     post = await authJson(`/community/posts/${postId}`);
@@ -217,23 +198,13 @@ async function renderDetail(profile, postId) {
 
   const postActions = el("div", { class: "c-detail-votes" });
   let voteSummary = { likeCount: post.likeCount, dislikeCount: post.dislikeCount, myVote: post.myVote };
-  let reactState = { reactions: post.reactions || [], myReaction: post.myReaction || null };
   function drawActions() {
     postActions.innerHTML = "";
     postActions.appendChild(voteButtons(voteSummary, onVotePost, "md"));
-    postActions.appendChild(reactionBar(reactState, onReactPost, "md"));
   }
   async function onVotePost(value) {
     try {
       voteSummary = await authJson(`/community/posts/${post.id}/vote`, { method: "POST", body: JSON.stringify({ value }) });
-      drawActions();
-    } catch {
-      /* 무시 */
-    }
-  }
-  async function onReactPost(emoji) {
-    try {
-      reactState = await authJson(`/community/posts/${post.id}/reaction`, { method: "POST", body: JSON.stringify({ emoji }) });
       drawActions();
     } catch {
       /* 무시 */
@@ -286,16 +257,6 @@ function renderComments(profile, post) {
     }
   }
 
-  async function onReactComment(commentId, emoji) {
-    try {
-      const state = await authJson(`/community/comments/${commentId}/reaction`, { method: "POST", body: JSON.stringify({ emoji }) });
-      comments = comments.map((c) => (c.id === commentId ? { ...c, ...state } : c));
-      draw();
-    } catch {
-      /* 무시 */
-    }
-  }
-
   async function reload() {
     try {
       const fresh = await authJson(`/community/posts/${post.id}`);
@@ -337,7 +298,6 @@ function renderComments(profile, post) {
     const canManage = profile && (profile.username === c.user.username || profile.role === "ADMIN");
     const actions = el("div", { class: "c-comment-actions" }, [
       voteButtons(c, (v) => onVoteComment(c.id, v)),
-      reactionBar({ reactions: c.reactions || [], myReaction: c.myReaction || null }, (e) => onReactComment(c.id, e)),
       !isReply ? el("button", { type: "button", class: "link-btn", onclick: () => { replyTo = c.id; textarea.placeholder = "답글 내용"; textarea.focus(); } }, "답글") : null,
       canManage ? el("button", { type: "button", class: "link-btn c-del", onclick: () => onDeleteComment(c.id) }, "삭제") : null,
     ]);
@@ -400,13 +360,14 @@ function renderComments(profile, post) {
 
 async function renderNew(profile) {
   root.innerHTML = "";
+  root.className = "c-narrow"; // 글쓰기도 좁은 중앙 컬럼(OJ와 동일)
   root.appendChild(el("h2", {}, "글쓰기"));
 
   const isAdmin = profile.role === "ADMIN";
   let type = "NORMAL";
   const selectedTags = [];
 
-  const titleInput = el("input", { class: "field-input", maxlength: "200", placeholder: "제목" });
+  const titleInput = el("input", { class: "field-input", maxlength: "200" });
 
   // 유형: 업데이트 로그(누구나) / 공지(어드민만). 하나만 선택 가능.
   const updateCb = el("input", { type: "checkbox" });

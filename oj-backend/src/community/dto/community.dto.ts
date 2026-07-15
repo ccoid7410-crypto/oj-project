@@ -57,15 +57,6 @@ export class VoteDto {
   value: 1 | -1;
 }
 
-// 카톡 공감처럼 고를 수 있는 이모지 목록(프론트와 동일해야 한다).
-export const REACTION_EMOJIS = ['👍', '❤️', '😆', '😮', '😢', '😡'] as const;
-
-export class ReactionDto {
-  // 같은 이모지를 다시 보내면 취소(토글), 다른 이모지면 교체된다.
-  @IsIn(REACTION_EMOJIS, { message: '지원하지 않는 이모지입니다.' })
-  emoji: string;
-}
-
 export class CreateTagDto {
   @IsIn(BOARDS, { message: '게시판 구분이 올바르지 않습니다.' })
   board: Board;

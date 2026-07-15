@@ -1,12 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import type { CommunityPostDetail, ReactionState, VoteSummary } from '../../api/types';
+import type { CommunityPostDetail, VoteSummary } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../../components/Avatar';
 import { UserTitleBadge } from '../../components/UserTitleBadge';
 import { VoteButtons } from '../../components/VoteButtons';
-import { ReactionBar } from '../../components/ReactionBar';
 import { CommunityComments } from '../../components/CommunityComments';
 import { PostTypeBadge, postTitleColorClass } from '../../components/CommunityPostType';
 
@@ -39,16 +38,6 @@ export function CommunityPostPage() {
       setPost((prev) => (prev ? { ...prev, ...summary } : prev));
     } catch {
       /* 무시: 다음 로드에서 정정됨 */
-    }
-  }
-
-  async function onReact(emoji: string) {
-    if (!user || !post) return;
-    try {
-      const state = await api.post<ReactionState>(`/community/posts/${post.id}/reaction`, { emoji });
-      setPost((prev) => (prev ? { ...prev, ...state } : prev));
-    } catch {
-      /* 무시 */
     }
   }
 
@@ -104,10 +93,9 @@ export function CommunityPostPage() {
         </Suspense>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="mt-5 flex flex-wrap items-center gap-3">
         <VoteButtons summary={post} onVote={onVote} disabled={!user} size="md" />
-        <ReactionBar state={post} onReact={onReact} disabled={!user} size="md" />
-        {!user && <span className="text-xs text-fg-muted">로그인하면 반응을 남길 수 있어요.</span>}
+        {!user && <span className="text-xs text-fg-muted">로그인하면 좋아요를 누를 수 있어요.</span>}
       </div>
 
       <CommunityComments postId={post.id} comments={post.comments} onReload={load} />

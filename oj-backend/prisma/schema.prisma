@@ -103,8 +103,6 @@ model User {
   communityComments     CommunityComment[]       @relation("CommunityCommentAuthor")
   communityPostVotes    CommunityPostVote[]
   communityCommentVotes CommunityCommentVote[]
-  communityPostReactions    CommunityPostReaction[]
-  communityCommentReactions CommunityCommentReaction[]
 
   @@map("users")
 }
@@ -229,7 +227,6 @@ model CommunityPost {
 
   comments  CommunityComment[]
   votes     CommunityPostVote[]
-  reactions CommunityPostReaction[]
 
   @@index([board, createdAt])
   @@map("community_posts")
@@ -260,7 +257,6 @@ model CommunityComment {
   createdAt DateTime @default(now())
 
   votes     CommunityCommentVote[]
-  reactions CommunityCommentReaction[]
 
   @@map("community_comments")
 }
@@ -289,32 +285,6 @@ model CommunityCommentVote {
 
   @@id([commentId, userId])
   @@map("community_comment_votes")
-}
-
-/// 게시글 이모지 공감(카톡 공감처럼). 유저당 게시글당 이모지 1개(다시 고르면 교체/취소).
-model CommunityPostReaction {
-  postId    String
-  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emoji     String
-  createdAt DateTime @default(now())
-
-  @@id([postId, userId])
-  @@map("community_post_reactions")
-}
-
-/// 댓글/답글 이모지 공감. 유저당 댓글당 이모지 1개.
-model CommunityCommentReaction {
-  commentId String
-  comment   CommunityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emoji     String
-  createdAt DateTime @default(now())
-
-  @@id([commentId, userId])
-  @@map("community_comment_reactions")
 }
 
 /// 문제를 실제로 푼(ACCEPTED) 사용자만 남길 수 있는 체감 난이도 투표. 유저당 문제당 1표.

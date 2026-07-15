@@ -848,6 +848,8 @@ body.gate-pending .site-footer {
 }
 .c-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
+/* 글쓰기/상세는 OJ(max-w-2xl)와 동일하게 좁은 중앙 컬럼으로. 목록은 넓게 유지. */
+#community-root.c-narrow { max-width: 672px; margin: 0 auto; }
 .c-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .c-error { color: #e5484d; font-size: 0.85rem; margin-top: 8px; }
 
@@ -902,7 +904,7 @@ body.gate-pending .site-footer {
 .c-sort { display: flex; gap: 4px; }
 .c-sort-btn { border: 1px solid var(--color-ink-500); background: transparent; color: var(--color-fg-muted); border-radius: 5px; padding: 3px 8px; font-size: 0.72rem; cursor: pointer; }
 .c-sort-btn.active { background: var(--color-brand); color: #fff; border-color: var(--color-brand); font-weight: 700; }
-.c-comment { border: 1px solid var(--color-ink-500); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.c-comment { border: 1px solid var(--color-ink-500); border-radius: 4px; padding: 12px; margin-bottom: 10px; }
 .c-comment-top { display: flex; align-items: center; justify-content: space-between; }
 .c-comment-author { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; }
 .c-comment-date { font-size: 0.72rem; color: var(--color-fg-muted); }
@@ -927,23 +929,6 @@ body.gate-pending .site-footer {
 .c-content-head { display: flex; align-items: center; justify-content: space-between; }
 .c-content { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .c-form-actions { display: flex; gap: 8px; }
-
-/* 이모지 공감(카톡 공감) — 좋아요/싫어요(.c-vote)와 모양·크기를 동일하게 맞춘다. */
-.c-reactions { display: inline-flex; align-items: center; gap: 6px; }
-.c-reaction {
-  display: inline-flex; align-items: center; gap: 3px;
-  border: 1px solid var(--color-ink-500); background: transparent; color: var(--color-fg-muted);
-  border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; cursor: pointer;
-}
-.c-reaction.active { border-color: var(--color-brand); color: var(--color-brand); background: rgba(47, 111, 237, 0.08); }
-.c-react-picker-wrap { position: relative; display: inline-block; }
-.c-react-add {
-  border: 1px solid var(--color-ink-500); background: transparent; color: var(--color-fg-muted);
-  border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; cursor: pointer;
-}
-.c-react-add:hover { border-color: var(--color-brand); color: var(--color-brand); }
-/* 게시글 상세에선 좋아요/싫어요(.c-vote-md)와 같은 큰 크기로. */
-.c-reaction.c-md, .c-react-add.c-md { padding: 4px 10px; font-size: 0.85rem; }
 .c-react-picker {
   display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 4px; z-index: 10;
   gap: 2px; padding: 6px; border: 1px solid var(--color-ink-500); border-radius: 8px;

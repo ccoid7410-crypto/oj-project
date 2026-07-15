@@ -374,19 +374,6 @@ export interface VoteSummary {
 
 export type CommunityPostType = 'NORMAL' | 'UPDATE_LOG' | 'NOTICE';
 
-// 카톡 공감처럼 고를 수 있는 이모지(백엔드 REACTION_EMOJIS와 동일해야 함).
-export const REACTION_EMOJIS = ['👍', '❤️', '😆', '😮', '😢', '😡'] as const;
-
-export interface CommunityReaction {
-  emoji: string;
-  count: number;
-}
-
-export interface ReactionState {
-  reactions: CommunityReaction[];
-  myReaction: string | null;
-}
-
 export interface CommunityPostSummary {
   id: string;
   type: CommunityPostType;
@@ -409,8 +396,6 @@ export interface CommunityComment {
   likeCount: number;
   dislikeCount: number;
   myVote: number;
-  reactions: CommunityReaction[];
-  myReaction: string | null;
 }
 
 export interface CommunityPostDetail {
@@ -426,7 +411,5 @@ export interface CommunityPostDetail {
   likeCount: number;
   dislikeCount: number;
   myVote: number;
-  reactions: CommunityReaction[];
-  myReaction: string | null;
   comments: CommunityComment[];
 }

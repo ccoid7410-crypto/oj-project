@@ -20,7 +20,6 @@ import {
   CreateCommentDto,
   CreatePostDto,
   CreateTagDto,
-  ReactionDto,
   VoteDto,
   type Board,
 } from './dto/community.dto';
@@ -79,22 +78,6 @@ export class CommunityController {
   @Post('posts/:id/vote')
   votePost(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: VoteDto) {
     return this.community.votePost(id, user.userId, dto.value);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('posts/:id/reaction')
-  reactPost(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: ReactionDto) {
-    return this.community.reactPost(id, user.userId, dto.emoji);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('comments/:commentId/reaction')
-  reactComment(
-    @Param('commentId') commentId: string,
-    @CurrentUser() user: RequestUser,
-    @Body() dto: ReactionDto,
-  ) {
-    return this.community.reactComment(commentId, user.userId, dto.emoji);
   }
 
   @UseGuards(JwtAuthGuard)
