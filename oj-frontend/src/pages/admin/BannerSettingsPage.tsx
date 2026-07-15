@@ -53,6 +53,10 @@ export function BannerSettingsPage() {
   }, [file]);
 
   async function save() {
+    if (file && file.size > 5 * 1024 * 1024) {
+      setError('배너 이미지는 5MB 이하여야 합니다.');
+      return;
+    }
     setSaving(true);
     setError(null);
     setResult(null);

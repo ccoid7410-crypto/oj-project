@@ -40,13 +40,26 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 async function upload<T>(path: string, method: 'POST' | 'PUT', formData: FormData): Promise<T> {
   const token = localStorage.getItem('oj_token');
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    // Content-Type을 직접 안 주면 브라우저가 multipart 경계(boundary)를 알아서 채워 넣는다.
-    // 여기서 지정하면 boundary가 빠져 서버가 파싱을 못 한다.
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 35_000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      // Content-Type을 직접 안 주면 브라우저가 multipart 경계(boundary)를 알아서 채워 넣는다.
+      // 여기서 지정하면 boundary가 빠져 서버가 파싱을 못 한다.
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError(408, '업로드 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     let message = res.statusText;
