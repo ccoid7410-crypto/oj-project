@@ -99,6 +99,10 @@ model User {
   classesCreated       ClassRoom[]               @relation("ClassCreator")
   classMemberships     ClassMembership[]
   classNotices         ClassNotice[]             @relation("ClassNoticeAuthor")
+  communityPosts        CommunityPost[]          @relation("CommunityPostAuthor")
+  communityComments     CommunityComment[]       @relation("CommunityCommentAuthor")
+  communityPostVotes    CommunityPostVote[]
+  communityCommentVotes CommunityCommentVote[]
 
   @@map("users")
 }
@@ -193,6 +197,67 @@ model ProblemComment {
   createdAt DateTime @default(now())
 
   @@map("problem_comments")
+}
+
+/// 커뮤니티 게시글. 본문은 마크다운/TeX를 지원한다(프론트에서 렌더링·소독).
+model CommunityPost {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  author    User     @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  CommunityComment[]
+  votes     CommunityPostVote[]
+
+  @@index([createdAt])
+  @@map("community_posts")
+}
+
+/// 커뮤니티 게시글의 댓글/답글(대댓글은 parentId). 문제 Q&A 댓글과 동일 구조 + 좋아요/싫어요.
+model CommunityComment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("CommunityCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  parentId  String?
+  parent    CommunityComment?  @relation("CommunityCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   CommunityComment[] @relation("CommunityCommentReplies")
+  createdAt DateTime @default(now())
+
+  votes     CommunityCommentVote[]
+
+  @@map("community_comments")
+}
+
+/// 게시글 좋아요(1)/싫어요(-1). 유저당 게시글당 1표.
+model CommunityPostVote {
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int // 1 = 좋아요, -1 = 싫어요
+  createdAt DateTime @default(now())
+
+  @@id([postId, userId])
+  @@map("community_post_votes")
+}
+
+/// 댓글/답글 좋아요(1)/싫어요(-1). 유저당 댓글당 1표.
+model CommunityCommentVote {
+  commentId String
+  comment   CommunityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int // 1 = 좋아요, -1 = 싫어요
+  createdAt DateTime @default(now())
+
+  @@id([commentId, userId])
+  @@map("community_comment_votes")
 }
 
 /// 문제를 실제로 푼(ACCEPTED) 사용자만 남길 수 있는 체감 난이도 투표. 유저당 문제당 1표.

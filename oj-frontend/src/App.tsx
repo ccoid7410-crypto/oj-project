@@ -39,6 +39,9 @@ import { MailSettingsPage } from './pages/admin/MailSettingsPage';
 import { BannerSettingsPage } from './pages/admin/BannerSettingsPage';
 import { ClassListPage } from './pages/classes/ClassListPage';
 import { ClassDetailPage } from './pages/classes/ClassDetailPage';
+import { CommunityListPage } from './pages/community/CommunityListPage';
+import { CommunityPostPage } from './pages/community/CommunityPostPage';
+import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
 
 export default function App() {
   return (
@@ -56,10 +59,13 @@ export default function App() {
             <Route path="/contests/:slug" element={<ContestDetailPage />} />
             <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboardPage />} />
             <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/community" element={<CommunityListPage />} />
+            <Route path="/community/:id" element={<CommunityPostPage />} />
             <Route path="/users/:username" element={<ProfilePage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/change-password" element={<ChangePasswordPage />} />
               <Route path="/register-name" element={<RegisterNamePage />} />
+              <Route path="/community/new" element={<NewCommunityPostPage />} />
               <Route path="/problems/mine" element={<MyProblemsPage />} />
               <Route path="/problems/new" element={<NewProblemPage />} />
               <Route path="/problems/:slug/edit" element={<EditProblemPage />} />

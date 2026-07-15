@@ -18,6 +18,7 @@ import { GroupsModule } from './groups/groups.module';
 import { ClassesModule } from './classes/classes.module';
 import { BannerModule } from './banner/banner.module';
 import { TagsModule } from './tags/tags.module';
+import { CommunityModule } from './community/community.module';
 
 /**
  * API 서버 모듈. 채점 워커(JudgeModule)는 보안/스케일링 상 별도 프로세스로 분리해서
@@ -53,6 +54,7 @@ import { TagsModule } from './tags/tags.module';
     ClassesModule,
     BannerModule,
     TagsModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

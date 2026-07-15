@@ -114,6 +114,12 @@ export function Layout() {
           >
             랭킹
           </Link>
+          <Link
+            to="/community"
+            className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+          >
+            커뮤니티
+          </Link>
           {user && (
             <Link
               to="/submissions"
