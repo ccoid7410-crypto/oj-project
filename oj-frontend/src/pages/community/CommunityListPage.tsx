@@ -5,6 +5,7 @@ import type { CommunityPostSummary } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../../components/Avatar';
 import { UserTitleBadge } from '../../components/UserTitleBadge';
+import { PostTypeBadge, postTitleColorClass } from '../../components/CommunityPostType';
 
 export function CommunityListPage() {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ export function CommunityListPage() {
 
   useEffect(() => {
     api
-      .get<CommunityPostSummary[]>('/community/posts')
+      .get<CommunityPostSummary[]>('/community/posts?board=OJ')
       .then(setPosts)
       .catch(() => setError('게시글을 불러오지 못했습니다.'));
   }, []);
@@ -44,21 +45,31 @@ export function CommunityListPage() {
       {posts && posts.length > 0 && (
         <ul className="mt-4 divide-y divide-ink-500 border-y border-ink-500">
           {posts.map((p) => (
-            <li key={p.id} className="py-3">
+            <li key={p.id} className={p.type === 'NOTICE' ? 'bg-[var(--color-wa)]/5 py-3' : 'py-3'}>
               <Link to={`/community/${p.id}`} className="group flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-fg group-hover:text-[var(--color-brand)]">
-                    {p.title}
+                  <p className="flex items-center">
+                    <PostTypeBadge type={p.type} />
+                    <span className={`truncate text-sm font-bold group-hover:underline ${postTitleColorClass(p.type)}`}>
+                      {p.title}
+                    </span>
                     {p.commentCount > 0 && (
-                      <span className="ml-1.5 text-xs font-normal text-[var(--color-brand)]">[{p.commentCount}]</span>
+                      <span className="ml-1.5 shrink-0 text-xs font-normal text-[var(--color-brand)]">
+                        [{p.commentCount}]
+                      </span>
                     )}
                   </p>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-fg-muted">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
                     <Avatar username={p.author.username} avatarVersion={p.author.avatarVersion} size={16} />
                     <UserTitleBadge title={p.author.customTitle} />
                     <span>{p.author.username}</span>
                     <span>·</span>
                     <span>{new Date(p.createdAt).toLocaleDateString('ko-KR')}</span>
+                    {p.tags.map((t) => (
+                      <span key={t} className="rounded-full bg-ink-600 px-1.5 py-0.5 text-[10px] text-fg-muted">
+                        #{t}
+                      </span>
+                    ))}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 pt-0.5 text-xs text-fg-muted">

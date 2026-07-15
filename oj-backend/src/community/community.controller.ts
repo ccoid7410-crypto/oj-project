@@ -1,10 +1,37 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/jwt.strategy';
 import { CommunityService } from './community.service';
-import { CreateCommentDto, CreatePostDto, VoteDto } from './dto/community.dto';
+import {
+  BOARDS,
+  CreateCommentDto,
+  CreatePostDto,
+  CreateTagDto,
+  ReactionDto,
+  VoteDto,
+  type Board,
+} from './dto/community.dto';
+
+function parseBoard(raw: string | undefined): Board {
+  const board = (raw ?? 'OJ').toUpperCase();
+  if (!BOARDS.includes(board as Board)) {
+    throw new BadRequestException('게시판 구분이 올바르지 않습니다.');
+  }
+  return board as Board;
+}
 
 @Controller('community')
 export class CommunityController {
@@ -13,8 +40,21 @@ export class CommunityController {
   // 목록/상세는 비로그인도 볼 수 있다(로그인 시 내 좋아요 표시를 위해 optional 인증).
   @UseGuards(OptionalJwtAuthGuard)
   @Get('posts')
-  listPosts(@Req() req: any) {
-    return this.community.listPosts(req.user?.userId);
+  listPosts(@Query('board') board: string | undefined, @Req() req: any) {
+    return this.community.listPosts(parseBoard(board), req.user?.userId);
+  }
+
+  // ---- 태그(보드별). 정적 경로라 :id 라우트보다 먼저 선언한다. ----
+  @Get('tags')
+  listTags(@Query('board') board: string | undefined) {
+    return this.community.listTags(parseBoard(board));
+  }
+
+  // 게시글에 태그를 붙일 수 있는 사람이면(=로그인 사용자) 새 태그를 만들 수 있다.
+  @UseGuards(JwtAuthGuard)
+  @Post('tags')
+  createTag(@Body() dto: CreateTagDto) {
+    return this.community.createTag(dto.board, dto.name);
   }
 
   @UseGuards(OptionalJwtAuthGuard)
@@ -26,7 +66,7 @@ export class CommunityController {
   @UseGuards(JwtAuthGuard)
   @Post('posts')
   createPost(@CurrentUser() user: RequestUser, @Body() dto: CreatePostDto) {
-    return this.community.createPost(user.userId, dto.title, dto.content);
+    return this.community.createPost(user.userId, user.role, dto);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -39,6 +79,22 @@ export class CommunityController {
   @Post('posts/:id/vote')
   votePost(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: VoteDto) {
     return this.community.votePost(id, user.userId, dto.value);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('posts/:id/reaction')
+  reactPost(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: ReactionDto) {
+    return this.community.reactPost(id, user.userId, dto.emoji);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('comments/:commentId/reaction')
+  reactComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ReactionDto,
+  ) {
+    return this.community.reactComment(commentId, user.userId, dto.emoji);
   }
 
   @UseGuards(JwtAuthGuard)

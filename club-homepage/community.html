@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>명예의 전당 | 두루누리</title>
+  <title>커뮤니티 | 두루누리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
   <script src="js/theme.js"></script>
 </head>
 <body class="gate-pending">
@@ -29,12 +30,11 @@
     </nav>
   </header>
 
+  <div id="site-banner" class="site-banner"></div>
 
   <main class="container">
     <section class="section">
-      <h2>명예의 전당</h2>
-      <p>두루누리에 함께한 회원들입니다. 이름을 누르면 OJ 프로필로 이동합니다.</p>
-      <div id="hof-list">
+      <div id="community-root">
         <p class="loading">불러오는 중...</p>
       </div>
     </section>
@@ -46,6 +46,12 @@
 
   <script src="js/gate.js"></script>
   <script src="js/main.js"></script>
-  <script src="js/hall-of-fame.js"></script>
+  <script src="js/banner.js"></script>
+  <!-- 게시글 본문 마크다운/TeX 렌더링용 (account.html과 동일한 로컬 vendoring) -->
+  <script src="vendor/marked.umd.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="vendor/katex.min.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/community.js"></script>
 </body>
 </html>

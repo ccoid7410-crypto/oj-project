@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { REACTION_EMOJIS, type Board, type PostType } from './dto/community.dto';
 
 // 작성자 표시용 최소 정보(문제 Q&A 댓글과 동일 규칙): 아바타는 버전만 내려서
 // 프론트가 /users/:username/avatar?v= 로 그리게 한다.
@@ -30,13 +31,32 @@ function summarizeVotes(votes: Array<{ value: number; userId: string }>, request
   return { likeCount, dislikeCount, myVote };
 }
 
+/** 이모지 공감 배열을 {reactions:[{emoji,count}], myReaction}로 요약한다(고정 순서). */
+function summarizeReactions(reactions: Array<{ emoji: string; userId: string }>, requesterId?: string) {
+  const counts = new Map<string, number>();
+  let myReaction: string | null = null;
+  for (const r of reactions) {
+    counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1);
+    if (requesterId && r.userId === requesterId) myReaction = r.emoji;
+  }
+  const list = REACTION_EMOJIS.filter((e) => counts.has(e)).map((emoji) => ({
+    emoji,
+    count: counts.get(emoji)!,
+  }));
+  return { reactions: list, myReaction };
+}
+
 @Injectable()
 export class CommunityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** 게시글 목록. 최신순. 각 글의 댓글 수와 좋아요/싫어요 집계를 함께 내려준다. */
-  async listPosts(requesterId?: string) {
+  /**
+   * 게시글 목록. 공지(NOTICE)를 최상단에 고정하고, 그 안/밖 모두 최신순으로 정렬한다.
+   * OJ/HOME 보드는 같은 백엔드를 쓰지만 board로 분리되어 서로 글을 공유하지 않는다.
+   */
+  async listPosts(board: Board, requesterId?: string) {
     const posts = await this.prisma.communityPost.findMany({
+      where: { board },
       orderBy: { createdAt: 'desc' },
       include: {
         author: AUTHOR_SELECT,
@@ -44,28 +64,36 @@ export class CommunityService {
         _count: { select: { comments: true } },
       },
     });
-    return posts.map((p) => ({
+    const mapped = posts.map((p) => ({
       id: p.id,
+      type: p.type,
       title: p.title,
+      tags: p.tags,
       author: mapAuthor(p.author),
       createdAt: p.createdAt,
       commentCount: p._count.comments,
       ...summarizeVotes(p.votes, requesterId),
     }));
+    // 공지를 상단 고정(둘 다 이미 최신순이라 순서만 앞뒤로 나눈다).
+    const notices = mapped.filter((p) => p.type === 'NOTICE');
+    const rest = mapped.filter((p) => p.type !== 'NOTICE');
+    return [...notices, ...rest];
   }
 
-  /** 게시글 상세 + 댓글/답글(평면 목록, parentId로 트리 구성은 프론트가 담당). */
+  /** 게시글 상세 + 댓글/답글(평면 목록, 정렬은 프론트가 담당). */
   async getPost(id: string, requesterId?: string) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id },
       include: {
         author: AUTHOR_SELECT,
         votes: { select: { value: true, userId: true } },
+        reactions: { select: { emoji: true, userId: true } },
         comments: {
           orderBy: { createdAt: 'asc' },
           include: {
             user: AUTHOR_SELECT,
             votes: { select: { value: true, userId: true } },
+            reactions: { select: { emoji: true, userId: true } },
           },
         },
       },
@@ -74,12 +102,16 @@ export class CommunityService {
 
     return {
       id: post.id,
+      board: post.board,
+      type: post.type,
       title: post.title,
       content: post.content,
+      tags: post.tags,
       author: mapAuthor(post.author),
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       ...summarizeVotes(post.votes, requesterId),
+      ...summarizeReactions(post.reactions, requesterId),
       comments: post.comments.map((c) => ({
         id: c.id,
         content: c.content,
@@ -87,13 +119,32 @@ export class CommunityService {
         createdAt: c.createdAt,
         user: mapAuthor(c.user),
         ...summarizeVotes(c.votes, requesterId),
+        ...summarizeReactions(c.reactions, requesterId),
       })),
     };
   }
 
-  async createPost(authorId: string, title: string, content: string) {
+  async createPost(
+    authorId: string,
+    authorRole: string,
+    dto: { board: Board; title: string; content: string; type?: PostType; tags?: string[] },
+  ) {
+    // 공지(NOTICE) 유형은 어드민만 지정할 수 있다.
+    const type: PostType = dto.type ?? 'NORMAL';
+    if (type === 'NOTICE' && authorRole !== 'ADMIN') {
+      throw new ForbiddenException('공지 유형은 관리자만 작성할 수 있습니다.');
+    }
+    const tags = (dto.tags ?? []).map((t) => t.trim()).filter(Boolean);
+    // 게시글에 쓴 태그는 해당 보드의 태그 목록에도 등록해 다른 사람이 재사용할 수 있게 한다.
+    for (const name of new Set(tags)) {
+      await this.prisma.communityTag.upsert({
+        where: { board_name: { board: dto.board, name } },
+        create: { board: dto.board, name },
+        update: {},
+      });
+    }
     const post = await this.prisma.communityPost.create({
-      data: { authorId, title, content },
+      data: { board: dto.board, type, title: dto.title, content: dto.content, tags, authorId },
     });
     return { id: post.id };
   }
@@ -181,5 +232,77 @@ export class CommunityService {
       select: { value: true, userId: true },
     });
     return summarizeVotes(votes, userId);
+  }
+
+  /** 게시글 이모지 공감. 같은 이모지를 다시 누르면 취소, 다른 이모지면 교체(유저당 1개). */
+  async reactPost(postId: string, userId: string, emoji: string) {
+    const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    const existing = await this.prisma.communityPostReaction.findUnique({
+      where: { postId_userId: { postId, userId } },
+    });
+    if (existing && existing.emoji === emoji) {
+      await this.prisma.communityPostReaction.delete({ where: { postId_userId: { postId, userId } } });
+    } else {
+      await this.prisma.communityPostReaction.upsert({
+        where: { postId_userId: { postId, userId } },
+        create: { postId, userId, emoji },
+        update: { emoji },
+      });
+    }
+    const reactions = await this.prisma.communityPostReaction.findMany({
+      where: { postId },
+      select: { emoji: true, userId: true },
+    });
+    return summarizeReactions(reactions, userId);
+  }
+
+  /** 댓글/답글 이모지 공감. 게시글과 동일 규칙. */
+  async reactComment(commentId: string, userId: string, emoji: string) {
+    const comment = await this.prisma.communityComment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    const existing = await this.prisma.communityCommentReaction.findUnique({
+      where: { commentId_userId: { commentId, userId } },
+    });
+    if (existing && existing.emoji === emoji) {
+      await this.prisma.communityCommentReaction.delete({
+        where: { commentId_userId: { commentId, userId } },
+      });
+    } else {
+      await this.prisma.communityCommentReaction.upsert({
+        where: { commentId_userId: { commentId, userId } },
+        create: { commentId, userId, emoji },
+        update: { emoji },
+      });
+    }
+    const reactions = await this.prisma.communityCommentReaction.findMany({
+      where: { commentId },
+      select: { emoji: true, userId: true },
+    });
+    return summarizeReactions(reactions, userId);
+  }
+
+  // ---- 태그(보드별 태그 풀) ----
+
+  listTags(board: Board) {
+    return this.prisma.communityTag.findMany({
+      where: { board },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    });
+  }
+
+  async createTag(board: Board, name: string) {
+    const trimmed = name.trim();
+    // 이미 있으면 그대로 반환(중복 생성해도 에러 대신 기존 것을 돌려줌).
+    const existing = await this.prisma.communityTag.findUnique({
+      where: { board_name: { board, name: trimmed } },
+    });
+    if (existing) return { id: existing.id, name: existing.name };
+    const created = await this.prisma.communityTag.create({
+      data: { board, name: trimmed },
+      select: { id: true, name: true },
+    });
+    return created;
   }
 }

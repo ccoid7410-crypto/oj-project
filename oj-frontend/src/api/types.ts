@@ -372,9 +372,26 @@ export interface VoteSummary {
   myVote: number; // 1 = 좋아요, -1 = 싫어요, 0 = 없음
 }
 
+export type CommunityPostType = 'NORMAL' | 'UPDATE_LOG' | 'NOTICE';
+
+// 카톡 공감처럼 고를 수 있는 이모지(백엔드 REACTION_EMOJIS와 동일해야 함).
+export const REACTION_EMOJIS = ['👍', '❤️', '😆', '😮', '😢', '😡'] as const;
+
+export interface CommunityReaction {
+  emoji: string;
+  count: number;
+}
+
+export interface ReactionState {
+  reactions: CommunityReaction[];
+  myReaction: string | null;
+}
+
 export interface CommunityPostSummary {
   id: string;
+  type: CommunityPostType;
   title: string;
+  tags: string[];
   author: CommunityAuthor;
   createdAt: string;
   commentCount: number;
@@ -392,17 +409,24 @@ export interface CommunityComment {
   likeCount: number;
   dislikeCount: number;
   myVote: number;
+  reactions: CommunityReaction[];
+  myReaction: string | null;
 }
 
 export interface CommunityPostDetail {
   id: string;
+  board: string;
+  type: CommunityPostType;
   title: string;
   content: string;
+  tags: string[];
   author: CommunityAuthor;
   createdAt: string;
   updatedAt: string;
   likeCount: number;
   dislikeCount: number;
   myVote: number;
+  reactions: CommunityReaction[];
+  myReaction: string | null;
   comments: CommunityComment[];
 }
