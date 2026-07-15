@@ -7,6 +7,7 @@ const ROLE_LABEL: Record<Role, string> = { USER: '일반', MEMBER: '부원', ADM
 
 export function AccountsPage() {
   const { user: me } = useAuth();
+  const canEditCustomTitles = me?.username === 'jihun1050';
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,17 +155,19 @@ export function AccountsPage() {
                       onChange={(e) => setCustomTitles((prev) => ({ ...prev, [u.id]: e.target.value }))}
                       maxLength={20}
                       placeholder="칭호 없음"
+                      disabled={!canEditCustomTitles}
                       className="min-w-0 flex-1 rounded border border-ink-500 px-1.5 py-1 text-xs outline-none focus:border-[var(--color-brand)]"
                     />
                     <button
                       type="button"
                       onClick={() => setCustomTitle(u.id)}
-                      disabled={busyId === u.id}
+                      disabled={!canEditCustomTitles || busyId === u.id}
                       className="rounded border border-ink-500 px-2 py-1 text-xs hover:border-[var(--color-brand)] disabled:opacity-60"
                     >
                       저장
                     </button>
                   </div>
+                  {!canEditCustomTitles && <span className="mt-1 block text-[10px] text-fg-muted">jihun1050 전용</span>}
                 </td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{u.rating}</td>
                 <td

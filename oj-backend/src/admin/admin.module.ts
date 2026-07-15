@@ -9,6 +9,7 @@ import { ProblemsModule } from '../problems/problems.module';
 import { AdminStatsService } from './admin-stats.service';
 import { MailModule } from '../mail/mail.module';
 import { BannerModule } from '../banner/banner.module';
+import { RootAdminGuard } from './guards/root-admin.guard';
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { BannerModule } from '../banner/banner.module';
     BannerModule,
   ],
   controllers: [AdminController],
-  providers: [AdminStatsService],
+  providers: [AdminStatsService, RootAdminGuard],
 })
 export class AdminModule {}

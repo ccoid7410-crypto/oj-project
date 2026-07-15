@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 type AdminBanner = {
   enabled: boolean;
@@ -9,6 +10,8 @@ type AdminBanner = {
 };
 
 export function BannerSettingsPage() {
+  const { user } = useAuth();
+  const canEdit = user?.username === 'jihun1050';
   const [banner, setBanner] = useState<AdminBanner | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -97,6 +100,7 @@ export function BannerSettingsPage() {
       <div>
         <h2 className="text-lg font-bold">배너 설정</h2>
         <p className="mt-1 text-sm text-fg-muted">동아리 홈페이지 상단에 노출할 배너 이미지를 관리합니다.</p>
+        {!canEdit && <p className="mt-1 text-xs text-[var(--color-wa)]">배너 수정은 jihun1050 관리자만 가능합니다.</p>}
       </div>
 
       {error && <p className="mt-3 text-sm text-[var(--color-wa)]">{error}</p>}
@@ -115,6 +119,7 @@ export function BannerSettingsPage() {
             ref={fileInputRef}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
+            disabled={!canEdit}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="text-sm text-fg"
           />
@@ -127,26 +132,27 @@ export function BannerSettingsPage() {
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://... 또는 비워두면 클릭 불가"
+            disabled={!canEdit}
             className="rounded border border-ink-500 px-3 py-2 text-sm text-fg outline-none focus:border-[var(--color-brand)]"
           />
         </label>
 
         <label className="mt-4 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <input type="checkbox" checked={enabled} disabled={!canEdit} onChange={(e) => setEnabled(e.target.checked)} />
           배너 노출 켜기
         </label>
 
         <div className="mt-4 flex gap-2">
           <button
             onClick={save}
-            disabled={saving}
+            disabled={!canEdit || saving}
             className="rounded bg-[var(--color-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
           >
             {saving ? '저장 중...' : '저장'}
           </button>
           <button
             onClick={remove}
-            disabled={saving || !banner?.imageUrl}
+            disabled={!canEdit || saving || !banner?.imageUrl}
             className="rounded border border-ink-500 px-3 py-2 text-xs hover:border-[var(--color-wa)] hover:text-[var(--color-wa)] disabled:opacity-50"
           >
             배너 삭제

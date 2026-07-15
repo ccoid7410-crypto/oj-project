@@ -48,6 +48,7 @@ import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
 import { MailService } from '../mail/mail.service';
 import { BannerService, UPLOADS_ROOT } from '../banner/banner.service';
+import { RootAdminGuard } from './guards/root-admin.guard';
 
 const BANNER_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
@@ -187,6 +188,7 @@ export class AdminController {
 
   // ---- 사용자별 공개 칭호 지정/해제 ----
   @Put('users/:id/custom-title')
+  @UseGuards(RootAdminGuard)
   setUserCustomTitle(@Param('id') id: string, @Body() dto: SetCustomTitleDto) {
     return this.users.setCustomTitle(id, dto.title);
   }
@@ -287,6 +289,7 @@ export class AdminController {
   }
 
   @Put('banner')
+  @UseGuards(RootAdminGuard)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: diskStorage({
@@ -315,6 +318,7 @@ export class AdminController {
   }
 
   @Delete('banner')
+  @UseGuards(RootAdminGuard)
   removeBanner(@CurrentUser() user: RequestUser) {
     return this.banner.remove(user.userId);
   }
