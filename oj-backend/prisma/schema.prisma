@@ -102,6 +102,10 @@ model User {
   classesCreated       ClassRoom[]               @relation("ClassCreator")
   classMemberships     ClassMembership[]
   classNotices         ClassNotice[]             @relation("ClassNoticeAuthor")
+  communityPosts        CommunityPost[]          @relation("CommunityPostAuthor")
+  communityComments     CommunityComment[]       @relation("CommunityCommentAuthor")
+  communityPostVotes    CommunityPostVote[]
+  communityCommentVotes CommunityCommentVote[]
 
   @@map("users")
 }
@@ -196,6 +200,94 @@ model ProblemComment {
   createdAt DateTime @default(now())
 
   @@map("problem_comments")
+}
+
+/// 커뮤니티 게시판 구분. OJ와 두루누리 홈페이지는 같은 백엔드를 쓰지만 글/태그를 공유하지 않는다.
+enum CommunityBoard {
+  OJ
+  HOME
+}
+
+/// 게시글 유형. NOTICE(공지)는 어드민만 지정 가능하며 목록 상단에 고정된다.
+enum CommunityPostType {
+  NORMAL
+  UPDATE_LOG
+  NOTICE
+}
+
+/// 커뮤니티 게시글. 본문은 마크다운/TeX를 지원한다(프론트에서 렌더링·소독).
+model CommunityPost {
+  id        String   @id @default(uuid())
+  board     CommunityBoard   @default(OJ)
+  type      CommunityPostType @default(NORMAL)
+  title     String
+  content   String
+  tags      String[] @default([]) // 게시글 태그(카테고리). 보드별로 태그 풀이 분리된다.
+  authorId  String
+  author    User     @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  CommunityComment[]
+  votes     CommunityPostVote[]
+
+  @@index([board, createdAt])
+  @@map("community_posts")
+}
+
+/// 커뮤니티 게시글 태그 선택지. 문제 태그(TagOption)와 같은 방식이되, 보드(OJ/HOME)별로 분리된다.
+model CommunityTag {
+  id        String         @id @default(uuid())
+  board     CommunityBoard
+  name      String
+  createdAt DateTime       @default(now())
+
+  @@unique([board, name])
+  @@map("community_tags")
+}
+
+/// 커뮤니티 게시글의 댓글/답글(대댓글은 parentId). 문제 Q&A 댓글과 동일 구조 + 좋아요/싫어요.
+model CommunityComment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("CommunityCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  parentId  String?
+  parent    CommunityComment?  @relation("CommunityCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   CommunityComment[] @relation("CommunityCommentReplies")
+  createdAt DateTime @default(now())
+
+  votes     CommunityCommentVote[]
+
+  @@map("community_comments")
+}
+
+/// 게시글 좋아요(1)/싫어요(-1). 유저당 게시글당 1표.
+model CommunityPostVote {
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int // 1 = 좋아요, -1 = 싫어요
+  createdAt DateTime @default(now())
+
+  @@id([postId, userId])
+  @@map("community_post_votes")
+}
+
+/// 댓글/답글 좋아요(1)/싫어요(-1). 유저당 댓글당 1표.
+model CommunityCommentVote {
+  commentId String
+  comment   CommunityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int // 1 = 좋아요, -1 = 싫어요
+  createdAt DateTime @default(now())
+
+  @@id([commentId, userId])
+  @@map("community_comment_votes")
 }
 
 /// 문제를 실제로 푼(ACCEPTED) 사용자만 남길 수 있는 체감 난이도 투표. 유저당 문제당 1표.

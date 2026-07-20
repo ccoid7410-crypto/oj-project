@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>두루누리 | 동아리 홈페이지</title>
+  <title>커뮤니티 | 두루누리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
   <script src="js/theme.js"></script>
 </head>
 <body class="gate-pending">
@@ -24,7 +25,7 @@
     <nav class="header-nav">
       <a href="hall-of-fame.html">명예의 전당</a>
       <a href="community.html">커뮤니티</a>
-      <a href="https://cbgpu.vercel.app/" target="_blank" rel="noopener noreferrer">CBGPU</a>
+      <a href="https://cbgpu.vercel.app/" target="_blank">CBGPU</a>
       <a href="/" class="nav-oj">Online Judge ↗</a>
     </nav>
   </header>
@@ -32,34 +33,9 @@
   <div id="site-banner" class="site-banner"></div>
 
   <main class="container">
-    <section class="hero">
-      <h1>알고리즘과 함께 성장하는<br>동아리, <span class="accent">두루누리</span></h1>
-      <p>함께 문제를 풀고, 서로 배우고, 직접 서비스를 만드는 동아리입니다.</p>
-      <div class="hero-actions">
-        <a href="#join" class="btn btn-primary">가입하러 가기</a>
-        <a href="#about" class="btn btn-ghost">더 알아보기</a>
-      </div>
-    </section>
-
-    <section id="activities" class="section">
-      <h2>분과</h2>
-      <div class="card-grid">
-        <div class="card">
-          <h3>알고리즘</h3>
-          <p>--알고리즘 분과 설명--</p>
-        </div>
-        <div class="card">
-          <h3>인공지능</h3>
-          <p>--인공지능 분과 설명--</p>
-        </div>
-        <div class="card">
-          <h3>정보보안</h3>
-          <p>--정보보안 분과 설명--</p>
-        </div>
-        <div class="card">
-          <h3>임베디드</h3>
-          <p>--임베디드 분과 설명--</p>
-        </div>
+    <section class="section">
+      <div id="community-root">
+        <p class="loading">불러오는 중...</p>
       </div>
     </section>
   </main>
@@ -71,5 +47,11 @@
   <script src="js/gate.js"></script>
   <script src="js/main.js"></script>
   <script src="js/banner.js"></script>
+  <!-- 게시글 본문 마크다운/TeX 렌더링용 (account.html과 동일한 로컬 vendoring) -->
+  <script src="vendor/marked.umd.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="vendor/katex.min.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/community.js"></script>
 </body>
 </html>

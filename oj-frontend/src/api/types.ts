@@ -359,3 +359,57 @@ export interface ProblemComment {
   createdAt: string;
   user: { username: string; customTitle: string | null; avatarVersion: number | null };
 }
+
+export interface CommunityAuthor {
+  username: string;
+  customTitle: string | null;
+  avatarVersion: number | null;
+}
+
+export interface VoteSummary {
+  likeCount: number;
+  dislikeCount: number;
+  myVote: number; // 1 = 좋아요, -1 = 싫어요, 0 = 없음
+}
+
+export type CommunityPostType = 'NORMAL' | 'UPDATE_LOG' | 'NOTICE';
+
+export interface CommunityPostSummary {
+  id: string;
+  type: CommunityPostType;
+  title: string;
+  tags: string[];
+  author: CommunityAuthor;
+  createdAt: string;
+  commentCount: number;
+  likeCount: number;
+  dislikeCount: number;
+  myVote: number;
+}
+
+export interface CommunityComment {
+  id: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  user: CommunityAuthor;
+  likeCount: number;
+  dislikeCount: number;
+  myVote: number;
+}
+
+export interface CommunityPostDetail {
+  id: string;
+  board: string;
+  type: CommunityPostType;
+  title: string;
+  content: string;
+  tags: string[];
+  author: CommunityAuthor;
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  dislikeCount: number;
+  myVote: number;
+  comments: CommunityComment[];
+}

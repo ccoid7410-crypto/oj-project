@@ -836,3 +836,104 @@ body.gate-pending .site-footer {
 .markdown-body hr { border: none; border-top: 1px solid var(--color-ink-500); margin: 1em 0; }
 .markdown-body img { max-width: 100%; }
 .markdown-body .katex-display { overflow-x: auto; padding: 0.2em 0; }
+
+/* ===== 커뮤니티 ===== */
+.c-avatar {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-ink-500);
+  overflow: hidden;
+  vertical-align: middle;
+}
+.c-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 글쓰기/상세는 OJ(max-w-2xl)와 동일하게 좁은 중앙 컬럼으로. 목록은 넓게 유지. */
+#community-root.c-narrow { max-width: 672px; margin: 0 auto; }
+.c-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.c-error { color: #e5484d; font-size: 0.85rem; margin-top: 8px; }
+
+.c-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--color-ink-500); }
+.c-item {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 12px 4px; border-bottom: 1px solid var(--color-ink-500); cursor: pointer;
+}
+.c-item:hover { background: var(--color-ink-700); }
+.c-item-notice { background: rgba(229, 72, 77, 0.06); }
+.c-item-main { min-width: 0; }
+.c-item-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.c-title { font-weight: 700; font-size: 0.95rem; color: var(--color-fg); }
+.c-item:hover .c-title { text-decoration: underline; }
+.c-title-notice { color: #e5484d; }
+.c-title-update { color: var(--color-brand); }
+.c-comment-count { color: var(--color-brand); font-size: 0.8rem; }
+.c-item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 0.78rem; color: var(--color-fg-muted); }
+.c-tag { background: var(--color-ink-600); color: var(--color-fg-muted); border-radius: 999px; padding: 1px 7px; font-size: 0.7rem; }
+.c-item-votes { display: flex; gap: 8px; font-size: 0.78rem; flex-shrink: 0; padding-top: 2px; }
+.c-up { color: #2fa84f; }
+.c-down { color: #e5484d; }
+
+.c-badge { border-radius: 4px; padding: 1px 6px; font-size: 0.65rem; font-weight: 700; }
+.c-badge-notice { background: rgba(229, 72, 77, 0.12); color: #e5484d; }
+.c-badge-update { background: rgba(47, 111, 237, 0.12); color: var(--color-brand); }
+
+/* 투표 버튼 */
+.c-votes { display: inline-flex; gap: 6px; }
+.c-vote {
+  display: inline-flex; align-items: center; gap: 3px;
+  border: 1px solid var(--color-ink-500); background: transparent;
+  border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; color: var(--color-fg-muted); cursor: pointer;
+}
+.c-vote-md { padding: 4px 10px; font-size: 0.85rem; }
+.c-vote-up:hover, .c-vote-up.active { border-color: #2fa84f; color: #2fa84f; background: rgba(47, 168, 79, 0.08); }
+.c-vote-down:hover, .c-vote-down.active { border-color: #e5484d; color: #e5484d; background: rgba(229, 72, 77, 0.08); }
+
+/* 상세 */
+.c-back { display: inline-block; margin-bottom: 8px; font-size: 0.78rem; color: var(--color-fg-muted); }
+.c-back:hover { color: var(--color-brand); }
+.c-detail-title { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.c-detail-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.c-author { font-weight: 600; color: var(--color-fg); }
+.c-body { border-top: 1px solid var(--color-ink-500); padding-top: 16px; margin-top: 4px; }
+.c-detail-votes { margin: 16px 0; display: flex; align-items: center; flex-wrap: wrap; gap: 24px; }
+
+/* 댓글 */
+.c-comments { margin-top: 24px; border-top: 1px solid var(--color-ink-500); padding-top: 20px; }
+.c-comments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.c-comments-header h3 { font-size: 1.05rem; font-weight: 700; }
+.c-sort { display: flex; gap: 4px; }
+.c-sort-btn { border: 1px solid var(--color-ink-500); background: transparent; color: var(--color-fg-muted); border-radius: 5px; padding: 3px 8px; font-size: 0.72rem; cursor: pointer; }
+.c-sort-btn.active { background: var(--color-brand); color: #fff; border-color: var(--color-brand); font-weight: 700; }
+.c-comment { border: 1px solid var(--color-ink-500); border-radius: 4px; padding: 12px; margin-bottom: 10px; }
+.c-comment-top { display: flex; align-items: center; justify-content: space-between; }
+.c-comment-author { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; }
+.c-comment-date { font-size: 0.72rem; color: var(--color-fg-muted); }
+.c-comment-body { margin: 6px 0 8px; font-size: 0.9rem; white-space: pre-wrap; }
+.c-comment-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; }
+.c-comment-actions .link-btn { font-size: 0.75rem; }
+.c-del:hover { color: #e5484d; }
+.c-replies { margin-top: 10px; padding-left: 14px; border-left: 2px solid var(--color-ink-500); display: flex; flex-direction: column; gap: 8px; }
+.c-comment-form { margin-top: 12px; }
+.c-comment-form .btn { margin-top: 8px; }
+
+/* 글쓰기 폼 */
+.c-form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.c-type-row { display: flex; flex-wrap: wrap; gap: 18px; }
+.c-type-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+.c-tag-picker { display: flex; flex-direction: column; gap: 6px; }
+.c-tag-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.c-chip { border: 1px solid var(--color-ink-500); background: transparent; color: var(--color-fg-muted); border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; }
+.c-chip.active { background: var(--color-brand); color: #fff; border-color: var(--color-brand); font-weight: 700; }
+.c-chip-add { border-style: dashed; }
+.c-tag-input { width: 96px; border: 1px dashed var(--color-ink-500); border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; background: transparent; color: var(--color-fg); }
+.c-content-head { display: flex; align-items: center; justify-content: space-between; }
+.c-content { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.c-form-actions { display: flex; gap: 8px; }
+.c-react-picker {
+  display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 4px; z-index: 10;
+  gap: 2px; padding: 6px; border: 1px solid var(--color-ink-500); border-radius: 8px;
+  background: var(--color-bg); box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+.c-react-picker.open { display: flex; }
+.c-react-opt { border: none; background: transparent; font-size: 1.15rem; padding: 2px 4px; cursor: pointer; border-radius: 5px; }
+.c-react-opt:hover { background: var(--color-ink-600); }

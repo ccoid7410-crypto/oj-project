@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import type { Difficulty, Language } from '../../api/types';
+import type { Difficulty, Language, ProblemDetail, TestCase } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
-import { TIER_OPTIONS, labelOfLevel } from '../../lib/difficulty';
+import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
 import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCaseDraftList';
 import { TagPicker } from '../../components/TagPicker';
+
+// Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
+const CodeEditor = lazy(() =>
+  import('../../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
+);
 
 type TestCaseInput = TestCaseDraft;
 
@@ -48,11 +53,20 @@ function loadDraft(): ProblemDraft | null {
 
 export function NewProblemPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  // '내 문제'에서 초안을 이어서 작성할 때 넘어오는 slug. 있으면 서버 초안을 불러오고,
+  // 그 동안엔 localStorage 임시 저장본은 무시한다(서버 초안이 우선).
+  const resumeSlug = searchParams.get('resume');
   // 임시 저장본이 있으면 그 값으로 시작한다 (lazy initializer라 최초 렌더 1회만 읽음)
-  const [restored] = useState<ProblemDraft | null>(loadDraft);
+  const [restored] = useState<ProblemDraft | null>(() => (resumeSlug ? null : loadDraft()));
   const [draftNotice, setDraftNotice] = useState(restored != null);
+  // 서버에 저장된 초안의 문제 id. 있으면 '임시 저장'과 '문제 생성'이 이 초안을 갱신/승격한다.
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [loadingDraft, setLoadingDraft] = useState(!!resumeSlug);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedNotice, setDraftSavedNotice] = useState<string | null>(null);
   const [title, setTitle] = useState(restored?.title ?? '');
   const [slug, setSlug] = useState(restored?.slug ?? '');
   const [description, setDescription] = useState(restored?.description ?? '');
@@ -76,9 +90,47 @@ export function NewProblemPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 이어서 작성: 서버에 저장된 초안(slug)을 불러와 폼을 채운다.
+  useEffect(() => {
+    if (!resumeSlug) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await api.get<ProblemDetail>(`/problems/${resumeSlug}`);
+        const tcs = await api.get<TestCase[]>(`/problems/${p.id}/testcases`);
+        if (cancelled) return;
+        setDraftId(p.id);
+        setTitle(p.title);
+        setSlug(p.slug);
+        setDescription(p.description);
+        setTier(tierOfLevel(p.level));
+        setSubRank(((p.level - 1) % 5) + 1);
+        setTimeLimitMs(p.timeLimitMs);
+        setMemoryLimitMb(p.memoryLimitMb);
+        setTags(p.tags);
+        setTestCases(
+          tcs.length
+            ? tcs.map((tc) => ({ input: tc.input, output: tc.output, isSample: tc.isSample }))
+            : [emptyTestCase(true)],
+        );
+      } catch {
+        if (!cancelled) setError('초안을 불러오지 못했습니다.');
+      } finally {
+        if (!cancelled) setLoadingDraft(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // resumeSlug가 바뀔 때만 다시 불러온다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeSlug]);
+
   // 입력이 멈춘 뒤 1초 후에 저장(디바운스). 대용량 테스트케이스 연타 저장으로 인한 렉 방지.
+  // 서버 초안(draftId/resume)으로 작업 중이면 localStorage 자동 저장은 끈다(서버가 이미 보관).
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (draftId || resumeSlug) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       const draft: ProblemDraft = {
@@ -94,11 +146,52 @@ export function NewProblemPage() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb, tags, testCases, contestOnly, verificationLanguage, verificationCode]);
+  }, [draftId, resumeSlug, title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb, tags, testCases, contestOnly, verificationLanguage, verificationCode]);
 
   function discardDraft() {
     localStorage.removeItem(DRAFT_KEY);
     window.location.reload(); // 빈 폼으로 재시작
+  }
+
+  // 저장 시 빈 행(입력·출력 모두 비어있음)은 제외한 테스트케이스 목록.
+  function cleanTestCases() {
+    return testCases.filter((tc) => tc.input !== '' || tc.output !== '');
+  }
+
+  /** '임시 저장': 검토에 넣지 않고 서버에 초안(DRAFT)으로만 저장한다. 이후 '내 문제'에서 이어서 작성 가능. */
+  async function onSaveDraft() {
+    setError(null);
+    setDraftSavedNotice(null);
+    if (!title.trim() || !slug.trim()) {
+      setError('임시 저장하려면 제목과 주소(slug)를 입력해주세요.');
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      if (draftId) {
+        // 기존 초안 갱신: 내용 + 테스트케이스를 현재 폼 상태로 맞춘다(재검토 없음 - 초안이라).
+        await api.patch(`/problems/${draftId}`, {
+          title, slug, description, level, timeLimitMs, memoryLimitMb, tags,
+          ...(isAdmin ? { contestOnly } : {}),
+        });
+        await api.put(`/problems/${draftId}/testcases`, { testCases: cleanTestCases() });
+      } else {
+        // 새 초안 생성
+        const created = await api.post<{ id: string; slug: string }>('/problems/draft', {
+          title, slug, description, level, timeLimitMs, memoryLimitMb, tags, testCases: cleanTestCases(),
+          ...(isAdmin ? { contestOnly } : {}),
+        });
+        setDraftId(created.id);
+        localStorage.removeItem(DRAFT_KEY); // 이제 서버가 보관하므로 로컬 임시본은 정리
+        // 새로고침해도 이어지도록 URL에 resume 파라미터를 남긴다.
+        navigate(`/problems/new?resume=${encodeURIComponent(created.slug)}`, { replace: true });
+      }
+      setDraftSavedNotice('임시 저장되었습니다. 내 문제에서 이어서 작성할 수 있어요.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '임시 저장에 실패했습니다.');
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   async function onSubmit(e: FormEvent) {
@@ -106,6 +199,30 @@ export function NewProblemPage() {
     setError(null);
     setSubmitting(true);
     try {
+      if (draftId) {
+        // 이어서 작성하던 서버 초안을 최종 등록(승격)한다.
+        // 먼저 현재 폼 내용/테스트케이스를 저장한 뒤, 검증/공개 단계를 밟는다.
+        await api.patch(`/problems/${draftId}`, {
+          title, slug, description, level, timeLimitMs, memoryLimitMb, tags,
+          ...(isAdmin ? { contestOnly } : {}),
+        });
+        await api.put(`/problems/${draftId}/testcases`, { testCases: cleanTestCases() });
+        localStorage.removeItem(DRAFT_KEY);
+        if (isAdmin) {
+          if (publishNow) {
+            await api.patch(`/problems/${draftId}/publish`, { isPublished: true });
+            navigate(`/problems/${slug}`);
+          } else {
+            navigate('/problems/mine');
+          }
+        } else {
+          // 일반 사용자: 정답 코드 검증을 통과해야 검토 대기로 넘어간다.
+          await api.post(`/problems/${draftId}/verify-submit`, { verificationLanguage, verificationCode });
+          navigate('/problems/mine');
+        }
+        return;
+      }
+
       const created = await api.post<{ id: string }>('/problems', {
         title,
         slug,
@@ -141,7 +258,15 @@ export function NewProblemPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold">문제 추가</h1>
+      <h1 className="text-2xl font-bold">{resumeSlug ? '문제 이어서 작성' : '문제 추가'}</h1>
+      {loadingDraft && (
+        <p className="mt-2 text-sm text-fg-muted">초안을 불러오는 중...</p>
+      )}
+      {resumeSlug && !loadingDraft && (
+        <p className="mt-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
+          임시 저장한 초안을 불러왔습니다. 이어서 작성하고 '임시 저장'으로 다시 저장하거나 '문제 생성'으로 등록하세요.
+        </p>
+      )}
       {draftNotice && (
         <p className="mt-2 flex items-center gap-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
           작성 중이던 임시 저장본을 불러왔습니다.
@@ -280,24 +405,49 @@ export function NewProblemPage() {
                   </option>
                 ))}
               </select>
-              <textarea
-                required
-                rows={10}
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                spellCheck={false}
-                className="mt-2 w-full resize-y rounded border border-ink-500 bg-white p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
-              />
+              <div className="mt-2">
+                <Suspense
+                  fallback={
+                    <textarea
+                      required
+                      rows={10}
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      spellCheck={false}
+                      className="w-full resize-y rounded border border-ink-500 bg-white p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
+                    />
+                  }
+                >
+                  <CodeEditor
+                    value={verificationCode}
+                    onChange={setVerificationCode}
+                    mode={verificationLanguage}
+                    autoGrow
+                    minLines={10}
+                  />
+                </Suspense>
+              </div>
             </div>
           </div>
         )}
 
         {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
+        {draftSavedNotice && <p className="text-xs text-[var(--color-ac)]">{draftSavedNotice}</p>}
+
+        {/* 임시 저장: 검토에 넣지 않고 내용만 서버에 저장한다. '내 문제'에서 이어서 작성 가능. */}
+        <button
+          type="button"
+          onClick={onSaveDraft}
+          disabled={savingDraft || submitting}
+          className="rounded border border-ink-500 py-2 text-sm font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+        >
+          {savingDraft ? '임시 저장 중...' : '임시 저장'}
+        </button>
 
         <button
           type="submit"
-          disabled={submitting}
-          className="mt-2 rounded bg-[var(--color-brand)] py-2 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+          disabled={submitting || savingDraft}
+          className="rounded bg-[var(--color-brand)] py-2 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
         >
           {submitting ? (isAdmin ? '생성 중...' : '코드 검증 중... (최대 30초)') : '문제 생성'}
         </button>
