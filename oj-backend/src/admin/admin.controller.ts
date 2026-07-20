@@ -15,7 +15,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
-import { extname } from 'path';
 import {
   IsArray,
   IsDateString,
@@ -29,6 +28,7 @@ import {
   IsString,
   Max,
   Min,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -47,7 +47,7 @@ import { StudentIdService } from '../student-id/student-id.service';
 import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
 import { MailService } from '../mail/mail.service';
-import { BannerService, UPLOADS_ROOT } from '../banner/banner.service';
+import { BANNER_EXTENSION_BY_MIME, BannerService, UPLOADS_ROOT } from '../banner/banner.service';
 import { RootAdminGuard } from './guards/root-admin.guard';
 
 const BANNER_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
@@ -60,12 +60,13 @@ class SetStudentIdWindowDto {
 class BanUserDto {
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   reason?: string;
 }
 
 class SetRoleDto {
-  @IsIn(['USER', 'MEMBER', 'ADMIN'])
-  role: 'USER' | 'MEMBER' | 'ADMIN';
+  @IsIn(['USER', 'MEMBER', 'TEACHER', 'ADMIN'])
+  role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN';
 }
 
 class SetCustomTitleDto {
@@ -78,9 +79,9 @@ class SetCustomTitleDto {
 // role은 의도적으로 받지 않는다: bulk 생성 경로로는 절대 ADMIN을 만들 수 없다
 // (관리자 토큰이 탈취됐을 때 피해 범위를 USER 권한으로 제한하기 위함. ADMIN 생성은 별도 절차 필요).
 class BulkUserItem {
-  @IsString() username: string;
-  @IsOptional() @IsString() email?: string;
-  @IsOptional() @IsString() password?: string;
+  @IsString() @Matches(/^[a-zA-Z0-9_]{3,20}$/) username: string;
+  @IsOptional() @IsEmail() @MaxLength(254) email?: string;
+  @IsOptional() @IsString() @MinLength(8) @MaxLength(128) password?: string;
 }
 
 class BulkCreateDto {
@@ -114,6 +115,7 @@ class SaveGmailConfigDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(256)
   smtpPass?: string;
 }
 
@@ -124,6 +126,8 @@ class SetBannerDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2048)
+  @Matches(/^https?:\/\/[^\s]+$/i, { message: '배너 링크는 http:// 또는 https:// URL이어야 합니다.' })
   linkUrl?: string;
 }
 
@@ -165,19 +169,24 @@ export class AdminController {
   }
 
   // ---- 계정 검색/제재 ----
+  // 검색/정지/정지해제는 선생님도 쓴다("학생 계정 관리"). 다만 정지는 users.service.ban()에서
+  // 선생님이 ADMIN/TEACHER 계정을 건드릴 수 없게 한 번 더 막는다(교사끼리 정지 남발 방지).
+  @Roles('ADMIN', 'TEACHER')
   @Get('users/search')
   searchUsers(@Query('q') q?: string) {
     return this.users.search(q ?? '');
   }
 
+  @Roles('ADMIN', 'TEACHER')
   @Post('users/:id/ban')
-  banUser(@Param('id') id: string, @Body() dto: BanUserDto) {
-    return this.users.ban(id, dto.reason);
+  banUser(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: BanUserDto) {
+    return this.users.ban(id, dto.reason, user.role);
   }
 
+  @Roles('ADMIN', 'TEACHER')
   @Post('users/:id/unban')
-  unbanUser(@Param('id') id: string) {
-    return this.users.unban(id);
+  unbanUser(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.users.unban(id, user.role);
   }
 
   // ---- 관리자 권한 부여/해제 ----
@@ -294,7 +303,9 @@ export class AdminController {
     FileInterceptor('image', {
       storage: diskStorage({
         destination: `${UPLOADS_ROOT}/banner`,
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}${extname(file.originalname)}`),
+        // 원본 확장자는 공격자가 마음대로 정할 수 있으므로 신뢰하지 않고, 허용 MIME에 대응하는
+        // 고정 확장자만 사용한다. (예: image/png + .html로 저장되는 저장형 XSS 차단)
+        filename: (_req, file, cb) => cb(null, `${randomUUID()}${BANNER_EXTENSION_BY_MIME[file.mimetype] ?? ''}`),
       }),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB - 배너 하나에 그 이상은 과하다
       fileFilter: (_req, file, cb) => {

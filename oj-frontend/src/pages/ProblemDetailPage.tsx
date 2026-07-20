@@ -243,7 +243,7 @@ export function ProblemDetailPage() {
       </div>
 
       <div className="lg:col-span-2">
-        <ProblemComments problemId={problem.id} />
+        <ProblemComments problemId={problem.id} contestId={contestId} />
       </div>
     </div>
   );

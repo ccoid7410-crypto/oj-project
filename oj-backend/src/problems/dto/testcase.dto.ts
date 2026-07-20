@@ -1,11 +1,13 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateTestCaseDto {
   @IsString()
+  @MaxLength(1_000_000)
   input: string;
 
   @IsString()
+  @MaxLength(1_000_000)
   output: string;
 
   @IsOptional()
@@ -27,10 +29,12 @@ export class BulkCreateTestCasesDto {
 export class UpdateTestCaseDto {
   @IsOptional()
   @IsString()
+  @MaxLength(1_000_000)
   input?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(1_000_000)
   output?: string;
 
   @IsOptional()
@@ -42,12 +46,15 @@ export class SyncTestCaseItemDto {
   // 기존 케이스면 id가 있고(=업데이트), 없으면 새로 만든다.
   @IsOptional()
   @IsString()
+  @MaxLength(64)
   id?: string;
 
   @IsString()
+  @MaxLength(1_000_000)
   input: string;
 
   @IsString()
+  @MaxLength(1_000_000)
   output: string;
 
   @IsOptional()

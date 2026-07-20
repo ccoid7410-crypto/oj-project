@@ -13,8 +13,10 @@ async function loadSiteBanner() {
     img.className = "site-banner-img";
 
     if (banner.linkUrl) {
+      const parsed = new URL(banner.linkUrl, window.location.origin);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
       const link = document.createElement("a");
-      link.href = banner.linkUrl;
+      link.href = parsed.href;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.appendChild(img);

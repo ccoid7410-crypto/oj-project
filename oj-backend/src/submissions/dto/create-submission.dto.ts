@@ -11,10 +11,12 @@ export enum LanguageDto {
 
 export class CreateSubmissionDto {
   @IsString()
+  @MaxLength(64)
   problemId: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(64)
   contestId?: string;
 
   @IsEnum(LanguageDto)

@@ -22,7 +22,10 @@ function shQuote(arg: string): string {
 // 라즈베리파이 4B(8GB) 같은 저사양 호스트에서는 동시 채점 개수를 낮춰야 컴파일 단계에서
 // 메모리 압박이 덜하다. docker-compose가 컨테이너 기동 시 실제 OS 환경변수로 주입하므로
 // (dotenv 타이밍과 무관하게) 데코레이터 평가 시점에 이미 값이 존재한다.
-const JUDGE_CONCURRENCY = Number(process.env.JUDGE_CONCURRENCY) || 2;
+const requestedConcurrency = Number(process.env.JUDGE_CONCURRENCY) || 2;
+const JUDGE_CONCURRENCY = Math.min(Math.max(Math.trunc(requestedConcurrency), 1), 8);
+const MAX_TIME_LIMIT_MS = 10_000;
+const MAX_MEMORY_LIMIT_MB = 1024;
 
 @Processor(JUDGE_QUEUE, { concurrency: JUDGE_CONCURRENCY })
 export class JudgeProcessor extends WorkerHost {
@@ -80,9 +83,11 @@ export class JudgeProcessor extends WorkerHost {
           timeoutMs: 10_000,
           memoryLimitMb: 512,
         });
-        if (compileResult.timedOut || compileResult.exitCode !== 0) {
+        if (compileResult.timedOut || compileResult.outputLimitExceeded || compileResult.exitCode !== 0) {
           await this.finalize(submissionId, 'COMPILE_ERROR', {
-            errorMessage: compileResult.stderr.slice(0, 4000) || '컴파일 실패',
+            errorMessage: compileResult.outputLimitExceeded
+              ? '컴파일 출력이 허용 한도를 초과했습니다.'
+              : compileResult.stderr.slice(0, 4000) || '컴파일 실패',
           });
           return;
         }
@@ -104,15 +109,22 @@ export class JudgeProcessor extends WorkerHost {
         const result = await this.sandbox.run({
           image: runnerConfig.runImage,
           cmd: ['/bin/sh', '-c', `${runnerConfig.runCmd.map(shQuote).join(' ')} < /box/input.txt`],
-          binds: [`${hostBoxDir}:/box`],
-          timeoutMs: submission.problem.timeLimitMs,
-          memoryLimitMb: submission.problem.memoryLimitMb,
+          // 실행 단계에는 소스/실행파일/입력을 읽기 전용으로 마운트한다. 사용자 코드가 /box에
+          // 대용량 파일을 써서 호스트 디스크를 고갈시키는 공격을 막고, 쓰기는 64MB tmpfs만 허용한다.
+          binds: [`${hostBoxDir}:/box:ro`],
+          timeoutMs: Math.min(Math.max(submission.problem.timeLimitMs, 100), MAX_TIME_LIMIT_MS),
+          memoryLimitMb: Math.min(
+            Math.max(submission.problem.memoryLimitMb, 16),
+            MAX_MEMORY_LIMIT_MB,
+          ),
         });
 
         maxRuntimeMs = Math.max(maxRuntimeMs, result.runtimeMs);
 
         let status: JudgeStatus;
-        if (result.timedOut) {
+        if (result.outputLimitExceeded) {
+          status = 'RUNTIME_ERROR';
+        } else if (result.timedOut) {
           status = 'TIME_LIMIT_EXCEEDED';
         } else if (result.exitCode !== 0) {
           status = 'RUNTIME_ERROR';

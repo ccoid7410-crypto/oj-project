@@ -49,10 +49,12 @@ class UpdatePreferredLanguageDto {
 
 class ChangePasswordDto {
   @IsString()
+  @MaxLength(128)
   currentPassword: string;
 
   @IsString()
   @MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
+  @MaxLength(128, { message: '비밀번호는 128자 이하여야 합니다.' })
   newPassword: string;
 }
 

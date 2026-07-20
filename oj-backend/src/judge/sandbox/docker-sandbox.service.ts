@@ -9,6 +9,7 @@ export interface RunOptions {
   timeoutMs: number;
   memoryLimitMb: number;
   networkDisabled?: boolean;
+  maxOutputBytes?: number;
 }
 
 export interface RunResult {
@@ -16,6 +17,7 @@ export interface RunResult {
   stderr: string;
   exitCode: number | null;
   timedOut: boolean;
+  outputLimitExceeded: boolean;
   runtimeMs: number;
 }
 
@@ -76,18 +78,28 @@ export class DockerSandboxService {
         Tmpfs: { '/tmp': 'rw,size=64m,mode=1777' }, // 컴파일러가 임시파일을 쓰는 경로만 예외적으로 허용
         CapDrop: ['ALL'],
         SecurityOpt: ['no-new-privileges:true'],
+        // 컨테이너 로그 드라이버가 무제한 stdout을 디스크에 복제하지 않게 한다. 출력은 attach
+        // 스트림에서 아래 maxOutputBytes까지만 직접 수집한다.
+        LogConfig: { Type: 'none', Config: {} },
+        Ulimits: [
+          { Name: 'core', Soft: 0, Hard: 0 },
+          { Name: 'fsize', Soft: 64 * 1024 * 1024, Hard: 64 * 1024 * 1024 },
+          { Name: 'nofile', Soft: 256, Hard: 256 },
+        ],
       },
     });
 
-    let timedOut = false;
-    const timeoutHandle = setTimeout(async () => {
-      timedOut = true;
+    let terminationReason: 'timeout' | 'output-limit' | null = null;
+    const terminate = async (reason: 'timeout' | 'output-limit') => {
+      if (terminationReason) return;
+      terminationReason = reason;
       try {
         await container.kill();
       } catch (e) {
         this.logger.warn(`컨테이너 kill 실패 (이미 종료됐을 수 있음): ${e}`);
       }
-    }, options.timeoutMs);
+    };
+    const timeoutHandle = setTimeout(() => void terminate('timeout'), options.timeoutMs);
 
     try {
       // stdin은 attach 소켓으로 넘기지 않는다: Windows의 named pipe 기반 도커 데몬에서는
@@ -98,10 +110,25 @@ export class DockerSandboxService {
 
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
+      const maxOutputBytes = Math.max(1024, options.maxOutputBytes ?? 1024 * 1024);
+      let capturedBytes = 0;
+      const boundedWriter = (chunks: Buffer[]) => ({
+        write: (value: Buffer | string) => {
+          const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+          const remaining = Math.max(0, maxOutputBytes - capturedBytes);
+          if (remaining > 0) {
+            const kept = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
+            chunks.push(Buffer.from(kept));
+            capturedBytes += kept.length;
+          }
+          if (chunk.length > remaining) void terminate('output-limit');
+          return true;
+        },
+      });
       container.modem.demuxStream(
         stream,
-        { write: (chunk: Buffer) => stdoutChunks.push(chunk) } as any,
-        { write: (chunk: Buffer) => stderrChunks.push(chunk) } as any,
+        boundedWriter(stdoutChunks) as any,
+        boundedWriter(stderrChunks) as any,
       );
 
       const waitResult: any = await container.wait();
@@ -110,8 +137,9 @@ export class DockerSandboxService {
       return {
         stdout: Buffer.concat(stdoutChunks).toString('utf-8'),
         stderr: Buffer.concat(stderrChunks).toString('utf-8'),
-        exitCode: timedOut ? null : waitResult.StatusCode,
-        timedOut,
+        exitCode: terminationReason ? null : waitResult.StatusCode,
+        timedOut: terminationReason === 'timeout',
+        outputLimitExceeded: terminationReason === 'output-limit',
         runtimeMs: Date.now() - startedAt,
       };
     } finally {

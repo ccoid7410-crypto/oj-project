@@ -50,6 +50,7 @@ export class MailService {
   async getStatus(): Promise<MailStatus> {
     const effective = await this.getEffectiveConfig();
     if (!effective.enabled || !effective.host) {
+      const production = this.config.get<string>('NODE_ENV') === 'production';
       return {
         configured: false,
         source: effective.source,
@@ -59,8 +60,10 @@ export class MailService {
         secure: false,
         from: effective.from,
         user: null,
-        ready: true,
-        message: 'SMTP 미설정 상태입니다. 인증 링크는 서버 로그에만 남습니다.',
+        ready: !production,
+        message: production
+          ? '운영 환경에서 SMTP가 설정되지 않아 인증 메일을 보낼 수 없습니다.'
+          : 'SMTP 미설정 상태입니다. 개발 환경에서만 인증 링크를 서버 로그에 남깁니다.',
       };
     }
 
@@ -162,8 +165,11 @@ export class MailService {
     const text = 'Durunuri OJ 메일 설정이 정상적으로 동작합니다.';
 
     if (!transporter) {
-      this.logger.warn(`[DEV] SMTP 미설정 - ${to}로 보낼 테스트 메일을 실제 발송하지 않았습니다.`);
-      return { ok: true, message: 'SMTP 미설정 상태라 실제 발송 대신 서버 로그에만 기록했습니다.' };
+      if (this.config.get<string>('NODE_ENV') === 'production') {
+        return { ok: false, message: 'SMTP가 설정되지 않아 테스트 메일을 보낼 수 없습니다.' };
+      }
+      this.logger.warn('[DEV] SMTP 미설정 - 테스트 메일을 실제 발송하지 않았습니다.');
+      return { ok: true, message: '개발 환경이라 실제 발송하지 않았습니다.' };
     }
 
     try {
@@ -182,8 +188,11 @@ export class MailService {
     const text = `아래 링크를 눌러 이메일 인증을 완료하세요 (24시간 내 유효):\n\n${verifyUrl}`;
 
     if (!transporter) {
-      // SMTP 미설정 상태(로컬 개발): 실제 발송 대신 로그로 링크를 남긴다.
-      this.logger.warn(`[DEV] SMTP 미설정 - ${to}로 보낼 인증 링크를 대신 로그로 남깁니다: ${verifyUrl}`);
+      // 원문 토큰이 포함된 링크는 운영 로그에 절대 남기지 않는다.
+      if (this.config.get<string>('NODE_ENV') === 'production') {
+        throw new Error('SMTP가 설정되지 않아 인증 메일을 보낼 수 없습니다.');
+      }
+      this.logger.warn(`[DEV] SMTP 미설정 - ${to} 인증 링크: ${verifyUrl}`);
       return;
     }
 

@@ -1,7 +1,8 @@
-import { IsEmail, IsOptional, IsString, Length, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, MaxLength, MinLength, Matches } from 'class-validator';
 
 export class SignupDto {
   @IsEmail()
+  @MaxLength(254)
   email: string;
 
   @IsString()
@@ -17,6 +18,7 @@ export class SignupDto {
 
   @IsString()
   @MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
+  @MaxLength(128, { message: '비밀번호는 128자 이하여야 합니다.' })
   password: string;
 
   /** 학번. 선택 입력이며, 동아리 명단이 등록돼 있으면 그 명단에 있는 학번이어야 한다. */

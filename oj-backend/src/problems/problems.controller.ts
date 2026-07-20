@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { IsInt, Max, Min } from 'class-validator';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -54,8 +55,9 @@ export class ProblemsController {
     return this.problemsService.findMine(user.userId);
   }
 
+  // 문제 검수/승인은 선생님도 한다("문제 검수/승인").
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'TEACHER')
   @Get('proposals')
   findProposals() {
     return this.problemsService.findProposals();
@@ -79,6 +81,7 @@ export class ProblemsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post()
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateProblemDto) {
     return this.problemsService.create(user.userId, user.role, dto);
@@ -91,14 +94,14 @@ export class ProblemsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'TEACHER')
   @Patch(':id/approve')
   approve(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.problemsService.approve(id, user.userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'TEACHER')
   @Patch(':id/reject')
   reject(
     @Param('id') id: string,
@@ -147,6 +150,7 @@ export class ProblemsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post(':id/testcases')
   addTestCase(
     @Param('id') id: string,
@@ -157,6 +161,7 @@ export class ProblemsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post(':id/testcases/bulk')
   bulkAddTestCases(
     @Param('id') id: string,
@@ -167,6 +172,7 @@ export class ProblemsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Put(':id/testcases')
   syncTestCases(
     @Param('id') id: string,
@@ -199,19 +205,33 @@ export class ProblemsController {
 
   // ---- 문제 Q&A 게시판 ----
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id/comments')
-  listComments(@Param('id') id: string) {
-    return this.problemsService.listComments(id);
+  listComments(
+    @Param('id') id: string,
+    @Query('contestId') contestId: string | undefined,
+    @Req() req: any,
+  ) {
+    return this.problemsService.listComments(id, req.user?.userId, req.user?.role, contestId);
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post(':id/comments')
   addComment(
     @Param('id') id: string,
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateCommentDto,
+    @Query('contestId') contestId?: string,
   ) {
-    return this.problemsService.addComment(id, user.userId, dto.content, dto.parentId);
+    return this.problemsService.addComment(
+      id,
+      user.userId,
+      user.role,
+      dto.content,
+      dto.parentId,
+      contestId,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

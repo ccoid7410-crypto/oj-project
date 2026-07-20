@@ -3,10 +3,11 @@ import { api, ApiError } from '../../api/client';
 import type { AdminUser, Role } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 
-const ROLE_LABEL: Record<Role, string> = { USER: '일반', MEMBER: '부원', ADMIN: '관리자' };
+const ROLE_LABEL: Record<Role, string> = { USER: '일반', MEMBER: '부원', TEACHER: '선생님', ADMIN: '관리자' };
 
 export function AccountsPage() {
   const { user: me } = useAuth();
+  const isAdmin = me?.role === 'ADMIN';
   const canEditCustomTitles = me?.username === 'jihun1050';
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState<AdminUser[] | null>(null);
@@ -181,7 +182,7 @@ export function AccountsPage() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     {me?.username === u.username ? (
                       <span className="text-xs text-fg-muted">본인 계정</span>
-                    ) : (
+                    ) : isAdmin ? (
                       <select
                         value={u.role}
                         disabled={busyId === u.id}
@@ -190,10 +191,16 @@ export function AccountsPage() {
                       >
                         <option value="USER">일반</option>
                         <option value="MEMBER">부원</option>
+                        <option value="TEACHER">선생님</option>
                         <option value="ADMIN">관리자</option>
                       </select>
+                    ) : (
+                      // 선생님은 권한 변경 화면 자체가 없다("완전한 관리자 권한은 아님") - 표시만.
+                      <span className="text-xs text-fg-muted">{ROLE_LABEL[u.role]}</span>
                     )}
+                    {/* 선생님은 학생(일반/부원) 계정만 정지/해제할 수 있다 - 다른 선생님/관리자는 손댈 수 없음(백엔드도 동일하게 막음) */}
                     {u.role !== 'ADMIN' &&
+                      (isAdmin || u.role !== 'TEACHER') &&
                       (u.banned ? (
                         <button
                           onClick={() => unban(u.id)}
@@ -219,7 +226,8 @@ export function AccountsPage() {
                           </button>
                         </>
                       ))}
-                    {u.role !== 'ADMIN' && (
+                    {/* 계정 삭제는 관리자 전용(백엔드도 ADMIN만 허용) */}
+                    {isAdmin && u.role !== 'ADMIN' && (
                       <button
                         onClick={() => removeAccount(u.id, u.username)}
                         disabled={busyId === u.id}

@@ -9,6 +9,14 @@ import { AuthGuard } from '@nestjs/passport';
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
   handleRequest<TUser = unknown>(_err: unknown, user: TUser): TUser {
+    if (
+      user &&
+      typeof user === 'object' &&
+      'mustChangePassword' in user &&
+      (user as { mustChangePassword?: boolean }).mustChangePassword
+    ) {
+      return undefined as TUser;
+    }
     return user;
   }
 }

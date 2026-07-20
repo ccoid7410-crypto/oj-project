@@ -3,17 +3,20 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireJwtSecret } from '../common/security-config';
 
 export interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  ver: number;
 }
 
 export interface RequestUser {
   userId: string;
   email: string;
   role: string;
+  mustChangePassword: boolean;
 }
 
 @Injectable()
@@ -25,7 +28,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'dev_secret_change_me'),
+      secretOrKey: requireJwtSecret(configService),
+      algorithms: ['HS256'],
     });
   }
 
@@ -35,12 +39,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     //  동안은 그대로 admin 행세를 할 수 있는 문제가 있었다 - 여기서 항상 최신 role을 반환해서 막는다)
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { banned: true, role: true },
+      select: {
+        banned: true,
+        role: true,
+        emailVerified: true,
+        mustChangePassword: true,
+        authVersion: true,
+      },
     });
-    if (!user || user.banned) {
-      throw new UnauthorizedException('정지된 계정이거나 존재하지 않는 계정입니다.');
+    if (!user || user.banned || !user.emailVerified || payload.ver !== user.authVersion) {
+      throw new UnauthorizedException('유효하지 않거나 만료된 로그인 정보입니다.');
     }
     // 여기서 리턴하는 값이 req.user 에 들어감
-    return { userId: payload.sub, email: payload.email, role: user.role };
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    };
   }
 }

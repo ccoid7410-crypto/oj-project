@@ -12,13 +12,25 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { SUBMISSION_UPDATES_CHANNEL } from '../judge/judge.processor';
 import type { JwtPayload } from '../auth/jwt.strategy';
+import { requireJwtSecret, resolveCorsOrigins } from '../common/security-config';
 
 // 데코레이터 인자는 모듈 로드 시점에 평가되므로 DI(ConfigService)가 아니라 process.env를 직접 읽는다.
 // (docker-compose의 env_file/environment는 Node 프로세스 시작 전에 이미 주입돼 있어 문제 없다)
-function resolveGatewayCorsOrigins(): string[] {
-  const raw = process.env.CORS_ORIGIN;
-  if (!raw) return ['http://localhost:5173'];
-  return raw.split(',').map((o) => o.trim());
+function gatewayCorsOrigin(
+  origin: string | undefined,
+  callback: (error: Error | null, allow?: boolean) => void,
+) {
+  // Origin이 없는 비브라우저 클라이언트는 JWT 인증이 별도로 필수이므로 허용한다.
+  if (!origin) return callback(null, true);
+  try {
+    const allowed = resolveCorsOrigins(
+      process.env.CORS_ORIGIN,
+      process.env.NODE_ENV === 'production',
+    );
+    callback(null, allowed.includes(origin));
+  } catch (error) {
+    callback(error instanceof Error ? error : new Error('CORS 설정 오류'));
+  }
 }
 
 // 소켓에 인증된 사용자 정보를 붙여둔다(핸드셰이크에서 검증한 값).
@@ -35,7 +47,7 @@ interface AuthedSocket extends Socket {
  *  - join(submissionId)은 "그 제출이 내 것이거나 내가 관리자일 때만" 허용한다.
  *    (예전엔 아무나 임의의 submissionId room에 들어가 남의 채점 결과/에러 메시지를 훔쳐볼 수 있었다)
  */
-@WebSocketGateway({ cors: { origin: resolveGatewayCorsOrigins(), credentials: true } })
+@WebSocketGateway({ cors: { origin: gatewayCorsOrigin, credentials: true } })
 export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
   private readonly logger = new Logger(SubmissionGateway.name);
 
@@ -88,14 +100,27 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
     const token = raw.startsWith('Bearer ') ? raw.slice(7) : raw;
     try {
       const payload = this.jwt.verify<JwtPayload>(token, {
-        secret: this.config.get<string>('JWT_SECRET', 'dev_secret_change_me'),
+        secret: requireJwtSecret(this.config),
+        algorithms: ['HS256'],
       });
       // 발급 이후 계정이 정지됐을 수 있으니 DB로 최신 상태 확인(HTTP JwtStrategy와 동일한 방침).
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { banned: true, role: true },
+        select: {
+          banned: true,
+          role: true,
+          emailVerified: true,
+          mustChangePassword: true,
+          authVersion: true,
+        },
       });
-      if (!user || user.banned) return null;
+      if (
+        !user ||
+        user.banned ||
+        !user.emailVerified ||
+        user.mustChangePassword ||
+        payload.ver !== user.authVersion
+      ) return null;
       return { userId: payload.sub, role: user.role };
     } catch {
       return null;

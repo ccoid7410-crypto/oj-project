@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from '../mail/mail.module';
+import { requireJwtSecret } from '../common/security-config';
 
 @Module({
   imports: [
@@ -14,8 +15,11 @@ import { MailModule } from '../mail/mail.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'dev_secret_change_me'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '1d') as any },
+        secret: requireJwtSecret(config),
+        signOptions: {
+          algorithm: 'HS256',
+          expiresIn: config.get<string>('JWT_EXPIRES_IN', '1d') as any,
+        },
       }),
     }),
     MailModule,

@@ -64,7 +64,23 @@ set_env_var ".env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 set_env_var "oj-backend/.env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 echo "==> HOST_JUDGE_TMP_DIR을 두 .env 파일에 채워 넣었다"
 
-# 3. JWT_SECRET이 예시 값 그대로면 무작위로 생성
+# 3. DB 비밀번호와 JWT_SECRET이 예시 값 그대로면 무작위로 생성
+current_db_password="$(grep '^POSTGRES_PASSWORD=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+if [ -z "$current_db_password" ] || [ "$current_db_password" = "oj_password" ] || [ "$current_db_password" = "changeme-run-setup-sh" ]; then
+  new_db_password="$(openssl rand -hex 32)"
+  set_env_var ".env" "POSTGRES_PASSWORD" "$new_db_password"
+  set_env_var "oj-backend/.env" "POSTGRES_PASSWORD" "\"$new_db_password\""
+  echo "==> PostgreSQL 비밀번호를 무작위로 새로 생성했다"
+else
+  # 백엔드의 로컬 DATABASE_URL과 compose 설정이 같은 자격증명을 사용하도록 맞춘다.
+  set_env_var "oj-backend/.env" "POSTGRES_PASSWORD" "\"$current_db_password\""
+  echo "==> PostgreSQL 비밀번호가 이미 설정되어 있어 건너뜀"
+fi
+db_user="$(grep '^POSTGRES_USER=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+db_name="$(grep '^POSTGRES_DB=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+effective_db_password="$(grep '^POSTGRES_PASSWORD=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+set_env_var "oj-backend/.env" "DATABASE_URL" "\"postgresql://${db_user:-oj_user}:${effective_db_password}@localhost:5432/${db_name:-oj_db}?schema=public\""
+
 current_secret="$(grep '^JWT_SECRET=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
 if [ -z "$current_secret" ] || [ "$current_secret" = "changeme-run-setup-sh" ]; then
   new_secret="$(openssl rand -hex 48)"

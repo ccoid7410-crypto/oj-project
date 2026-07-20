@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { AdminOverviewStats } from '../../api/types';
+import { useAuth } from '../../context/AuthContext';
 
 function StatCard({ label, value, warn }: { label: string; value: string | number; warn?: boolean }) {
   return (
@@ -12,11 +14,16 @@ function StatCard({ label, value, warn }: { label: string; value: string | numbe
 }
 
 export function AdminOverviewPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<AdminOverviewStats | null>(null);
 
   useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
     api.get<AdminOverviewStats>('/admin/stats/overview').then(setStats);
-  }, []);
+  }, [user?.role]);
+
+  // 선생님은 이 대시보드(전체 현황) 접근 권한이 없다 - 권한이 있는 화면으로 대신 보낸다.
+  if (user?.role === 'TEACHER') return <Navigate to="/admin/proposals" replace />;
 
   if (!stats) return <p className="text-sm text-fg-muted">불러오는 중...</p>;
 

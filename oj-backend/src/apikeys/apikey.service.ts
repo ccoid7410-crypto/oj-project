@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -12,13 +12,17 @@ export class ApiKeyService {
 
   /** 새 API 키 발급. 원문 키는 이 시점에만 반환되고 이후에는 해시만 저장된다. */
   async create(createdById: string, name: string, scopes?: string[]) {
+    const requestedScopes = scopes?.length ? [...new Set(scopes)] : ['users:read'];
+    if (requestedScopes.some((scope) => scope !== 'users:read')) {
+      throw new BadRequestException('허용되지 않는 API 키 scope입니다.');
+    }
     const raw = 'ojk_' + randomBytes(24).toString('hex');
     const record = await this.prisma.apiKey.create({
       data: {
         name,
         keyHash: sha256(raw),
         prefix: raw.slice(0, 12),
-        scopes: scopes && scopes.length ? scopes : ['users:read'],
+        scopes: requestedScopes,
         createdById,
       },
       select: { id: true, name: true, prefix: true, scopes: true, createdAt: true },

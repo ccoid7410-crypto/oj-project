@@ -1,8 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { JudgeWorkerModule } from './judge-worker.module';
+import { requireSecureDatabaseUrl } from './common/security-config';
 
 async function bootstrap() {
+  requireSecureDatabaseUrl(
+    { get: (key: string) => process.env[key] },
+    process.env.NODE_ENV === 'production',
+  );
   const logger = new Logger('JudgeWorker');
   const app = await NestFactory.createApplicationContext(JudgeWorkerModule);
   app.enableShutdownHooks();

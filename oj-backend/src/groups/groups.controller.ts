@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { IsString } from 'class-validator';
+import { IsString, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -7,11 +7,13 @@ import { GroupsService } from './groups.service';
 
 class CreateGroupDto {
   @IsString()
+  @MaxLength(200)
   name: string;
 }
 
 class AddMemberDto {
   @IsString()
+  @MaxLength(64)
   userId: string;
 }
 

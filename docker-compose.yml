@@ -30,7 +30,7 @@ services:
       -c effective_cache_size=384MB
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-oj_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oj_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ./setup.sh to generate a database password}
       POSTGRES_DB: ${POSTGRES_DB:-oj_db}
     ports:
       # 호스트 로컬(127.0.0.1)에만 바인딩 - 디버깅용으로 파이 안에서는 접근되지만
@@ -80,7 +80,7 @@ services:
     command: ["node", "dist/main.js"]
     env_file: ./oj-backend/.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:?run ./setup.sh first}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
       # 컨테이너 메모리 상한(384M)보다 여유 있게 힙을 잡아두면 OOM-kill 직전에 GC가 못 돌아
       # 급사하는 대신, V8이 스스로 컬렉션을 더 자주 돌려서 은근슬쩍 버틴다.
@@ -108,6 +108,10 @@ services:
           memory: 384M
           cpus: "1.0"
     logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   judge-worker:
     build: ./oj-backend
@@ -115,7 +119,7 @@ services:
     command: ["node", "dist/main-worker.js"]
     env_file: ./oj-backend/.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:-oj_password}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:?run ./setup.sh first}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
       JUDGE_DOCKER_SOCK: /var/run/docker.sock
       NODE_OPTIONS: --max-old-space-size=192
@@ -133,6 +137,8 @@ services:
       # 호스트 경로가 이 볼륨을 통해 동일한 디렉토리를 가리키게 맞춰준다.
       # HOST_JUDGE_TMP_DIR은 이 저장소를 내려받은 절대경로 기준으로 setup.sh가 자동으로 채워준다.
       - ${HOST_JUDGE_TMP_DIR:?run ./setup.sh first to set this}:/judge-tmp
+    # Docker 소켓 접근 때문에 워커만 root로 실행한다. 공개 HTTP API는 Dockerfile의 node 유저로 실행된다.
+    user: "0:0"
     depends_on:
       postgres:
         condition: service_healthy

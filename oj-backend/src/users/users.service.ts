@@ -13,10 +13,6 @@ const BULK_CREATE_MAX = 100; // 관리자 토큰 탈취 시 피해 규모를 제
 const RANKING_DEFAULT_LIMIT = 50;
 const RANKING_MAX_LIMIT = 100;
 
-// 메인 관리자 기본값. 이 계정은 누구도 관리자 권한을 해제할 수 없다.
-// 서버 .env의 ROOT_ADMIN_USERNAME이 설정돼 있으면 그 값이 우선한다.
-const DEFAULT_ROOT_ADMIN_USERNAME = 'jihun1050';
-
 // 프로필 이미지는 클라이언트가 축소해서 올리지만(256px), 서버에서도 상한을 강제한다.
 // DB(bytea)에 저장되므로 큰 이미지를 허용하면 저사양 호스트의 DB가 금방 부푼다.
 const AVATAR_MAX_BYTES = 1024 * 1024; // 1MB
@@ -96,7 +92,23 @@ export class UsersService {
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
 
     const solved = await this.prisma.submission.findMany({
-      where: { userId: user.id, status: 'ACCEPTED' },
+      where: {
+        userId: user.id,
+        status: 'ACCEPTED',
+        problem: {
+          status: 'PUBLISHED',
+          NOT: { tags: { has: 'test' } },
+          OR: [
+            { contestOnly: false },
+            {
+              contestOnly: true,
+              contestProblems: {
+                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+              },
+            },
+          ],
+        },
+      },
       distinct: ['problemId'],
       select: {
         problem: { select: { id: true, displayId: true, title: true, slug: true, difficulty: true, level: true } },
@@ -379,11 +391,18 @@ export class UsersService {
     });
   }
 
-  /** 계정 정지. 정지된 계정은 로그인/토큰 검증에서 즉시 차단된다(auth.service, jwt.strategy 참고). */
-  async ban(id: string, reason?: string) {
+  /**
+   * 계정 정지. 정지된 계정은 로그인/토큰 검증에서 즉시 차단된다(auth.service, jwt.strategy 참고).
+   * 선생님(TEACHER)도 이 기능을 쓰지만("학생 계정 관리"), 학생(USER/MEMBER)만 정지할 수 있다 -
+   * 다른 선생님이나 관리자를 정지시켜 버리는 걸 막는다.
+   */
+  async ban(id: string, reason: string | undefined, actingRole: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === 'ADMIN') throw new BadRequestException('관리자 계정은 정지할 수 없습니다.');
+    if (actingRole === 'TEACHER' && user.role === 'TEACHER') {
+      throw new ForbiddenException('선생님 계정은 정지할 수 없습니다.');
+    }
     return this.prisma.user.update({
       where: { id },
       data: { banned: true, bannedReason: reason ?? null, bannedAt: new Date() },
@@ -391,9 +410,12 @@ export class UsersService {
     });
   }
 
-  async unban(id: string) {
+  async unban(id: string, actingRole: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    if (actingRole === 'TEACHER' && (user.role === 'TEACHER' || user.role === 'ADMIN')) {
+      throw new ForbiddenException('이 계정의 정지를 해제할 권한이 없습니다.');
+    }
     return this.prisma.user.update({
       where: { id },
       data: { banned: false, bannedReason: null, bannedAt: null },
@@ -543,7 +565,7 @@ export class UsersService {
   }
 
   /** 권한 변경 (USER=일반, MEMBER=부원, ADMIN=관리자). 관리자 강등에는 잠금 사고 방지 장치가 걸려 있다. */
-  async setRole(id: string, role: 'USER' | 'MEMBER' | 'ADMIN', actingUserId: string) {
+  async setRole(id: string, role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN', actingUserId: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === role) {
@@ -551,8 +573,7 @@ export class UsersService {
     }
     // 관리자를 강등(ADMIN -> MEMBER/USER)할 때의 보호 장치들
     if (user.role === 'ADMIN') {
-      const rootAdmin = process.env.ROOT_ADMIN_USERNAME?.trim() || DEFAULT_ROOT_ADMIN_USERNAME;
-      if (user.username === rootAdmin) {
+      if (user.isRootAdmin) {
         throw new BadRequestException('메인 관리자의 권한은 해제할 수 없습니다.');
       }
       if (id === actingUserId) {
@@ -575,6 +596,9 @@ export class UsersService {
 
   /** 본인 비밀번호 변경. 대량 생성된 계정의 mustChangePassword 플래그도 여기서 해제된다. */
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    if (Buffer.byteLength(newPassword, 'utf8') > 72) {
+      throw new BadRequestException('새 비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.');
+    }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     const matches = await bcrypt.compare(currentPassword, user.passwordHash);
@@ -583,7 +607,8 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash, mustChangePassword: false },
+      // authVersion을 올리면 비밀번호 변경 전에 발급된 JWT와 WebSocket 세션이 모두 무효화된다.
+      data: { passwordHash, mustChangePassword: false, authVersion: { increment: 1 } },
     });
     return { success: true };
   }

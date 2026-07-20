@@ -1,4 +1,17 @@
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum DifficultyDto {
@@ -21,9 +34,11 @@ export enum LanguageDto {
 
 export class TestCaseInputDto {
   @IsString()
+  @MaxLength(1_000_000)
   input: string;
 
   @IsString()
+  @MaxLength(1_000_000)
   output: string;
 
   @IsOptional()
@@ -33,12 +48,16 @@ export class TestCaseInputDto {
 
 export class CreateProblemDto {
   @IsString()
+  @MaxLength(200)
   title: string;
 
   @IsString()
+  @MaxLength(100)
+  @Matches(/^[a-z0-9-]+$/, { message: 'slug은 영문 소문자/숫자/하이픈만 가능합니다.' })
   slug: string;
 
   @IsString()
+  @MaxLength(200_000)
   description: string;
 
   @IsOptional()
@@ -57,26 +76,34 @@ export class CreateProblemDto {
   @Type(() => Number)
   @IsInt()
   @Min(100)
+  @Max(10_000)
   timeLimitMs?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(16)
+  @Max(1024)
   memoryLimitMb?: number;
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
+  @MaxLength(20, { each: true })
   tags?: string[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(6)
   @IsEnum(LanguageDto, { each: true })
   allowedLanguages?: LanguageDto[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(300)
+  @ValidateNested({ each: true })
+  @Type(() => TestCaseInputDto)
   testCases?: TestCaseInputDto[];
 
   /** 대회 전용 문제로 만들지 여부. 어드민만 지정 가능(그 외는 무시됨). */
@@ -91,5 +118,6 @@ export class CreateProblemDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(65_536)
   verificationCode?: string;
 }

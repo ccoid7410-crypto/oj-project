@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsOptional, IsString, MaxLength, Matches } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -9,32 +9,41 @@ import { ClassesService } from './classes.service';
 
 class CreateClassDto {
   @IsString()
+  @MaxLength(200)
   name: string;
 
   @IsString()
+  @MaxLength(100)
+  @Matches(/^[a-z0-9-]+$/)
   slug: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(20_000)
   description?: string;
 }
 
 class MemberDto {
   @IsString()
+  @MaxLength(64)
   userId: string;
 }
 
 class SetClassProblemsDto {
   @IsArray()
+  @ArrayMaxSize(500)
   @IsString({ each: true })
+  @MaxLength(64, { each: true })
   problemIds: string[];
 }
 
 class NoticeDto {
   @IsString()
+  @MaxLength(200)
   title: string;
 
   @IsString()
+  @MaxLength(20_000)
   content: string;
 }
 
@@ -54,8 +63,9 @@ export class ClassesController {
   }
 }
 
+// 수업 관리는 선생님도 전부 쓸 수 있다("수업(반) 관리") - ADMIN과 동일한 권한.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'TEACHER')
 @Controller('admin/classes')
 export class AdminClassesController {
   constructor(private readonly classes: ClassesService) {}

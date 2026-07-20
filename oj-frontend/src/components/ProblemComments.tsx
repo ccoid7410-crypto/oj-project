@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
 
-export function ProblemComments({ problemId }: { problemId: string }) {
+export function ProblemComments({ problemId, contestId }: { problemId: string; contestId?: string | null }) {
   const { user } = useAuth();
   const [comments, setComments] = useState<ProblemComment[]>([]);
   const [content, setContent] = useState('');
@@ -13,16 +13,21 @@ export function ProblemComments({ problemId }: { problemId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   function load() {
-    api.get<ProblemComment[]>(`/problems/${problemId}/comments`).then(setComments);
+    api
+      .get<ProblemComment[]>(`/problems/${problemId}/comments${contestId ? `?contestId=${contestId}` : ''}`)
+      .then(setComments);
   }
 
-  useEffect(load, [problemId]);
+  useEffect(load, [problemId, contestId]);
 
   async function onSubmit() {
     if (!content.trim()) return;
     setError(null);
     try {
-      await api.post(`/problems/${problemId}/comments`, { content, parentId: replyTo ?? undefined });
+      await api.post(`/problems/${problemId}/comments${contestId ? `?contestId=${contestId}` : ''}`, {
+        content,
+        parentId: replyTo ?? undefined,
+      });
       setContent('');
       setReplyTo(null);
       load();

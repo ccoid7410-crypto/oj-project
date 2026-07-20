@@ -14,11 +14,23 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { requireFrontendOrigin } from '../common/security-config';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24시간
 
 function sha256(v: string): string {
   return createHash('sha256').update(v).digest('hex');
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function assertBcryptPasswordLength(password: string): void {
+  // bcrypt는 72바이트 뒤를 무시한다. 서로 다른 비밀번호가 같은 값으로 취급되지 않도록 명시적으로 막는다.
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    throw new BadRequestException('비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.');
+  }
 }
 
 @Injectable()
@@ -34,17 +46,24 @@ export class AuthService {
 
   /** 허용 이메일 도메인. 학교 계정으로만 가입을 받기 위함 (env로 바꿀 수 있게 하되 기본값은 cbsh.hs.kr). */
   private get allowedEmailDomain(): string {
-    return this.config.get<string>('SIGNUP_EMAIL_DOMAIN', 'cbsh.hs.kr').toLowerCase();
+    return this.config.get<string>('SIGNUP_EMAIL_DOMAIN', 'cbsh.hs.kr').trim().toLowerCase();
   }
 
   async signup(dto: SignupDto) {
-    const domain = dto.email.split('@')[1]?.toLowerCase();
+    const email = normalizeEmail(dto.email);
+    const domain = email.split('@')[1];
     if (domain !== this.allowedEmailDomain) {
       throw new BadRequestException(`@${this.allowedEmailDomain} 이메일로만 가입할 수 있습니다.`);
     }
+    assertBcryptPasswordLength(dto.password);
 
     const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+      where: {
+        OR: [
+          { email: { equals: email, mode: 'insensitive' } },
+          { username: dto.username },
+        ],
+      },
     });
     if (existing) {
       throw new ConflictException('이미 사용 중인 이메일 또는 username 입니다.');
@@ -61,7 +80,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         username: dto.username,
         passwordHash,
         name,
@@ -89,7 +108,9 @@ export class AuthService {
     const domain = this.allowedEmailDomain;
 
     if (id.includes('@')) {
-      return this.prisma.user.findUnique({ where: { email: id.toLowerCase() } });
+      return this.prisma.user.findFirst({
+        where: { email: { equals: id.toLowerCase(), mode: 'insensitive' } },
+      });
     }
 
     // 사용자명 우선 (이메일 아이디와 겹치면 어차피 같은 사람일 가능성이 높다)
@@ -97,7 +118,9 @@ export class AuthService {
     if (byUsername) return byUsername;
 
     // 이메일 아이디만 입력 → 도메인 자동 완성. ex) cbsh12345 → cbsh12345@cbsh.hs.kr
-    return this.prisma.user.findUnique({ where: { email: `${id}@${domain}`.toLowerCase() } });
+    return this.prisma.user.findFirst({
+      where: { email: { equals: `${id}@${domain}`.toLowerCase(), mode: 'insensitive' } },
+    });
   }
 
   async login(dto: LoginDto) {
@@ -130,7 +153,10 @@ export class AuthService {
         expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
       },
     });
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://oj.jikun.uk');
+    const frontendUrl = requireFrontendOrigin(
+      this.config,
+      this.config.get<string>('NODE_ENV') === 'production',
+    );
     const verifyUrl = `${frontendUrl}/verify-email?token=${raw}`;
     try {
       await this.mail.sendVerificationEmail(email, verifyUrl);
@@ -142,7 +168,9 @@ export class AuthService {
   }
 
   async resendVerification(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: normalizeEmail(email), mode: 'insensitive' } },
+    });
     // 계정 존재 여부를 굳이 노출하지 않는다 (이메일 존재 여부 스캐닝 방지).
     if (!user || user.emailVerified) {
       return { message: '해당 이메일이 가입돼 있고 아직 인증 전이라면 인증 메일을 다시 보냈습니다.' };
@@ -152,20 +180,32 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
+    const now = new Date();
+    const tokenHash = sha256(token);
     const record = await this.prisma.emailVerificationToken.findUnique({
-      where: { tokenHash: sha256(token) },
+      where: { tokenHash },
       include: { user: true },
     });
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expiresAt < now) {
       throw new BadRequestException('유효하지 않거나 만료된 인증 링크입니다.');
     }
 
-    const user = await this.prisma.user.update({
-      where: { id: record.userId },
-      data: { emailVerified: true },
+    // deleteMany의 count를 트랜잭션 안에서 확인해 동시에 같은 링크를 눌러도 정확히 한 요청만
+    // 토큰을 소비하고 JWT를 받을 수 있게 한다.
+    const user = await this.prisma.$transaction(async (tx) => {
+      const consumed = await tx.emailVerificationToken.deleteMany({
+        where: { tokenHash, expiresAt: { gte: now } },
+      });
+      if (consumed.count !== 1) {
+        throw new BadRequestException('이미 사용했거나 만료된 인증 링크입니다.');
+      }
+      const updated = await tx.user.update({
+        where: { id: record.userId },
+        data: { emailVerified: true },
+      });
+      await tx.emailVerificationToken.deleteMany({ where: { userId: updated.id } });
+      return updated;
     });
-    // 재사용 방지: 이 유저의 남은 인증 토큰을 전부 정리한다.
-    await this.prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } });
 
     if (user.banned) {
       throw new ForbiddenException(`정지된 계정입니다.${user.bannedReason ? ` 사유: ${user.bannedReason}` : ''}`);
@@ -187,8 +227,14 @@ export class AuthService {
     studentId?: string | null;
     theme?: string;
     mustChangePassword?: boolean;
+    authVersion?: number;
   }) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      ver: user.authVersion ?? 0,
+    };
     return {
       accessToken: this.jwtService.sign(payload),
       user: {

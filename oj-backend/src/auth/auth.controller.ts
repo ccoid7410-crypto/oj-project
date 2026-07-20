@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsString, Length, MaxLength } from 'class-validator';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
@@ -7,11 +7,13 @@ import { LoginDto } from './dto/login.dto';
 
 class ResendVerificationDto {
   @IsEmail()
+  @MaxLength(254)
   email: string;
 }
 
 class VerifyEmailDto {
   @IsString()
+  @Length(64, 64)
   token: string;
 }
 

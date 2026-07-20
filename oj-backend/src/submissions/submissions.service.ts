@@ -22,6 +22,22 @@ export class SubmissionsService {
     if (problem.status !== 'PUBLISHED' && problem.authorId !== userId && userRole !== 'ADMIN') {
       throw new ForbiddenException('아직 공개되지 않은 문제입니다.');
     }
+    if (problem.tags.includes('test') && problem.authorId !== userId && userRole !== 'ADMIN') {
+      throw new NotFoundException('문제를 찾을 수 없습니다.');
+    }
+
+    // 대회 전용 문제는 종료 후 공개 설정이 적용된 경우를 제외하면 반드시 유효한 대회 문맥으로만 제출한다.
+    if (problem.contestOnly && !dto.contestId && problem.authorId !== userId && userRole !== 'ADMIN') {
+      const publiclyVisible = await this.prisma.problem.count({
+        where: {
+          id: problem.id,
+          contestProblems: {
+            some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+          },
+        },
+      });
+      if (!publiclyVisible) throw new ForbiddenException('대회 전용 문제는 대회 페이지에서만 제출할 수 있습니다.');
+    }
 
     // 문제별 허용 언어 제한 (비어 있으면 전체 허용)
     if (problem.allowedLanguages.length > 0 && !problem.allowedLanguages.includes(dto.language as any)) {
@@ -113,6 +129,21 @@ export class SubmissionsService {
   async findAll(limit = 50) {
     const capped = Math.min(Math.max(limit, 1), 100);
     return this.prisma.submission.findMany({
+      where: {
+        problem: {
+          status: 'PUBLISHED',
+          NOT: { tags: { has: 'test' } },
+          OR: [
+            { contestOnly: false },
+            {
+              contestOnly: true,
+              contestProblems: {
+                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+              },
+            },
+          ],
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: capped,
       select: {

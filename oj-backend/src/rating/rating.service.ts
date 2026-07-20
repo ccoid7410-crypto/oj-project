@@ -28,7 +28,23 @@ export class RatingService {
     // AC 제출로 남아서, 아직 검토 중이거나 반려된(심지어 영영 공개 안 될) 문제로도 레이팅이
     // 올라가 버린다 - 문제를 계속 제안하기만 해도 레이팅을 불릴 수 있는 구멍이었다.
     const solved = await this.prisma.submission.findMany({
-      where: { userId, status: 'ACCEPTED', problem: { status: 'PUBLISHED' } },
+      where: {
+        userId,
+        status: 'ACCEPTED',
+        problem: {
+          status: 'PUBLISHED',
+          NOT: { tags: { has: 'test' } },
+          OR: [
+            { contestOnly: false },
+            {
+              contestOnly: true,
+              contestProblems: {
+                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+              },
+            },
+          ],
+        },
+      },
       distinct: ['problemId'],
       select: { problem: { select: { level: true } } },
     });

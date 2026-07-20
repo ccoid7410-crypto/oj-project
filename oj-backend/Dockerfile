@@ -17,10 +17,12 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/dist ./dist
+COPY --chown=node:node --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=node:node --from=builder /app/prisma ./prisma
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
 
 EXPOSE 3000
+USER node
 # docker-compose에서 api는 dist/main.js, worker는 dist/main-worker.js 로 command 오버라이드
 CMD ["node", "dist/main.js"]
