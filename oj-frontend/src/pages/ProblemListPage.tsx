@@ -4,11 +4,13 @@ import { api } from '../api/client';
 import type { ProblemSummary } from '../api/types';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { tagColor } from '../lib/tagColor';
+import { ProblemTypeBadge } from '../components/ProblemTypeBadge';
 
 export function ProblemListPage() {
   const [problems, setProblems] = useState<ProblemSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [scope, setScope] = useState<'ALL' | 'PRACTICE'>('ALL');
 
   useEffect(() => {
     api
@@ -20,23 +22,40 @@ export function ProblemListPage() {
   const filtered = useMemo(() => {
     if (!problems) return null;
     const q = query.trim().toLowerCase();
-    if (!q) return problems;
-    return problems.filter(
+    const scoped = scope === 'PRACTICE' ? problems.filter((problem) => problem.isPractice) : problems;
+    if (!q) return scoped;
+    return scoped.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         String(p.displayId).includes(q) ||
+        p.problemType.toLowerCase().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [problems, query]);
+  }, [problems, query, scope]);
 
   return (
     <div>
       {/* 상단 탭 + 검색 툴바 */}
       <div className="flex items-center justify-between border-b border-ink-500">
         <div className="flex gap-1">
-          <span className="rounded-t border border-b-0 border-ink-500 bg-white px-4 py-2 text-sm font-bold text-[var(--color-brand)]">
+          <button
+            type="button"
+            onClick={() => setScope('ALL')}
+            className={`rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
+              scope === 'ALL' ? 'bg-white text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+            }`}
+          >
             전체
-          </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setScope('PRACTICE')}
+            className={`rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
+              scope === 'PRACTICE' ? 'bg-white text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+            }`}
+          >
+            연습 문제
+          </button>
         </div>
         <form
           onSubmit={(e) => e.preventDefault()}
@@ -92,6 +111,7 @@ export function ProblemListPage() {
                       </span>
                     )}
                     <DifficultyBadge level={p.level} />
+                    <ProblemTypeBadge type={p.problemType} isPractice={p.isPractice} />
                     {p.title}
                   </Link>
                 </td>
@@ -124,7 +144,9 @@ export function ProblemListPage() {
       )}
 
       {filtered && filtered.length === 0 && problems && problems.length > 0 && (
-        <p className="mt-10 text-sm text-fg-muted">검색 결과가 없습니다.</p>
+        <p className="mt-10 text-sm text-fg-muted">
+          {scope === 'PRACTICE' && !query.trim() ? '공개된 연습 문제가 없습니다.' : '검색 결과가 없습니다.'}
+        </p>
       )}
     </div>
   );

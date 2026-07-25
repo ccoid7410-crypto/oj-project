@@ -33,13 +33,19 @@ export class RatingService {
         status: 'ACCEPTED',
         problem: {
           status: 'PUBLISHED',
+          isPractice: false,
           NOT: { tags: { has: 'test' } },
           OR: [
             { contestOnly: false },
             {
               contestOnly: true,
               contestProblems: {
-                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+                some: {
+                  contest: {
+                    endsAt: { lt: new Date() },
+                    problemsVisibleAfterEnd: true,
+                  },
+                },
               },
             },
           ],

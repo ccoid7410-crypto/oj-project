@@ -56,6 +56,18 @@ enum ProblemStatus {
   REJECTED        // 반려됨
 }
 
+enum ProblemType {
+  STANDARD    // 고정 정답 출력 비교
+  SCORING     // 숫자 출력의 정확도/최적화 점수 계산
+  INTERACTIVE // 테스트케이스의 요청/응답 줄을 번갈아 주고받는 대화형 채점
+}
+
+enum ScoringMode {
+  TARGET   // 기준값과 가까울수록 높은 점수
+  MAXIMIZE // 기준값보다 클수록 높은 점수
+  MINIMIZE // 기준값보다 작을수록 높은 점수
+}
+
 model User {
   id           String       @id @default(uuid())
   email        String       @unique
@@ -158,6 +170,11 @@ model Problem {
   level        Int         @default(1) // 1(브론즈 V) ~ 30(루비 I). 세분화된 난이도의 기준값.
   timeLimitMs  Int         @default(2000)
   memoryLimitMb Int        @default(256)
+  problemType  ProblemType @default(STANDARD)
+  scoringMode  ScoringMode @default(TARGET)
+  maxScore     Float       @default(100)
+  isPractice   Boolean     @default(false) // 공개 풀이 가능하지만 레이팅에는 반영하지 않는 연습 문제
+  compileOptions Json      @default("{}") // 언어별 추가 컴파일 인자: { "CPP": ["-O0", "-std=c++20"] }
   isPublished  Boolean     @default(false)
   status       ProblemStatus @default(DRAFT)
   reviewNote   String?
@@ -331,6 +348,7 @@ model Submission {
   status      SubmissionStatus  @default(PENDING)
   runtimeMs   Int?
   memoryKb    Int?
+  score       Float?
   errorMessage String?
   createdAt   DateTime          @default(now())
   judgedAt    DateTime?
@@ -352,6 +370,7 @@ model SubmissionTestResult {
   status        SubmissionStatus
   runtimeMs     Int?
   memoryKb      Int?
+  score         Float?
   output        String?
 
   @@map("submission_test_results")

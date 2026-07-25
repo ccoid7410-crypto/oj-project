@@ -92,15 +92,28 @@ export class MailService {
 
     try {
       await transporter.verify();
-      return { ...status, ready: true, message: 'SMTP 연결 확인에 성공했습니다.' };
+      return {
+        ...status,
+        ready: true,
+        message: 'SMTP 연결 확인에 성공했습니다.',
+      };
     } catch (err) {
       this.logger.error(`SMTP 연결 확인 실패: ${this.describeError(err)}`);
-      return { ...status, ready: false, message: `SMTP 연결 확인 실패: ${this.describeError(err)}` };
+      return {
+        ...status,
+        ready: false,
+        message: `SMTP 연결 확인 실패: ${this.describeError(err)}`,
+      };
     }
   }
 
-  async saveGmailConfig(input: SaveGmailConfigInput, updatedById: string): Promise<MailStatus> {
-    const current = await this.prisma.mailConfig.findUnique({ where: { id: 1 } });
+  async saveGmailConfig(
+    input: SaveGmailConfigInput,
+    updatedById: string,
+  ): Promise<MailStatus> {
+    const current = await this.prisma.mailConfig.findUnique({
+      where: { id: 1 },
+    });
     const smtpPass = input.smtpPass?.trim() || current?.smtpPass;
     if (!smtpPass) {
       return {
@@ -148,7 +161,9 @@ export class MailService {
   }
 
   async disableDatabaseConfig(updatedById: string): Promise<MailStatus> {
-    const current = await this.prisma.mailConfig.findUnique({ where: { id: 1 } });
+    const current = await this.prisma.mailConfig.findUnique({
+      where: { id: 1 },
+    });
     if (current) {
       await this.prisma.mailConfig.update({
         where: { id: 1 },
@@ -166,9 +181,14 @@ export class MailService {
 
     if (!transporter) {
       if (this.config.get<string>('NODE_ENV') === 'production') {
-        return { ok: false, message: 'SMTP가 설정되지 않아 테스트 메일을 보낼 수 없습니다.' };
+        return {
+          ok: false,
+          message: 'SMTP가 설정되지 않아 테스트 메일을 보낼 수 없습니다.',
+        };
       }
-      this.logger.warn('[DEV] SMTP 미설정 - 테스트 메일을 실제 발송하지 않았습니다.');
+      this.logger.warn(
+        '[DEV] SMTP 미설정 - 테스트 메일을 실제 발송하지 않았습니다.',
+      );
       return { ok: true, message: '개발 환경이라 실제 발송하지 않았습니다.' };
     }
 
@@ -176,8 +196,13 @@ export class MailService {
       await transporter.sendMail({ from: effective.from, to, subject, text });
       return { ok: true, message: `${to}로 테스트 메일을 보냈습니다.` };
     } catch (err) {
-      this.logger.error(`테스트 메일 발송 실패(${to}): ${this.describeError(err)}`);
-      return { ok: false, message: `테스트 메일 발송 실패: ${this.describeError(err)}` };
+      this.logger.error(
+        `테스트 메일 발송 실패(${to}): ${this.describeError(err)}`,
+      );
+      return {
+        ok: false,
+        message: `테스트 메일 발송 실패: ${this.describeError(err)}`,
+      };
     }
   }
 
@@ -207,7 +232,8 @@ export class MailService {
         enabled: true,
         provider: row.provider,
         from: row.from,
-        host: row.smtpHost || (row.provider === 'gmail' ? 'smtp.gmail.com' : null),
+        host:
+          row.smtpHost || (row.provider === 'gmail' ? 'smtp.gmail.com' : null),
         port: row.smtpPort,
         secure: row.smtpSecure,
         user: row.smtpUser,
@@ -223,22 +249,33 @@ export class MailService {
       source: host ? 'environment' : 'log-only',
       enabled: !!host,
       provider,
-      from: this.config.get<string>('MAIL_FROM', smtpUser ?? 'no-reply@durunuri-oj.local'),
+      from: this.config.get<string>(
+        'MAIL_FROM',
+        smtpUser ?? 'no-reply@durunuri-oj.local',
+      ),
       host,
       port,
-      secure: this.config.get<string>('SMTP_SECURE', port === 465 ? 'true' : 'false') === 'true',
+      secure:
+        this.config.get<string>(
+          'SMTP_SECURE',
+          port === 465 ? 'true' : 'false',
+        ) === 'true',
       user: smtpUser,
       pass: this.config.get<string>('SMTP_PASS') || null,
     };
   }
 
-  private createTransporter(effective: EffectiveMailConfig): nodemailer.Transporter | null {
+  private createTransporter(
+    effective: EffectiveMailConfig,
+  ): nodemailer.Transporter | null {
     if (!effective.enabled || !effective.host) return null;
     return nodemailer.createTransport({
       host: effective.host,
       port: effective.port ?? 587,
       secure: effective.secure,
-      auth: effective.user ? { user: effective.user, pass: effective.pass ?? undefined } : undefined,
+      auth: effective.user
+        ? { user: effective.user, pass: effective.pass ?? undefined }
+        : undefined,
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
       socketTimeout: 15_000,

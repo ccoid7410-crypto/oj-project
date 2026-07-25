@@ -29,6 +29,7 @@ import {
   UpdateTestCaseDto,
 } from './dto/testcase.dto';
 import { CreateCommentDto } from './dto/comment.dto';
+import type { OptionalAuthRequest } from '../common/http-request.types';
 
 class VoteDifficultyDto {
   @IsInt()
@@ -51,9 +52,12 @@ export class ProblemsController {
 
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  findAll(@Req() req: any) {
+  findAll(@Req() req: OptionalAuthRequest) {
     // 로그인은 선택: 토큰이 있으면 각 문제에 내 정답/오답 여부(myStatus)를 같이 내려준다.
-    return this.problemsService.findAllPublished(req.user?.userId, req.user?.role);
+    return this.problemsService.findAllPublished(
+      req.user?.userId,
+      req.user?.role,
+    );
   }
 
   // 정적 경로는 반드시 ':slug' 파라미터 라우트보다 먼저 선언해야 매칭이 가로채이지 않는다.
@@ -73,9 +77,18 @@ export class ProblemsController {
 
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':slug')
-  findOne(@Param('slug') slug: string, @Query('contestId') contestId: string | undefined, @Req() req: any) {
+  findOne(
+    @Param('slug') slug: string,
+    @Query('contestId') contestId: string | undefined,
+    @Req() req: OptionalAuthRequest,
+  ) {
     // 로그인은 선택: 토큰이 있으면 내 난이도 투표 여부/가능 여부를 같이 내려준다.
-    return this.problemsService.findBySlug(slug, req.user?.userId, req.user?.role, contestId);
+    return this.problemsService.findBySlug(
+      slug,
+      req.user?.userId,
+      req.user?.role,
+      contestId,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -200,7 +213,12 @@ export class ProblemsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: BulkCreateTestCasesDto,
   ) {
-    return this.problemsService.bulkAddTestCases(id, user.userId, user.role, dto.testCases);
+    return this.problemsService.bulkAddTestCases(
+      id,
+      user.userId,
+      user.role,
+      dto.testCases,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -211,7 +229,12 @@ export class ProblemsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: SyncTestCasesDto,
   ) {
-    return this.problemsService.syncTestCases(id, user.userId, user.role, dto.testCases);
+    return this.problemsService.syncTestCases(
+      id,
+      user.userId,
+      user.role,
+      dto.testCases,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -222,7 +245,13 @@ export class ProblemsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: UpdateTestCaseDto,
   ) {
-    return this.problemsService.updateTestCase(id, testCaseId, user.userId, user.role, dto);
+    return this.problemsService.updateTestCase(
+      id,
+      testCaseId,
+      user.userId,
+      user.role,
+      dto,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -232,7 +261,12 @@ export class ProblemsController {
     @Param('testCaseId') testCaseId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.problemsService.deleteTestCase(id, testCaseId, user.userId, user.role);
+    return this.problemsService.deleteTestCase(
+      id,
+      testCaseId,
+      user.userId,
+      user.role,
+    );
   }
 
   // ---- 문제 Q&A 게시판 ----
@@ -242,9 +276,14 @@ export class ProblemsController {
   listComments(
     @Param('id') id: string,
     @Query('contestId') contestId: string | undefined,
-    @Req() req: any,
+    @Req() req: OptionalAuthRequest,
   ) {
-    return this.problemsService.listComments(id, req.user?.userId, req.user?.role, contestId);
+    return this.problemsService.listComments(
+      id,
+      req.user?.userId,
+      req.user?.role,
+      contestId,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -268,7 +307,14 @@ export class ProblemsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id/comments/:commentId')
-  removeComment(@Param('commentId') commentId: string, @CurrentUser() user: RequestUser) {
-    return this.problemsService.removeComment(commentId, user.userId, user.role);
+  removeComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.problemsService.removeComment(
+      commentId,
+      user.userId,
+      user.role,
+    );
   }
 }

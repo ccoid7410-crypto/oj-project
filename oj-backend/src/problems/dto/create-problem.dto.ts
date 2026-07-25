@@ -4,6 +4,8 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -32,6 +34,18 @@ export enum LanguageDto {
   GO = 'GO',
 }
 
+export enum ProblemTypeDto {
+  STANDARD = 'STANDARD',
+  SCORING = 'SCORING',
+  INTERACTIVE = 'INTERACTIVE',
+}
+
+export enum ScoringModeDto {
+  TARGET = 'TARGET',
+  MAXIMIZE = 'MAXIMIZE',
+  MINIMIZE = 'MINIMIZE',
+}
+
 export class TestCaseInputDto {
   @IsString()
   @MaxLength(1_000_000)
@@ -53,7 +67,9 @@ export class CreateProblemDto {
 
   @IsString()
   @MaxLength(100)
-  @Matches(/^[a-z0-9-]+$/, { message: 'slug은 영문 소문자/숫자/하이픈만 가능합니다.' })
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'slug은 영문 소문자/숫자/하이픈만 가능합니다.',
+  })
   slug: string;
 
   @IsString()
@@ -85,6 +101,31 @@ export class CreateProblemDto {
   @Min(16)
   @Max(1024)
   memoryLimitMb?: number;
+
+  @IsOptional()
+  @IsEnum(ProblemTypeDto)
+  problemType?: ProblemTypeDto;
+
+  @IsOptional()
+  @IsEnum(ScoringModeDto)
+  scoringMode?: ScoringModeDto;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.0001)
+  @Max(1_000_000)
+  maxScore?: number;
+
+  /** 공개되지만 사용자 레이팅에는 반영하지 않는 연습 문제. */
+  @IsOptional()
+  @IsBoolean()
+  isPractice?: boolean;
+
+  /** 언어별 추가 컴파일 인자. 예: { "CPP": ["-O0", "-std=c++20"] } */
+  @IsOptional()
+  @IsObject()
+  compileOptions?: Record<string, unknown>;
 
   @IsOptional()
   @IsArray()

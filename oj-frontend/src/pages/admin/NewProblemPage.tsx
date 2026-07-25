@@ -1,12 +1,20 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import type { Difficulty, Language, ProblemDetail, TestCase } from '../../api/types';
+import type {
+  Difficulty,
+  Language,
+  ProblemDetail,
+  ProblemType,
+  ScoringMode,
+  TestCase,
+} from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../../lib/difficulty';
 import { LANGUAGE_OPTIONS, DEFAULT_TEMPLATE } from '../../lib/languages';
 import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCaseDraftList';
 import { TagPicker } from '../../components/TagPicker';
+import { ProblemAdvancedSettings } from '../../components/ProblemAdvancedSettings';
 
 // Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
 const CodeEditor = lazy(() =>
@@ -34,6 +42,12 @@ interface ProblemDraft {
   tags: string[];
   testCases: TestCaseInput[];
   contestOnly: boolean;
+  problemType: ProblemType;
+  scoringMode: ScoringMode;
+  maxScore: number;
+  isPractice: boolean;
+  allowedLanguages: Language[];
+  compileOptions: Partial<Record<Language, string[]>>;
   verificationLanguage: Language;
   verificationCode: string;
 }
@@ -81,6 +95,14 @@ export function NewProblemPage() {
   );
   const [publishNow, setPublishNow] = useState(isAdmin);
   const [contestOnly, setContestOnly] = useState(restored?.contestOnly ?? false);
+  const [problemType, setProblemType] = useState<ProblemType>(restored?.problemType ?? 'STANDARD');
+  const [scoringMode, setScoringMode] = useState<ScoringMode>(restored?.scoringMode ?? 'TARGET');
+  const [maxScore, setMaxScore] = useState(restored?.maxScore ?? 100);
+  const [isPractice, setIsPractice] = useState(restored?.isPractice ?? false);
+  const [allowedLanguages, setAllowedLanguages] = useState<Language[]>(restored?.allowedLanguages ?? []);
+  const [compileOptions, setCompileOptions] = useState<Partial<Record<Language, string[]>>>(
+    restored?.compileOptions ?? {},
+  );
   const [verificationLanguage, setVerificationLanguage] = useState<Language>(
     restored?.verificationLanguage ?? 'CPP',
   );
@@ -107,6 +129,12 @@ export function NewProblemPage() {
         setSubRank(((p.level - 1) % 5) + 1);
         setTimeLimitMs(p.timeLimitMs);
         setMemoryLimitMb(p.memoryLimitMb);
+        setProblemType(p.problemType);
+        setScoringMode(p.scoringMode);
+        setMaxScore(p.maxScore);
+        setIsPractice(p.isPractice);
+        setAllowedLanguages(p.allowedLanguages);
+        setCompileOptions(p.compileOptions ?? {});
         setTags(p.tags);
         setTestCases(
           tcs.length
@@ -135,7 +163,8 @@ export function NewProblemPage() {
     saveTimer.current = setTimeout(() => {
       const draft: ProblemDraft = {
         title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb,
-        tags, testCases, contestOnly, verificationLanguage, verificationCode,
+        tags, testCases, contestOnly, problemType, scoringMode, maxScore, isPractice,
+        allowedLanguages, compileOptions, verificationLanguage, verificationCode,
       };
       try {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -146,7 +175,7 @@ export function NewProblemPage() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [draftId, resumeSlug, title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb, tags, testCases, contestOnly, verificationLanguage, verificationCode]);
+  }, [draftId, resumeSlug, title, slug, description, tier, subRank, timeLimitMs, memoryLimitMb, tags, testCases, contestOnly, problemType, scoringMode, maxScore, isPractice, allowedLanguages, compileOptions, verificationLanguage, verificationCode]);
 
   function discardDraft() {
     localStorage.removeItem(DRAFT_KEY);
@@ -172,6 +201,7 @@ export function NewProblemPage() {
         // 기존 초안 갱신: 내용 + 테스트케이스를 현재 폼 상태로 맞춘다(재검토 없음 - 초안이라).
         await api.patch(`/problems/${draftId}`, {
           title, slug, description, level, timeLimitMs, memoryLimitMb, tags,
+          problemType, scoringMode, maxScore, isPractice, allowedLanguages, compileOptions,
           ...(isAdmin ? { contestOnly } : {}),
         });
         await api.put(`/problems/${draftId}/testcases`, { testCases: cleanTestCases() });
@@ -179,6 +209,7 @@ export function NewProblemPage() {
         // 새 초안 생성
         const created = await api.post<{ id: string; slug: string }>('/problems/draft', {
           title, slug, description, level, timeLimitMs, memoryLimitMb, tags, testCases: cleanTestCases(),
+          problemType, scoringMode, maxScore, isPractice, allowedLanguages, compileOptions,
           ...(isAdmin ? { contestOnly } : {}),
         });
         setDraftId(created.id);
@@ -204,6 +235,7 @@ export function NewProblemPage() {
         // 먼저 현재 폼 내용/테스트케이스를 저장한 뒤, 검증/공개 단계를 밟는다.
         await api.patch(`/problems/${draftId}`, {
           title, slug, description, level, timeLimitMs, memoryLimitMb, tags,
+          problemType, scoringMode, maxScore, isPractice, allowedLanguages, compileOptions,
           ...(isAdmin ? { contestOnly } : {}),
         });
         await api.put(`/problems/${draftId}/testcases`, { testCases: cleanTestCases() });
@@ -232,6 +264,12 @@ export function NewProblemPage() {
         memoryLimitMb,
         tags,
         testCases,
+        problemType,
+        scoringMode,
+        maxScore,
+        isPractice,
+        allowedLanguages,
+        compileOptions,
         ...(isAdmin
           ? { contestOnly }
           : { verificationLanguage, verificationCode }),
@@ -354,6 +392,22 @@ export function NewProblemPage() {
         <p className="-mt-2 text-xs text-fg-muted">
           선택된 난이도: <span className="font-bold text-fg">{labelOfLevel(level)}</span> (레벨 {level})
         </p>
+
+        <ProblemAdvancedSettings
+          problemType={problemType}
+          onProblemTypeChange={setProblemType}
+          scoringMode={scoringMode}
+          onScoringModeChange={setScoringMode}
+          maxScore={maxScore}
+          onMaxScoreChange={setMaxScore}
+          isPractice={isPractice}
+          onPracticeChange={setIsPractice}
+          allowedLanguages={allowedLanguages}
+          onAllowedLanguagesChange={setAllowedLanguages}
+          compileOptions={compileOptions}
+          onCompileOptionsChange={setCompileOptions}
+          inputClass={inputClass}
+        />
 
         <TagPicker value={tags} onChange={setTags} />
 

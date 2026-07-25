@@ -26,6 +26,8 @@ export interface StudentIdWindow {
 }
 
 export type Difficulty = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' | 'RUBY';
+export type ProblemType = 'STANDARD' | 'SCORING' | 'INTERACTIVE';
+export type ScoringMode = 'TARGET' | 'MAXIMIZE' | 'MINIMIZE';
 
 export interface ProblemSummary {
   id: string;
@@ -35,6 +37,8 @@ export interface ProblemSummary {
   difficulty: Difficulty;
   level: number; // 1(브론즈V) ~ 30(루비I)
   tags: string[];
+  problemType: ProblemType;
+  isPractice: boolean;
   createdAt: string;
   submissionCount: number;
   acceptedCount: number;
@@ -55,6 +59,10 @@ export interface ProblemDetail extends ProblemSummary {
   description: string;
   timeLimitMs: number;
   memoryLimitMb: number;
+  scoringMode: ScoringMode;
+  maxScore: number;
+  compileOptions: Partial<Record<Language, string[]>>;
+  allowedLanguages: Language[];
   authorId: string;
   testCases: TestCase[];
   difficultyVoteCount: number;
@@ -80,6 +88,7 @@ export interface SubmissionTestResult {
   id: string;
   status: SubmissionStatus;
   runtimeMs: number | null;
+  score: number | null;
   testCase: { isSample: boolean; order: number };
 }
 
@@ -90,6 +99,7 @@ export interface SubmissionSummary {
   status: SubmissionStatus;
   runtimeMs: number | null;
   memoryKb: number | null;
+  score: number | null;
   createdAt: string;
   // 전체 채점 현황 피드(GET /submissions)에서만 내려온다. 내 제출 목록(GET /submissions/me)엔 없음.
   user?: { username: string };
@@ -112,6 +122,8 @@ export interface MyProblem {
   difficulty: Difficulty;
   level: number;
   status: ProblemStatus;
+  problemType: ProblemType;
+  isPractice: boolean;
   reviewNote: string | null;
   createdAt: string;
 }
@@ -124,6 +136,8 @@ export interface ProblemProposal {
   difficulty: Difficulty;
   level: number;
   tags: string[];
+  problemType: ProblemType;
+  isPractice: boolean;
   createdAt: string;
   author: { username: string };
 }
@@ -335,6 +349,8 @@ export interface AdminProblemRow {
   slug: string;
   status: string;
   contestOnly: boolean;
+  problemType: ProblemType;
+  isPractice: boolean;
   createdAt: string;
   author: { username: string };
 }

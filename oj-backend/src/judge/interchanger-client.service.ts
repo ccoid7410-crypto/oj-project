@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { JudgeRunnerService } from './judge-runner.service';
@@ -19,7 +24,9 @@ const ERROR_BACKOFF_MS = 5_000;
  * 컴포넌트"라는 사실에 대한 구조적 방어다.
  */
 @Injectable()
-export class InterchangerClientService implements OnModuleInit, OnModuleDestroy {
+export class InterchangerClientService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(InterchangerClientService.name);
   private readonly baseUrl: string;
   private readonly token: string;
@@ -32,20 +39,27 @@ export class InterchangerClientService implements OnModuleInit, OnModuleDestroy 
     private readonly config: ConfigService,
     private readonly runner: JudgeRunnerService,
   ) {
-    this.baseUrl = this.config.get<string>('INTERCHANGER_URL', '').replace(/\/+$/, '');
+    this.baseUrl = this.config
+      .get<string>('INTERCHANGER_URL', '')
+      .replace(/\/+$/, '');
     this.token = this.config.get<string>('JUDGE_SERVICE_TOKEN', '');
-    const requested = Number(this.config.get<string>('JUDGE_CONCURRENCY', '2')) || 2;
+    const requested =
+      Number(this.config.get<string>('JUDGE_CONCURRENCY', '2')) || 2;
     this.concurrency = Math.min(Math.max(Math.trunc(requested), 1), 8);
   }
 
   onModuleInit(): void {
     if (!this.baseUrl) {
-      this.logger.warn('INTERCHANGER_URL이 없어 채점 루프를 시작하지 않습니다.');
+      this.logger.warn(
+        'INTERCHANGER_URL이 없어 채점 루프를 시작하지 않습니다.',
+      );
       return;
     }
     this.running = true;
     void this.loop();
-    this.logger.log(`채점 워커 ${this.workerId} 시작 (동시 ${this.concurrency}건, → ${this.baseUrl})`);
+    this.logger.log(
+      `채점 워커 ${this.workerId} 시작 (동시 ${this.concurrency}건, → ${this.baseUrl})`,
+    );
   }
 
   onModuleDestroy(): void {
@@ -84,12 +98,16 @@ export class InterchangerClientService implements OnModuleInit, OnModuleDestroy 
     try {
       const result = await this.runner.run(lease);
       if (revoked) {
-        this.logger.warn(`리스가 회수되어 결과를 폐기합니다 (submission=${lease.submissionId})`);
+        this.logger.warn(
+          `리스가 회수되어 결과를 폐기합니다 (submission=${lease.submissionId})`,
+        );
         return;
       }
       await this.sendResult(result);
     } catch (err) {
-      this.logger.error(`채점 처리 실패 (submission=${lease.submissionId}): ${err}`);
+      this.logger.error(
+        `채점 처리 실패 (submission=${lease.submissionId}): ${err}`,
+      );
     } finally {
       clearInterval(heartbeat);
       this.inFlight--;
@@ -110,7 +128,11 @@ export class InterchangerClientService implements OnModuleInit, OnModuleDestroy 
   /** 살아있으면 true, 리스가 회수됐으면(410) false. */
   private async sendHeartbeat(leaseId: string): Promise<boolean> {
     try {
-      const res = await this.post('/internal/judge/heartbeat', { leaseId }, 10_000);
+      const res = await this.post(
+        '/internal/judge/heartbeat',
+        { leaseId },
+        10_000,
+      );
       if (res.status === 410) return false;
       return res.ok;
     } catch (err) {
@@ -121,11 +143,19 @@ export class InterchangerClientService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async sendResult(result: JudgeResult): Promise<void> {
-    const res = await this.post('/internal/judge/result', result, RESULT_REQUEST_TIMEOUT_MS);
+    const res = await this.post(
+      '/internal/judge/result',
+      result,
+      RESULT_REQUEST_TIMEOUT_MS,
+    );
     if (!res.ok) throw new Error(`result ${res.status}`);
   }
 
-  private post(path: string, body: unknown, timeoutMs: number): Promise<Response> {
+  private post(
+    path: string,
+    body: unknown,
+    timeoutMs: number,
+  ): Promise<Response> {
     return fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: {

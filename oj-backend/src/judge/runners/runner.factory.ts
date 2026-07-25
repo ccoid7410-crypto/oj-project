@@ -13,7 +13,11 @@ import { LanguageRunnerConfig } from './runner.types';
 // 반복문을 SIMD로 벡터화(tree-vectorize)해서, 소스가 if여도 실제로는 분기가 사라진다.
 // 그 결과 "조건문 vs 산술" 방식의 실제 성능 차이(분기 예측 실패 비용)가 채점에서 관측되지 않는다.
 // 이 저지는 그 차이를 유의미하게 드러내기 위해 해당 최적화만 비활성화한다(그 외 -O2 최적화는 유지).
-const NO_BRANCHLESS_OPTS = ['-fno-tree-vectorize', '-fno-if-conversion', '-fno-if-conversion2'];
+const NO_BRANCHLESS_OPTS = [
+  '-fno-tree-vectorize',
+  '-fno-if-conversion',
+  '-fno-if-conversion2',
+];
 
 @Injectable()
 export class RunnerFactory {
@@ -21,14 +25,29 @@ export class RunnerFactory {
     C: {
       fileName: 'main.c',
       compileImage: 'gcc:13-bookworm',
-      compileCmd: ['gcc', '-O2', ...NO_BRANCHLESS_OPTS, '-o', '/box/a.out', '/box/main.c'],
+      compileCmd: [
+        'gcc',
+        '-O2',
+        ...NO_BRANCHLESS_OPTS,
+        '-o',
+        '/box/a.out',
+        '/box/main.c',
+      ],
       runImage: 'gcc:13-bookworm',
       runCmd: ['/box/a.out'],
     },
     CPP: {
       fileName: 'main.cpp',
       compileImage: 'gcc:13-bookworm',
-      compileCmd: ['g++', '-O2', '-std=c++17', ...NO_BRANCHLESS_OPTS, '-o', '/box/a.out', '/box/main.cpp'],
+      compileCmd: [
+        'g++',
+        '-O2',
+        '-std=c++17',
+        ...NO_BRANCHLESS_OPTS,
+        '-o',
+        '/box/a.out',
+        '/box/main.cpp',
+      ],
       runImage: 'gcc:13-bookworm',
       runCmd: ['/box/a.out'],
     },

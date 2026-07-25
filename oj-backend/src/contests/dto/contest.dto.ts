@@ -38,7 +38,9 @@ export class CreateContestDto {
   title: string;
 
   @MaxLength(100)
-  @Matches(/^[a-z0-9-]+$/, { message: 'slug은 영문 소문자/숫자/하이픈만 가능합니다.' })
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'slug은 영문 소문자/숫자/하이픈만 가능합니다.',
+  })
   slug: string;
 
   @IsOptional()

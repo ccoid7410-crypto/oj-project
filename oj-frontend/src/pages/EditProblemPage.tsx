@@ -1,11 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { Difficulty, ProblemDetail, TestCase } from '../api/types';
+import type {
+  Difficulty,
+  Language,
+  ProblemDetail,
+  ProblemType,
+  ScoringMode,
+  TestCase,
+} from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 import { TestCaseDraftList, type TestCaseDraft } from '../components/TestCaseDraftList';
 import { TagPicker } from '../components/TagPicker';
+import { ProblemAdvancedSettings } from '../components/ProblemAdvancedSettings';
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -20,6 +28,12 @@ export function EditProblemPage() {
   const [timeLimitMs, setTimeLimitMs] = useState(2000);
   const [memoryLimitMb, setMemoryLimitMb] = useState(256);
   const [tags, setTags] = useState<string[]>([]);
+  const [problemType, setProblemType] = useState<ProblemType>('STANDARD');
+  const [scoringMode, setScoringMode] = useState<ScoringMode>('TARGET');
+  const [maxScore, setMaxScore] = useState(100);
+  const [isPractice, setIsPractice] = useState(false);
+  const [allowedLanguages, setAllowedLanguages] = useState<Language[]>([]);
+  const [compileOptions, setCompileOptions] = useState<Partial<Record<Language, string[]>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -50,6 +64,12 @@ export function EditProblemPage() {
         setTimeLimitMs(p.timeLimitMs);
         setMemoryLimitMb(p.memoryLimitMb);
         setTags(p.tags);
+        setProblemType(p.problemType);
+        setScoringMode(p.scoringMode);
+        setMaxScore(p.maxScore);
+        setIsPractice(p.isPractice);
+        setAllowedLanguages(p.allowedLanguages);
+        setCompileOptions(p.compileOptions ?? {});
         return api.get<TestCase[]>(`/problems/${p.id}/testcases`);
       })
       .then((tcs) => setDrafts(tcs.map(tcToDraft)))
@@ -91,6 +111,12 @@ export function EditProblemPage() {
         timeLimitMs,
         memoryLimitMb,
         tags,
+        problemType,
+        scoringMode,
+        maxScore,
+        isPractice,
+        allowedLanguages,
+        compileOptions,
       });
       navigate(`/problems/${slug}`);
     } catch (err) {
@@ -194,6 +220,22 @@ export function EditProblemPage() {
         <p className="-mt-2 text-xs text-fg-muted">
           선택된 난이도: <span className="font-bold text-fg">{labelOfLevel(level)}</span> (레벨 {level})
         </p>
+
+        <ProblemAdvancedSettings
+          problemType={problemType}
+          onProblemTypeChange={setProblemType}
+          scoringMode={scoringMode}
+          onScoringModeChange={setScoringMode}
+          maxScore={maxScore}
+          onMaxScoreChange={setMaxScore}
+          isPractice={isPractice}
+          onPracticeChange={setIsPractice}
+          allowedLanguages={allowedLanguages}
+          onAllowedLanguagesChange={setAllowedLanguages}
+          compileOptions={compileOptions}
+          onCompileOptionsChange={setCompileOptions}
+          inputClass={inputClass}
+        />
 
         {problem.difficultyVoteCount > 0 && (
           <div className="rounded border border-ink-500 bg-ink-700 p-3 text-xs">

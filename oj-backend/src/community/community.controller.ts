@@ -23,6 +23,7 @@ import {
   VoteDto,
   type Board,
 } from './dto/community.dto';
+import type { OptionalAuthRequest } from '../common/http-request.types';
 
 function parseBoard(raw: string | undefined): Board {
   const board = (raw ?? 'OJ').toUpperCase();
@@ -39,7 +40,10 @@ export class CommunityController {
   // 목록/상세는 비로그인도 볼 수 있다(로그인 시 내 좋아요 표시를 위해 optional 인증).
   @UseGuards(OptionalJwtAuthGuard)
   @Get('posts')
-  listPosts(@Query('board') board: string | undefined, @Req() req: any) {
+  listPosts(
+    @Query('board') board: string | undefined,
+    @Req() req: OptionalAuthRequest,
+  ) {
     return this.community.listPosts(parseBoard(board), req.user?.userId);
   }
 
@@ -58,7 +62,7 @@ export class CommunityController {
 
   @UseGuards(OptionalJwtAuthGuard)
   @Get('posts/:id')
-  getPost(@Param('id') id: string, @Req() req: any) {
+  getPost(@Param('id') id: string, @Req() req: OptionalAuthRequest) {
     return this.community.getPost(id, req.user?.userId);
   }
 
@@ -76,7 +80,11 @@ export class CommunityController {
 
   @UseGuards(JwtAuthGuard)
   @Post('posts/:id/vote')
-  votePost(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: VoteDto) {
+  votePost(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: VoteDto,
+  ) {
     return this.community.votePost(id, user.userId, dto.value);
   }
 
@@ -87,12 +95,20 @@ export class CommunityController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateCommentDto,
   ) {
-    return this.community.addComment(id, user.userId, dto.content, dto.parentId);
+    return this.community.addComment(
+      id,
+      user.userId,
+      dto.content,
+      dto.parentId,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('comments/:commentId')
-  deleteComment(@Param('commentId') commentId: string, @CurrentUser() user: RequestUser) {
+  deleteComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.community.deleteComment(commentId, user.userId, user.role);
   }
 

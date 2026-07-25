@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Board, PostType } from './dto/community.dto';
 
@@ -8,7 +12,11 @@ const AUTHOR_SELECT = {
   select: { username: true, customTitle: true, avatarUpdatedAt: true },
 } as const;
 
-type AuthorRow = { username: string; customTitle: string | null; avatarUpdatedAt: Date | null };
+type AuthorRow = {
+  username: string;
+  customTitle: string | null;
+  avatarUpdatedAt: Date | null;
+};
 
 function mapAuthor(u: AuthorRow) {
   return {
@@ -19,7 +27,10 @@ function mapAuthor(u: AuthorRow) {
 }
 
 /** 좋아요/싫어요 배열을 {likeCount, dislikeCount, myVote}로 요약한다. */
-function summarizeVotes(votes: Array<{ value: number; userId: string }>, requesterId?: string) {
+function summarizeVotes(
+  votes: Array<{ value: number; userId: string }>,
+  requesterId?: string,
+) {
   let likeCount = 0;
   let dislikeCount = 0;
   let myVote = 0;
@@ -108,7 +119,13 @@ export class CommunityService {
   async createPost(
     authorId: string,
     authorRole: string,
-    dto: { board: Board; title: string; content: string; type?: PostType; tags?: string[] },
+    dto: {
+      board: Board;
+      title: string;
+      content: string;
+      type?: PostType;
+      tags?: string[];
+    },
   ) {
     // 공지(NOTICE) 유형은 어드민만 지정할 수 있다.
     const type: PostType = dto.type ?? 'NORMAL';
@@ -125,7 +142,14 @@ export class CommunityService {
       });
     }
     const post = await this.prisma.communityPost.create({
-      data: { board: dto.board, type, title: dto.title, content: dto.content, tags, authorId },
+      data: {
+        board: dto.board,
+        type,
+        title: dto.title,
+        content: dto.content,
+        tags,
+        authorId,
+      },
     });
     return { id: post.id };
   }
@@ -143,13 +167,17 @@ export class CommunityService {
 
   /** 게시글 좋아요/싫어요. 같은 값을 다시 누르면 취소(토글)한다. */
   async votePost(postId: string, userId: string, value: 1 | -1) {
-    const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
+    const post = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+    });
     if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
     const existing = await this.prisma.communityPostVote.findUnique({
       where: { postId_userId: { postId, userId } },
     });
     if (existing && existing.value === value) {
-      await this.prisma.communityPostVote.delete({ where: { postId_userId: { postId, userId } } });
+      await this.prisma.communityPostVote.delete({
+        where: { postId_userId: { postId, userId } },
+      });
     } else {
       await this.prisma.communityPostVote.upsert({
         where: { postId_userId: { postId, userId } },
@@ -164,11 +192,20 @@ export class CommunityService {
     return summarizeVotes(votes, userId);
   }
 
-  async addComment(postId: string, userId: string, content: string, parentId?: string) {
-    const post = await this.prisma.communityPost.findUnique({ where: { id: postId } });
+  async addComment(
+    postId: string,
+    userId: string,
+    content: string,
+    parentId?: string,
+  ) {
+    const post = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+    });
     if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
     if (parentId) {
-      const parent = await this.prisma.communityComment.findUnique({ where: { id: parentId } });
+      const parent = await this.prisma.communityComment.findUnique({
+        where: { id: parentId },
+      });
       if (!parent || parent.postId !== postId) {
         throw new NotFoundException('답글 대상을 찾을 수 없습니다.');
       }
@@ -179,8 +216,14 @@ export class CommunityService {
     return { id: created.id };
   }
 
-  async deleteComment(commentId: string, requesterId: string, requesterRole: string) {
-    const comment = await this.prisma.communityComment.findUnique({ where: { id: commentId } });
+  async deleteComment(
+    commentId: string,
+    requesterId: string,
+    requesterRole: string,
+  ) {
+    const comment = await this.prisma.communityComment.findUnique({
+      where: { id: commentId },
+    });
     if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.');
     if (comment.userId !== requesterId && requesterRole !== 'ADMIN') {
       throw new ForbiddenException('이 댓글을 삭제할 권한이 없습니다.');
@@ -192,7 +235,9 @@ export class CommunityService {
 
   /** 댓글/답글 좋아요/싫어요. 같은 값을 다시 누르면 취소(토글)한다. */
   async voteComment(commentId: string, userId: string, value: 1 | -1) {
-    const comment = await this.prisma.communityComment.findUnique({ where: { id: commentId } });
+    const comment = await this.prisma.communityComment.findUnique({
+      where: { id: commentId },
+    });
     if (!comment) throw new NotFoundException('댓글을 찾을 수 없습니다.');
     const existing = await this.prisma.communityCommentVote.findUnique({
       where: { commentId_userId: { commentId, userId } },

@@ -44,6 +44,7 @@ export function SubmissionPage() {
         {submission.language} · {new Date(submission.createdAt).toLocaleString('ko-KR')}
         {submission.runtimeMs != null && ` · ${submission.runtimeMs}ms`}
         {submission.memoryKb != null && ` · ${submission.memoryKb}KB`}
+        {submission.score != null && ` · ${submission.score.toFixed(4).replace(/\.?0+$/, '')}점`}
       </p>
 
       {/* 컴파일러 로그처럼 테스트케이스가 하나씩 판정되는 걸 보여줌 */}
@@ -67,6 +68,11 @@ export function SubmissionPage() {
                 </span>
                 <span className="flex items-center gap-3">
                   {tr.runtimeMs != null && <span className="text-fg-muted">{tr.runtimeMs}ms</span>}
+                  {tr.score != null && (
+                    <span className="font-bold text-[var(--color-brand)]">
+                      {tr.score.toFixed(4).replace(/\.?0+$/, '')}점
+                    </span>
+                  )}
                   <VerdictBadge status={tr.status} />
                 </span>
               </li>

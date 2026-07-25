@@ -5,11 +5,19 @@ import { LanguageRunnerConfig } from '../judge/runners/runner.types';
 
 /** DB에서 오버라이드 가능한 언어별 설정(컴파일/실행 커맨드). */
 export type LanguageOverride = Partial<
-  Pick<LanguageRunnerConfig, 'compileCmd' | 'runCmd' | 'compileImage' | 'runImage'>
+  Pick<
+    LanguageRunnerConfig,
+    'compileCmd' | 'runCmd' | 'compileImage' | 'runImage'
+  >
 >;
 export type JudgeConfigMap = Record<string, LanguageOverride>;
 
-const ALLOWED_OVERRIDE_KEYS = new Set(['compileCmd', 'runCmd', 'compileImage', 'runImage']);
+const ALLOWED_OVERRIDE_KEYS = new Set([
+  'compileCmd',
+  'runCmd',
+  'compileImage',
+  'runImage',
+]);
 const IMAGE_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,199}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -27,50 +35,81 @@ export class JudgeConfigService {
     private readonly runnerFactory: RunnerFactory,
   ) {}
 
-  private normalizeCommand(value: unknown, field: string, allowNull: boolean): string[] | null {
+  private normalizeCommand(
+    value: unknown,
+    field: string,
+    allowNull: boolean,
+  ): string[] | null {
     if (value === null && allowNull) return null;
     if (!Array.isArray(value) || value.length < 1 || value.length > 64) {
-      throw new BadRequestException(`${field}는 1~64개 문자열로 된 배열이어야 합니다.`);
+      throw new BadRequestException(
+        `${field}는 1~64개 문자열로 된 배열이어야 합니다.`,
+      );
     }
-    if (value.some((arg) => typeof arg !== 'string' || arg.length > 512 || arg.includes('\0'))) {
-      throw new BadRequestException(`${field} 인자는 각각 512자 이하의 NUL 없는 문자열이어야 합니다.`);
+    if (
+      value.some(
+        (arg) =>
+          typeof arg !== 'string' || arg.length > 512 || arg.includes('\0'),
+      )
+    ) {
+      throw new BadRequestException(
+        `${field} 인자는 각각 512자 이하의 NUL 없는 문자열이어야 합니다.`,
+      );
     }
     return value as string[];
   }
 
   private normalizeConfig(value: unknown, strict: boolean): JudgeConfigMap {
     if (!isRecord(value)) {
-      if (strict) throw new BadRequestException('채점 설정은 언어별 객체여야 합니다.');
+      if (strict)
+        throw new BadRequestException('채점 설정은 언어별 객체여야 합니다.');
       return {};
     }
 
     const knownLanguages = new Set(Object.keys(this.runnerFactory.getAll()));
-    const result: JudgeConfigMap = Object.create(null);
+    const result: JudgeConfigMap = {};
     for (const [language, rawOverride] of Object.entries(value)) {
       if (!knownLanguages.has(language) || !isRecord(rawOverride)) {
-        if (strict) throw new BadRequestException(`지원하지 않는 채점 설정 언어/형식입니다: ${language}`);
+        if (strict)
+          throw new BadRequestException(
+            `지원하지 않는 채점 설정 언어/형식입니다: ${language}`,
+          );
         continue;
       }
-      const unknownKeys = Object.keys(rawOverride).filter((key) => !ALLOWED_OVERRIDE_KEYS.has(key));
+      const unknownKeys = Object.keys(rawOverride).filter(
+        (key) => !ALLOWED_OVERRIDE_KEYS.has(key),
+      );
       if (unknownKeys.length > 0) {
         if (strict) {
-          throw new BadRequestException(`${language} 설정에 허용되지 않는 키가 있습니다: ${unknownKeys.join(', ')}`);
+          throw new BadRequestException(
+            `${language} 설정에 허용되지 않는 키가 있습니다: ${unknownKeys.join(', ')}`,
+          );
         }
       }
 
       const normalized: LanguageOverride = {};
       try {
         if ('compileCmd' in rawOverride) {
-          normalized.compileCmd = this.normalizeCommand(rawOverride.compileCmd, `${language}.compileCmd`, true);
+          normalized.compileCmd = this.normalizeCommand(
+            rawOverride.compileCmd,
+            `${language}.compileCmd`,
+            true,
+          );
         }
         if ('runCmd' in rawOverride) {
-          normalized.runCmd = this.normalizeCommand(rawOverride.runCmd, `${language}.runCmd`, false)!;
+          normalized.runCmd = this.normalizeCommand(
+            rawOverride.runCmd,
+            `${language}.runCmd`,
+            false,
+          )!;
         }
         for (const field of ['compileImage', 'runImage'] as const) {
           if (!(field in rawOverride)) continue;
           const image = rawOverride[field];
           if (typeof image !== 'string' || !IMAGE_REFERENCE.test(image)) {
-            throw new BadRequestException(`${language}.${field} 이미지 참조 형식이 올바르지 않습니다.`);
+            throw new BadRequestException(
+              `${language}.${field} 이미지 참조 형식이 올바르지 않습니다.`,
+            );
           }
           normalized[field] = image;
         }
@@ -118,8 +157,12 @@ export class JudgeConfigService {
     }
     await this.prisma.judgeConfig.upsert({
       where: { id: 1 },
-      create: { id: 1, config: merged as any, updatedById },
-      update: { config: merged as any, updatedById },
+      create: {
+        id: 1,
+        config: merged,
+        updatedById,
+      },
+      update: { config: merged, updatedById },
     });
     return this.getEffective();
   }

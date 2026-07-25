@@ -22,7 +22,9 @@ describe('JudgeConfigService security', () => {
   });
 
   it('rejects malformed commands and image names', async () => {
-    await expect(service.update({ CPP: { runCmd: [] } })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.update({ CPP: { runCmd: [] } }),
+    ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       service.update({ CPP: { runImage: 'image name with spaces' } }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -30,9 +32,14 @@ describe('JudgeConfigService security', () => {
 
   it('stores a validated allowlisted override', async () => {
     upsert.mockResolvedValue({});
-    await service.update({ CPP: { runCmd: ['/box/a.out'], runImage: 'gcc:13-bookworm' } });
+    await service.update({
+      CPP: { runCmd: ['/box/a.out'], runImage: 'gcc:13-bookworm' },
+    });
     expect(upsert).toHaveBeenCalledTimes(1);
     const saved = upsert.mock.calls[0][0].create.config;
-    expect(saved.CPP).toEqual({ runCmd: ['/box/a.out'], runImage: 'gcc:13-bookworm' });
+    expect(saved.CPP).toEqual({
+      runCmd: ['/box/a.out'],
+      runImage: 'gcc:13-bookworm',
+    });
   });
 });

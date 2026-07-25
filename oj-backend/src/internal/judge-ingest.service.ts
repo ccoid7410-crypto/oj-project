@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RatingService } from '../rating/rating.service';
 import { SUBMISSION_UPDATES_CHANNEL } from '../common/realtime.constants';
 import type { JudgeResult } from '../judge/judge-protocol';
+import { SubmissionStatus } from '@prisma/client';
 
 /** 채점기가 보낸 값은 신뢰 경계 바깥에서 왔으므로 저장 전에 다시 자른다. */
 const MAX_ERROR_MESSAGE = 2000;
@@ -53,16 +54,27 @@ export class JudgeIngestService {
    */
   async ingest(result: JudgeResult): Promise<{ duplicate: boolean }> {
     const { submissionId, status } = result;
+    const scoreLimitRow = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { problem: { select: { maxScore: true } } },
+    });
+    const scoreLimit = Math.max(0, scoreLimitRow?.problem.maxScore ?? 0);
+    const safeScore =
+      result.score !== undefined && Number.isFinite(result.score)
+        ? Math.min(Math.max(result.score, 0), scoreLimit)
+        : null;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const updateResult = await tx.submission.updateMany({
         where: { id: submissionId, status: { in: ['PENDING', 'JUDGING'] } },
         data: {
-          status: status as any,
+          status: SubmissionStatus[status],
           judgedAt: new Date(),
           runtimeMs: result.runtimeMs ?? null,
           memoryKb: result.memoryKb ?? null,
-          errorMessage: result.errorMessage?.slice(0, MAX_ERROR_MESSAGE) ?? null,
+          score: safeScore,
+          errorMessage:
+            result.errorMessage?.slice(0, MAX_ERROR_MESSAGE) ?? null,
         },
       });
       if (updateResult.count !== 1) return 0;
@@ -75,8 +87,12 @@ export class JudgeIngestService {
           data: result.testResults.map((tr) => ({
             submissionId,
             testCaseId: tr.testCaseId,
-            status: tr.status as any,
+            status: SubmissionStatus[tr.status],
             runtimeMs: tr.runtimeMs,
+            score:
+              tr.score !== undefined && Number.isFinite(tr.score)
+                ? Math.min(Math.max(tr.score, 0), scoreLimit)
+                : null,
             output: tr.output.slice(0, MAX_TEST_OUTPUT),
           })),
         });
@@ -85,7 +101,9 @@ export class JudgeIngestService {
     });
 
     if (updated !== 1) {
-      this.logger.warn(`이미 확정된 제출에 대한 중복 결과 보고를 무시했습니다: ${submissionId}`);
+      this.logger.warn(
+        `이미 확정된 제출에 대한 중복 결과 보고를 무시했습니다: ${submissionId}`,
+      );
       return { duplicate: true };
     }
 
@@ -96,7 +114,10 @@ export class JudgeIngestService {
         select: { userId: true, problemId: true },
       });
       if (submission) {
-        const firstAccept = await this.rating.isFirstAccept(submission.userId, submission.problemId);
+        const firstAccept = await this.rating.isFirstAccept(
+          submission.userId,
+          submission.problemId,
+        );
         if (firstAccept) await this.rating.recomputeForUser(submission.userId);
       }
     }
@@ -108,15 +129,23 @@ export class JudgeIngestService {
     await this.publish({
       submissionId,
       status,
-      ...(result.runtimeMs !== undefined ? { runtimeMs: result.runtimeMs } : {}),
+      ...(result.runtimeMs !== undefined
+        ? { runtimeMs: result.runtimeMs }
+        : {}),
       ...(result.memoryKb !== undefined ? { memoryKb: result.memoryKb } : {}),
-      ...(result.errorMessage ? { errorMessage: result.errorMessage.slice(0, MAX_ERROR_MESSAGE) } : {}),
+      ...(safeScore !== null ? { score: safeScore } : {}),
+      ...(result.errorMessage
+        ? { errorMessage: result.errorMessage.slice(0, MAX_ERROR_MESSAGE) }
+        : {}),
     });
 
     return { duplicate: false };
   }
 
   private async publish(payload: Record<string, unknown>): Promise<void> {
-    await this.publisher.publish(SUBMISSION_UPDATES_CHANNEL, JSON.stringify(payload));
+    await this.publisher.publish(
+      SUBMISSION_UPDATES_CHANNEL,
+      JSON.stringify(payload),
+    );
   }
 }

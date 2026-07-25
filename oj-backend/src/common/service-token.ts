@@ -12,7 +12,10 @@ const MIN_TOKEN_BYTES = 32;
  * 가드 안에서 터지면 500이 나가면서 크래시 벡터가 된다. 그래서 양쪽을 sha256으로 먼저
  * 고정 길이(32바이트)로 만든 뒤 비교한다. (apikeys/apikey.service.ts가 API 키를 다루는 방식과 동일)
  */
-export function serviceTokenMatches(presented: string | undefined | null, expected: string): boolean {
+export function serviceTokenMatches(
+  presented: string | undefined | null,
+  expected: string,
+): boolean {
   if (!presented || !expected) return false;
   const a = createHash('sha256').update(presented, 'utf8').digest();
   const b = createHash('sha256').update(expected, 'utf8').digest();
@@ -33,12 +36,15 @@ export function serviceTokenAccepted(
   expectedPrevious?: string,
 ): boolean {
   if (serviceTokenMatches(presented, expected)) return true;
-  if (expectedPrevious && serviceTokenMatches(presented, expectedPrevious)) return true;
+  if (expectedPrevious && serviceTokenMatches(presented, expectedPrevious))
+    return true;
   return false;
 }
 
 /** `Authorization: Bearer <token>` 에서 토큰만 꺼낸다. 형식이 아니면 undefined. */
-export function extractBearerToken(header: string | undefined): string | undefined {
+export function extractBearerToken(
+  header: string | undefined,
+): string | undefined {
   if (!header) return undefined;
   const [scheme, ...rest] = header.split(' ');
   if (scheme?.toLowerCase() !== 'bearer') return undefined;
@@ -56,7 +62,10 @@ export function requireServiceToken(
   key: string,
 ): string {
   const token = config.get(key)?.trim() ?? '';
-  if (PLACEHOLDER_TOKENS.has(token) || Buffer.byteLength(token, 'utf8') < MIN_TOKEN_BYTES) {
+  if (
+    PLACEHOLDER_TOKENS.has(token) ||
+    Buffer.byteLength(token, 'utf8') < MIN_TOKEN_BYTES
+  ) {
     throw new Error(
       `${key}는 예시값이 아닌 ${MIN_TOKEN_BYTES}바이트 이상의 무작위 값이어야 합니다. ./setup.sh를 실행하세요.`,
     );

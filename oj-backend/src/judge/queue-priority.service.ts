@@ -13,7 +13,10 @@ export class QueuePriorityService {
 
   /** 부원 여부는 학번 명단 대신 계정 권한(MEMBER 이상)으로 판단한다. */
   private async isClubMember(userId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
     return user?.role === 'MEMBER' || user?.role === 'ADMIN';
   }
 
@@ -21,14 +24,17 @@ export class QueuePriorityService {
   async nextPriority(userId: string): Promise<number> {
     const isClub = await this.isClubMember(userId);
     const stride = isClub ? CLUB_STRIDE : GENERAL_STRIDE;
-    const field = isClub ? 'clubPass' : 'generalPass';
 
     // upsert로 초기 행을 보장한 뒤, 원자적 증가(UPDATE ... SET col = col + N)로
     // 동시 제출 간 경쟁 상태 없이 각자 다른 pass 값을 받는다.
     const updated = await this.prisma.queuePassState.upsert({
       where: { id: 1 },
-      create: { id: 1, [field]: stride } as any,
-      update: { [field]: { increment: stride } } as any,
+      create: isClub
+        ? { id: 1, clubPass: stride }
+        : { id: 1, generalPass: stride },
+      update: isClub
+        ? { clubPass: { increment: stride } }
+        : { generalPass: { increment: stride } },
     });
 
     const afterValue = isClub ? updated.clubPass : updated.generalPass;

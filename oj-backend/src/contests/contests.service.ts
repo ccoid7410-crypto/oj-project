@@ -1,8 +1,16 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContestDto, ContestProblemDto } from './dto/contest.dto';
 
-function phaseOf(startsAt: Date, endsAt: Date, now = new Date()): 'UPCOMING' | 'RUNNING' | 'ENDED' {
+function phaseOf(
+  startsAt: Date,
+  endsAt: Date,
+  now = new Date(),
+): 'UPCOMING' | 'RUNNING' | 'ENDED' {
   if (now < startsAt) return 'UPCOMING';
   if (now > endsAt) return 'ENDED';
   return 'RUNNING';
@@ -15,7 +23,8 @@ export class ContestsService {
   async create(creatorId: string, dto: CreateContestDto) {
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
-    if (endsAt <= startsAt) throw new BadRequestException('종료 시각은 시작 시각보다 뒤여야 합니다.');
+    if (endsAt <= startsAt)
+      throw new BadRequestException('종료 시각은 시작 시각보다 뒤여야 합니다.');
 
     return this.prisma.contest.create({
       data: {
@@ -65,7 +74,17 @@ export class ContestsService {
         createdBy: { select: { username: true } },
         problems: {
           orderBy: { order: 'asc' },
-          include: { problem: { select: { id: true, title: true, slug: true, difficulty: true, level: true } } },
+          include: {
+            problem: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                difficulty: true,
+                level: true,
+              },
+            },
+          },
         },
         _count: { select: { participants: true } },
       },
@@ -109,7 +128,9 @@ export class ContestsService {
   }
 
   async register(contestId: string, userId: string) {
-    const contest = await this.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await this.prisma.contest.findUnique({
+      where: { id: contestId },
+    });
     if (!contest) throw new NotFoundException('대회를 찾을 수 없습니다.');
     if (phaseOf(contest.startsAt, contest.endsAt) === 'ENDED') {
       throw new BadRequestException('이미 종료된 대회입니다.');
@@ -123,7 +144,9 @@ export class ContestsService {
   }
 
   async setProblems(contestId: string, problems: ContestProblemDto[]) {
-    const contest = await this.prisma.contest.findUnique({ where: { id: contestId } });
+    const contest = await this.prisma.contest.findUnique({
+      where: { id: contestId },
+    });
     if (!contest) throw new NotFoundException('대회를 찾을 수 없습니다.');
     await this.prisma.contestProblem.deleteMany({ where: { contestId } });
     await this.prisma.contestProblem.createMany({
@@ -135,7 +158,10 @@ export class ContestsService {
         points: p.points ?? 100,
       })),
     });
-    return this.prisma.contestProblem.findMany({ where: { contestId }, orderBy: { order: 'asc' } });
+    return this.prisma.contestProblem.findMany({
+      where: { contestId },
+      orderBy: { order: 'asc' },
+    });
   }
 
   /**
@@ -147,13 +173,19 @@ export class ContestsService {
       where: { slug },
       include: {
         problems: { orderBy: { order: 'asc' } },
-        participants: { include: { user: { select: { id: true, username: true } } } },
+        participants: {
+          include: { user: { select: { id: true, username: true } } },
+        },
       },
     });
     if (!contest) throw new NotFoundException('대회를 찾을 수 없습니다.');
 
-    const problemPoints = new Map(contest.problems.map((cp) => [cp.problemId, cp.points]));
-    const problemLabel = new Map(contest.problems.map((cp) => [cp.problemId, cp.label]));
+    const problemPoints = new Map(
+      contest.problems.map((cp) => [cp.problemId, cp.points]),
+    );
+    const problemLabel = new Map(
+      contest.problems.map((cp) => [cp.problemId, cp.label]),
+    );
 
     // 대회 창 내 정답 제출만 조회
     const acSubs = await this.prisma.submission.findMany({
@@ -170,18 +202,29 @@ export class ContestsService {
     for (const s of acSubs) {
       if (!firstAc.has(s.userId)) firstAc.set(s.userId, new Map());
       const m = firstAc.get(s.userId)!;
-      if (!m.has(s.problemId) || s.createdAt < m.get(s.problemId)!) m.set(s.problemId, s.createdAt);
+      if (!m.has(s.problemId) || s.createdAt < m.get(s.problemId)!)
+        m.set(s.problemId, s.createdAt);
     }
 
     const rows = contest.participants.map((p) => {
       const solvedMap = firstAc.get(p.userId) ?? new Map<string, Date>();
-      const solved: Array<{ problemId: string; label: string; minutes: number }> = [];
+      const solved: Array<{
+        problemId: string;
+        label: string;
+        minutes: number;
+      }> = [];
       let score = 0;
       let totalMinutes = 0;
       for (const [problemId, at] of solvedMap) {
         if (!problemPoints.has(problemId)) continue; // 대회에서 제외된 문제 방어
-        const minutes = Math.floor((at.getTime() - contest.startsAt.getTime()) / 60000);
-        solved.push({ problemId, label: problemLabel.get(problemId) ?? '?', minutes });
+        const minutes = Math.floor(
+          (at.getTime() - contest.startsAt.getTime()) / 60000,
+        );
+        solved.push({
+          problemId,
+          label: problemLabel.get(problemId) ?? '?',
+          minutes,
+        });
         score += problemPoints.get(problemId)!;
         totalMinutes += minutes;
       }

@@ -18,7 +18,15 @@ import { SubmissionCompletionRegistry } from './submission-completion.registry';
 @Global()
 @Module({
   imports: [JudgeConfigModule, RatingModule],
-  providers: [JudgePayloadService, JudgeIngestService, SubmissionCompletionRegistry],
-  exports: [JudgePayloadService, JudgeIngestService, SubmissionCompletionRegistry],
+  providers: [
+    JudgePayloadService,
+    JudgeIngestService,
+    SubmissionCompletionRegistry,
+  ],
+  exports: [
+    JudgePayloadService,
+    JudgeIngestService,
+    SubmissionCompletionRegistry,
+  ],
 })
 export class InternalModule {}

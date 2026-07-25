@@ -14,7 +14,11 @@ import { InternalTokenGuard } from './internal-token.guard';
  * 토큰 가드가 막긴 하지만, 애초에 그 포트에 라우트가 존재하지 않게 만드는 편이 확실하다.
  */
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, InternalModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    InternalModule,
+  ],
   controllers: [InternalJudgeController],
   providers: [InternalTokenGuard],
 })

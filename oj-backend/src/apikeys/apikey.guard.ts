@@ -9,6 +9,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ApiKeyService } from './apikey.service';
 import { API_KEY_SCOPES_KEY } from './require-scopes.decorator';
+import type { Request } from 'express';
+
+interface ApiKeyRequest extends Request {
+  apiKey?: NonNullable<Awaited<ReturnType<ApiKeyService['verify']>>>;
+}
 
 /** x-api-key 헤더(또는 Authorization: ApiKey <key>)를 검증하는 서비스간 인증 가드. */
 @Injectable()
@@ -21,7 +26,7 @@ export class ApiKeyGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<ApiKeyRequest>();
     const header = req.headers['x-api-key'];
     const authz = req.headers['authorization'];
     let raw: string | undefined = Array.isArray(header) ? header[0] : header;
@@ -31,14 +36,16 @@ export class ApiKeyGuard implements CanActivate {
     const key = await this.apiKeys.verify(raw ?? '');
     if (!key) throw new UnauthorizedException('유효하지 않은 API 키입니다.');
 
-    const requiredScopes = this.reflector.getAllAndOverride<string[]>(API_KEY_SCOPES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredScopes = this.reflector.getAllAndOverride<string[]>(
+      API_KEY_SCOPES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     if (requiredScopes?.length) {
       const missing = requiredScopes.filter((s) => !key.scopes.includes(s));
       if (missing.length) {
-        throw new ForbiddenException(`이 API 키에는 다음 scope가 없습니다: ${missing.join(', ')}`);
+        throw new ForbiddenException(
+          `이 API 키에는 다음 scope가 없습니다: ${missing.join(', ')}`,
+        );
       }
     }
 

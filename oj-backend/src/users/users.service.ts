@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,7 +33,9 @@ const AVATAR_MAGIC: Array<{ mime: string; bytes: number[] }> = [
 
 function randomPassword(): string {
   // 사람이 옮겨적기 쉬운 12자리 임시 비밀번호
-  return randomBytes(9).toString('base64').replace(/[+/=]/g, '').slice(0, 12) + '1';
+  return (
+    randomBytes(9).toString('base64').replace(/[+/=]/g, '').slice(0, 12) + '1'
+  );
 }
 
 @Injectable()
@@ -103,7 +110,12 @@ export class UsersService {
             {
               contestOnly: true,
               contestProblems: {
-                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+                some: {
+                  contest: {
+                    endsAt: { lt: new Date() },
+                    problemsVisibleAfterEnd: true,
+                  },
+                },
               },
             },
           ],
@@ -111,7 +123,16 @@ export class UsersService {
       },
       distinct: ['problemId'],
       select: {
-        problem: { select: { id: true, displayId: true, title: true, slug: true, difficulty: true, level: true } },
+        problem: {
+          select: {
+            id: true,
+            displayId: true,
+            title: true,
+            slug: true,
+            difficulty: true,
+            level: true,
+          },
+        },
       },
     });
     const solvedProblems = solved
@@ -121,7 +142,9 @@ export class UsersService {
 
     const rank =
       user.rating > 0
-        ? (await this.prisma.user.count({ where: { rating: { gt: user.rating } } })) + 1
+        ? (await this.prisma.user.count({
+            where: { rating: { gt: user.rating } },
+          })) + 1
         : null;
 
     return {
@@ -134,8 +157,12 @@ export class UsersService {
       websites: user.websites,
       // 이미지 바이트 대신 버전(타임스탬프)만 내려준다. 프론트는 이 값으로
       // /users/:username/avatar?v=... URL을 만들고, null이면 기본(회색) 아바타를 그린다.
-      avatarVersion: user.avatarUpdatedAt ? user.avatarUpdatedAt.getTime() : null,
-      bannerVersion: user.bannerUpdatedAt ? user.bannerUpdatedAt.getTime() : null,
+      avatarVersion: user.avatarUpdatedAt
+        ? user.avatarUpdatedAt.getTime()
+        : null,
+      bannerVersion: user.bannerUpdatedAt
+        ? user.bannerUpdatedAt.getTime()
+        : null,
       solvedCount: solved.length,
       rank,
       solvedProblems,
@@ -143,7 +170,10 @@ export class UsersService {
   }
 
   /** 본인 프로필 커스터마이징(bio/사이트 목록). 값 검증은 컨트롤러 DTO가 담당한다. */
-  async updateProfile(userId: string, dto: { bio?: string | null; websites?: string[] }) {
+  async updateProfile(
+    userId: string,
+    dto: { bio?: string | null; websites?: string[] },
+  ) {
     const data: { bio?: string | null; websites?: string[] } = {};
     if (dto.bio !== undefined) data.bio = dto.bio?.trim() || null;
     if (dto.websites !== undefined) {
@@ -166,7 +196,9 @@ export class UsersService {
   /** 프로필 이미지 업로드(base64). 형식/크기를 서버에서도 강제한다. */
   async updateAvatar(userId: string, mime: string, base64Data: string) {
     if (!AVATAR_ALLOWED_MIMES.has(mime)) {
-      throw new BadRequestException('PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.');
+      throw new BadRequestException(
+        'PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.',
+      );
     }
     let bytes: Buffer;
     try {
@@ -174,7 +206,8 @@ export class UsersService {
     } catch {
       throw new BadRequestException('이미지 데이터가 올바르지 않습니다.');
     }
-    if (bytes.length === 0) throw new BadRequestException('이미지 데이터가 비어 있습니다.');
+    if (bytes.length === 0)
+      throw new BadRequestException('이미지 데이터가 비어 있습니다.');
     if (bytes.length > AVATAR_MAX_BYTES) {
       throw new BadRequestException('이미지는 1MB 이하여야 합니다.');
     }
@@ -182,15 +215,22 @@ export class UsersService {
     const matches =
       bytes.length > 12 &&
       magic.bytes.every((b, i) => bytes[i] === b) &&
-      (mime !== 'image/webp' || bytes.subarray(8, 12).toString('ascii') === 'WEBP');
+      (mime !== 'image/webp' ||
+        bytes.subarray(8, 12).toString('ascii') === 'WEBP');
     if (!matches) {
-      throw new BadRequestException('이미지 파일 내용이 형식과 일치하지 않습니다.');
+      throw new BadRequestException(
+        '이미지 파일 내용이 형식과 일치하지 않습니다.',
+      );
     }
     const updatedAt = new Date();
     await this.prisma.user.update({
       where: { id: userId },
       // Prisma 6의 Bytes는 Uint8Array 타입이라 Buffer를 그대로 못 넘긴다.
-      data: { avatar: new Uint8Array(bytes), avatarMime: mime, avatarUpdatedAt: updatedAt },
+      data: {
+        avatar: new Uint8Array(bytes),
+        avatarMime: mime,
+        avatarUpdatedAt: updatedAt,
+      },
     });
     return { avatarVersion: updatedAt.getTime() };
   }
@@ -207,7 +247,9 @@ export class UsersService {
   /** 프로필 배너 업로드(base64). 아바타와 같은 검증에 크기 상한만 다르다. */
   async updateBanner(userId: string, mime: string, base64Data: string) {
     if (!AVATAR_ALLOWED_MIMES.has(mime)) {
-      throw new BadRequestException('PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.');
+      throw new BadRequestException(
+        'PNG/JPEG/WebP 이미지만 업로드할 수 있습니다.',
+      );
     }
     let bytes: Buffer;
     try {
@@ -215,7 +257,8 @@ export class UsersService {
     } catch {
       throw new BadRequestException('이미지 데이터가 올바르지 않습니다.');
     }
-    if (bytes.length === 0) throw new BadRequestException('이미지 데이터가 비어 있습니다.');
+    if (bytes.length === 0)
+      throw new BadRequestException('이미지 데이터가 비어 있습니다.');
     if (bytes.length > BANNER_MAX_BYTES) {
       throw new BadRequestException('배너 이미지는 2MB 이하여야 합니다.');
     }
@@ -223,14 +266,21 @@ export class UsersService {
     const matches =
       bytes.length > 12 &&
       magic.bytes.every((b, i) => bytes[i] === b) &&
-      (mime !== 'image/webp' || bytes.subarray(8, 12).toString('ascii') === 'WEBP');
+      (mime !== 'image/webp' ||
+        bytes.subarray(8, 12).toString('ascii') === 'WEBP');
     if (!matches) {
-      throw new BadRequestException('이미지 파일 내용이 형식과 일치하지 않습니다.');
+      throw new BadRequestException(
+        '이미지 파일 내용이 형식과 일치하지 않습니다.',
+      );
     }
     const updatedAt = new Date();
     await this.prisma.user.update({
       where: { id: userId },
-      data: { banner: new Uint8Array(bytes), bannerMime: mime, bannerUpdatedAt: updatedAt },
+      data: {
+        banner: new Uint8Array(bytes),
+        bannerMime: mime,
+        bannerUpdatedAt: updatedAt,
+      },
     });
     return { bannerVersion: updatedAt.getTime() };
   }
@@ -263,7 +313,11 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (!user.avatar || !user.avatarMime) return null;
-    return { bytes: Buffer.from(user.avatar), mime: user.avatarMime, updatedAt: user.avatarUpdatedAt };
+    return {
+      bytes: Buffer.from(user.avatar),
+      mime: user.avatarMime,
+      updatedAt: user.avatarUpdatedAt,
+    };
   }
 
   /**
@@ -276,18 +330,28 @@ export class UsersService {
       where: { rating: { gt: 0 } },
       orderBy: { rating: 'desc' },
       take,
-      select: { id: true, username: true, customTitle: true, rating: true, avatarUpdatedAt: true },
+      select: {
+        id: true,
+        username: true,
+        customTitle: true,
+        rating: true,
+        avatarUpdatedAt: true,
+      },
     });
     if (users.length === 0) return [];
 
     const userIds = users.map((u) => u.id);
-    const rows = await this.prisma.$queryRaw<Array<{ userId: string; solvedCount: bigint }>>`
+    const rows = await this.prisma.$queryRaw<
+      Array<{ userId: string; solvedCount: bigint }>
+    >`
       SELECT "userId", COUNT(DISTINCT "problemId") AS "solvedCount"
       FROM submissions
       WHERE status = 'ACCEPTED' AND "userId" = ANY(${userIds})
       GROUP BY "userId"
     `;
-    const solvedCounts = new Map(rows.map((r) => [r.userId, Number(r.solvedCount)]));
+    const solvedCounts = new Map(
+      rows.map((r) => [r.userId, Number(r.solvedCount)]),
+    );
 
     return users.map((u, i) => ({
       rank: i + 1,
@@ -308,7 +372,9 @@ export class UsersService {
   async bulkCreate(specs: BulkUserSpec[]) {
     if (!specs.length) throw new BadRequestException('생성할 계정이 없습니다.');
     if (specs.length > BULK_CREATE_MAX) {
-      throw new BadRequestException(`한 번에 최대 ${BULK_CREATE_MAX}개까지 생성할 수 있습니다.`);
+      throw new BadRequestException(
+        `한 번에 최대 ${BULK_CREATE_MAX}개까지 생성할 수 있습니다.`,
+      );
     }
 
     // 요청 내 중복 username 사전 차단
@@ -317,11 +383,17 @@ export class UsersService {
       if (!/^[a-zA-Z0-9_]{3,20}$/.test(s.username)) {
         throw new BadRequestException(`username 형식 오류: ${s.username}`);
       }
-      if (seen.has(s.username)) throw new BadRequestException(`요청 내 username 중복: ${s.username}`);
+      if (seen.has(s.username))
+        throw new BadRequestException(`요청 내 username 중복: ${s.username}`);
       seen.add(s.username);
     }
 
-    const created: Array<{ username: string; email: string; password: string; role: string }> = [];
+    const created: Array<{
+      username: string;
+      email: string;
+      password: string;
+      role: string;
+    }> = [];
     const skipped: Array<{ username: string; reason: string }> = [];
 
     for (const s of specs) {
@@ -332,7 +404,10 @@ export class UsersService {
         select: { id: true },
       });
       if (exists) {
-        skipped.push({ username: s.username, reason: '이미 존재하는 username/email' });
+        skipped.push({
+          username: s.username,
+          reason: '이미 존재하는 username/email',
+        });
         continue;
       }
       const passwordHash = await bcrypt.hash(password, 10);
@@ -349,15 +424,23 @@ export class UsersService {
       created.push({ username: s.username, email, password, role: 'USER' });
     }
 
-    return { createdCount: created.length, skippedCount: skipped.length, created, skipped };
+    return {
+      createdCount: created.length,
+      skippedCount: skipped.length,
+      created,
+      skipped,
+    };
   }
 
   /** count개 계정을 prefix0001 형태로 자동 생성. */
   async bulkGenerate(count: number, prefix: string) {
     if (count < 1 || count > BULK_CREATE_MAX) {
-      throw new BadRequestException(`count는 1~${BULK_CREATE_MAX} 사이여야 합니다.`);
+      throw new BadRequestException(
+        `count는 1~${BULK_CREATE_MAX} 사이여야 합니다.`,
+      );
     }
-    if (!/^[a-zA-Z0-9_]{1,15}$/.test(prefix)) throw new BadRequestException('prefix 형식 오류');
+    if (!/^[a-zA-Z0-9_]{1,15}$/.test(prefix))
+      throw new BadRequestException('prefix 형식 오류');
     const pad = String(count).length;
     const specs: BulkUserSpec[] = [];
     for (let i = 1; i <= count; i++) {
@@ -371,7 +454,12 @@ export class UsersService {
     const q = query.trim();
     return this.prisma.user.findMany({
       where: q
-        ? { OR: [{ username: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] }
+        ? {
+            OR: [
+              { username: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+            ],
+          }
         : undefined,
       select: {
         id: true,
@@ -399,21 +487,35 @@ export class UsersService {
   async ban(id: string, reason: string | undefined, actingRole: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
-    if (user.role === 'ADMIN') throw new BadRequestException('관리자 계정은 정지할 수 없습니다.');
+    if (user.role === 'ADMIN')
+      throw new BadRequestException('관리자 계정은 정지할 수 없습니다.');
     if (actingRole === 'TEACHER' && user.role === 'TEACHER') {
       throw new ForbiddenException('선생님 계정은 정지할 수 없습니다.');
     }
     return this.prisma.user.update({
       where: { id },
-      data: { banned: true, bannedReason: reason ?? null, bannedAt: new Date() },
-      select: { id: true, username: true, banned: true, bannedReason: true, bannedAt: true },
+      data: {
+        banned: true,
+        bannedReason: reason ?? null,
+        bannedAt: new Date(),
+      },
+      select: {
+        id: true,
+        username: true,
+        banned: true,
+        bannedReason: true,
+        bannedAt: true,
+      },
     });
   }
 
   async unban(id: string, actingRole: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
-    if (actingRole === 'TEACHER' && (user.role === 'TEACHER' || user.role === 'ADMIN')) {
+    if (
+      actingRole === 'TEACHER' &&
+      (user.role === 'TEACHER' || user.role === 'ADMIN')
+    ) {
       throw new ForbiddenException('이 계정의 정지를 해제할 권한이 없습니다.');
     }
     return this.prisma.user.update({
@@ -426,7 +528,10 @@ export class UsersService {
   /** 관리자가 지정하는 공개 칭호. 공백만 입력하면 칭호를 해제한다. */
   async setCustomTitle(id: string, title: string) {
     const customTitle = title.trim() || null;
-    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     return this.prisma.user.update({
       where: { id },
@@ -439,7 +544,15 @@ export class UsersService {
   async clubProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { username: true, email: true, name: true, studentId: true, rating: true, role: true, createdAt: true },
+      select: {
+        username: true,
+        email: true,
+        name: true,
+        studentId: true,
+        rating: true,
+        role: true,
+        createdAt: true,
+      },
     });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
 
@@ -456,7 +569,10 @@ export class UsersService {
   }
 
   /** 기본 제출 언어 설정. 문제 페이지에서 자동 선택된다. */
-  async updatePreferredLanguage(userId: string, language: 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO') {
+  async updatePreferredLanguage(
+    userId: string,
+    language: 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO',
+  ) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { preferredLanguage: language },
@@ -469,29 +585,44 @@ export class UsersService {
    * 이 계정이 만든 콘텐츠(문제/대회/수업/공지)가 있으면 다른 회원의 기록까지 얽혀 있어 막는다.
    */
   private async purgeAccount(id: string) {
-    const [problemCount, contestCount, classCount, noticeCount] = await Promise.all([
-      this.prisma.problem.count({ where: { authorId: id } }),
-      this.prisma.contest.count({ where: { createdById: id } }),
-      this.prisma.classRoom.count({ where: { createdById: id } }),
-      this.prisma.classNotice.count({ where: { createdById: id } }),
-    ]);
+    const [problemCount, contestCount, classCount, noticeCount] =
+      await Promise.all([
+        this.prisma.problem.count({ where: { authorId: id } }),
+        this.prisma.contest.count({ where: { createdById: id } }),
+        this.prisma.classRoom.count({ where: { createdById: id } }),
+        this.prisma.classNotice.count({ where: { createdById: id } }),
+      ]);
     if (problemCount > 0) {
-      throw new BadRequestException('이 계정이 만든 문제가 있어 삭제할 수 없습니다. 문제를 먼저 삭제해주세요.');
+      throw new BadRequestException(
+        '이 계정이 만든 문제가 있어 삭제할 수 없습니다. 문제를 먼저 삭제해주세요.',
+      );
     }
     if (contestCount > 0) {
-      throw new BadRequestException('이 계정이 만든 대회가 있어 삭제할 수 없습니다. 대회를 먼저 삭제해주세요.');
+      throw new BadRequestException(
+        '이 계정이 만든 대회가 있어 삭제할 수 없습니다. 대회를 먼저 삭제해주세요.',
+      );
     }
     if (classCount > 0) {
-      throw new BadRequestException('이 계정이 만든 수업이 있어 삭제할 수 없습니다. 수업을 먼저 삭제해주세요.');
+      throw new BadRequestException(
+        '이 계정이 만든 수업이 있어 삭제할 수 없습니다. 수업을 먼저 삭제해주세요.',
+      );
     }
     if (noticeCount > 0) {
-      throw new BadRequestException('이 계정이 작성한 수업 공지가 있어 삭제할 수 없습니다. 공지를 먼저 삭제해주세요.');
+      throw new BadRequestException(
+        '이 계정이 작성한 수업 공지가 있어 삭제할 수 없습니다. 공지를 먼저 삭제해주세요.',
+      );
     }
 
     await this.prisma.$transaction([
       // 남겨야 하는 기록에서 이 계정을 가리키는 참조만 비운다
-      this.prisma.adminNotification.updateMany({ where: { voterId: id }, data: { voterId: null } }),
-      this.prisma.problem.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } }),
+      this.prisma.adminNotification.updateMany({
+        where: { voterId: id },
+        data: { voterId: null },
+      }),
+      this.prisma.problem.updateMany({
+        where: { reviewedById: id },
+        data: { reviewedById: null },
+      }),
       // 본인의 활동 기록 삭제 (제출의 테스트 결과, 댓글의 대댓글은 cascade로 함께 삭제됨)
       this.prisma.submission.deleteMany({ where: { userId: id } }),
       this.prisma.problemComment.deleteMany({ where: { userId: id } }),
@@ -509,7 +640,9 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === 'ADMIN') {
-      throw new BadRequestException('관리자 계정은 삭제할 수 없습니다. 먼저 관리자 권한을 해제하세요.');
+      throw new BadRequestException(
+        '관리자 계정은 삭제할 수 없습니다. 먼저 관리자 권한을 해제하세요.',
+      );
     }
     return this.purgeAccount(id);
   }
@@ -519,7 +652,9 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === 'ADMIN') {
-      throw new BadRequestException('관리자 계정은 탈퇴할 수 없습니다. 다른 관리자에게 권한 해제를 먼저 요청하세요.');
+      throw new BadRequestException(
+        '관리자 계정은 탈퇴할 수 없습니다. 다른 관리자에게 권한 해제를 먼저 요청하세요.',
+      );
     }
     const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) throw new ForbiddenException('비밀번호가 올바르지 않습니다.');
@@ -547,7 +682,10 @@ export class UsersService {
       select: { username: true, name: true, email: true },
       orderBy: [{ name: 'asc' }, { username: 'asc' }],
     });
-    const byGeneration = new Map<string, { username: string; name: string | null }[]>();
+    const byGeneration = new Map<
+      string,
+      { username: string; name: string | null }[]
+    >();
     for (const u of users) {
       const match = u.email.split('@')[0].match(/\d{2}/);
       const key = match ? match[0] : '기타';
@@ -565,7 +703,11 @@ export class UsersService {
   }
 
   /** 권한 변경 (USER=일반, MEMBER=부원, ADMIN=관리자). 관리자 강등에는 잠금 사고 방지 장치가 걸려 있다. */
-  async setRole(id: string, role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN', actingUserId: string) {
+  async setRole(
+    id: string,
+    role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN',
+    actingUserId: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     if (user.role === role) {
@@ -574,18 +716,28 @@ export class UsersService {
     // 관리자를 강등(ADMIN -> MEMBER/USER)할 때의 보호 장치들
     if (user.role === 'ADMIN') {
       if (user.isRootAdmin) {
-        throw new BadRequestException('메인 관리자의 권한은 해제할 수 없습니다.');
+        throw new BadRequestException(
+          '메인 관리자의 권한은 해제할 수 없습니다.',
+        );
       }
       if (id === actingUserId) {
-        throw new BadRequestException('본인의 관리자 권한은 스스로 해제할 수 없습니다.');
+        throw new BadRequestException(
+          '본인의 관리자 권한은 스스로 해제할 수 없습니다.',
+        );
       }
-      const adminCount = await this.prisma.user.count({ where: { role: 'ADMIN' } });
+      const adminCount = await this.prisma.user.count({
+        where: { role: 'ADMIN' },
+      });
       if (adminCount <= 1) {
-        throw new BadRequestException('마지막 관리자의 권한은 해제할 수 없습니다.');
+        throw new BadRequestException(
+          '마지막 관리자의 권한은 해제할 수 없습니다.',
+        );
       }
     }
     if (role !== 'USER' && user.banned) {
-      throw new BadRequestException('정지된 계정에는 권한을 부여할 수 없습니다.');
+      throw new BadRequestException(
+        '정지된 계정에는 권한을 부여할 수 없습니다.',
+      );
     }
     return this.prisma.user.update({
       where: { id },
@@ -595,20 +747,31 @@ export class UsersService {
   }
 
   /** 본인 비밀번호 변경. 대량 생성된 계정의 mustChangePassword 플래그도 여기서 해제된다. */
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     if (Buffer.byteLength(newPassword, 'utf8') > 72) {
-      throw new BadRequestException('새 비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.');
+      throw new BadRequestException(
+        '새 비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.',
+      );
     }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     const matches = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!matches) throw new ForbiddenException('현재 비밀번호가 올바르지 않습니다.');
+    if (!matches)
+      throw new ForbiddenException('현재 비밀번호가 올바르지 않습니다.');
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
       // authVersion을 올리면 비밀번호 변경 전에 발급된 JWT와 WebSocket 세션이 모두 무효화된다.
-      data: { passwordHash, mustChangePassword: false, authVersion: { increment: 1 } },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        authVersion: { increment: 1 },
+      },
     });
     return { success: true };
   }

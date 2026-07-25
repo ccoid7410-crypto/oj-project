@@ -8,7 +8,12 @@ describe('AppController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [{ provide: AppService, useValue: { getHello: () => 'Durunuri OJ API' } }],
+      providers: [
+        {
+          provide: AppService,
+          useValue: { getHello: () => 'Durunuri OJ API' },
+        },
+      ],
     }).compile();
 
     appController = app.get<AppController>(AppController);

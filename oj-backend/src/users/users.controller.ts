@@ -13,7 +13,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, Length, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,7 +34,9 @@ import type { RequestUser } from '../auth/jwt.strategy';
 
 class UpdateStudentIdDto {
   @IsString()
-  @Matches(/^[a-zA-Z0-9-]{1,20}$/, { message: '학번 형식이 올바르지 않습니다.' })
+  @Matches(/^[a-zA-Z0-9-]{1,20}$/, {
+    message: '학번 형식이 올바르지 않습니다.',
+  })
   studentId: string;
 }
 
@@ -69,7 +81,10 @@ class UpdateProfileDto {
   @IsArray()
   @ArrayMaxSize(5, { message: '사이트는 최대 5개까지 등록할 수 있습니다.' })
   @IsString({ each: true })
-  @MaxLength(200, { each: true, message: '사이트 주소는 200자 이하여야 합니다.' })
+  @MaxLength(200, {
+    each: true,
+    message: '사이트 주소는 200자 이하여야 합니다.',
+  })
   @Matches(/^$|^https?:\/\/\S+$/, {
     each: true,
     message: '사이트 주소는 http:// 또는 https:// 로 시작해야 합니다.',
@@ -78,7 +93,9 @@ class UpdateProfileDto {
 }
 
 class UpdateThemeDto {
-  @IsIn(['system', 'light', 'dark'], { message: '테마는 system/light/dark 중 하나여야 합니다.' })
+  @IsIn(['system', 'light', 'dark'], {
+    message: '테마는 system/light/dark 중 하나여야 합니다.',
+  })
   theme: 'system' | 'light' | 'dark';
 }
 
@@ -135,7 +152,10 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('me/student-id')
-  updateStudentId(@CurrentUser() user: RequestUser, @Body() dto: UpdateStudentIdDto) {
+  updateStudentId(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateStudentIdDto,
+  ) {
     return this.studentId.updateOwnStudentId(user.userId, dto.studentId);
   }
 
@@ -147,26 +167,42 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('me/preferred-language')
-  updatePreferredLanguage(@CurrentUser() user: RequestUser, @Body() dto: UpdatePreferredLanguageDto) {
+  updatePreferredLanguage(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdatePreferredLanguageDto,
+  ) {
     return this.usersService.updatePreferredLanguage(user.userId, dto.language);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('me/change-password')
-  changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto) {
-    return this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+  changePassword(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(
+      user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 
   /** 본인 탈퇴. 비밀번호를 다시 확인받고 계정과 활동 기록을 삭제한다. */
   @UseGuards(JwtAuthGuard)
   @Post('me/delete-account')
-  deleteAccount(@CurrentUser() user: RequestUser, @Body() dto: DeleteAccountDto) {
+  deleteAccount(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: DeleteAccountDto,
+  ) {
     return this.usersService.deleteOwnAccount(user.userId, dto.password);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me/profile')
-  updateProfile(@CurrentUser() user: RequestUser, @Body() dto: UpdateProfileDto) {
+  updateProfile(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
     return this.usersService.updateProfile(user.userId, dto);
   }
 

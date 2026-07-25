@@ -38,7 +38,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/jwt.strategy';
 import { UsersService } from '../users/users.service';
-import type { BulkUserSpec } from '../users/users.service';
 import { JudgeConfigService } from '../judge-config/judge-config.service';
 import type { JudgeConfigMap } from '../judge-config/judge-config.service';
 import { RatingService } from '../rating/rating.service';
@@ -47,10 +46,19 @@ import { StudentIdService } from '../student-id/student-id.service';
 import { AdminStatsService } from './admin-stats.service';
 import { ProblemsService } from '../problems/problems.service';
 import { MailService } from '../mail/mail.service';
-import { BANNER_EXTENSION_BY_MIME, BannerService, UPLOADS_ROOT } from '../banner/banner.service';
+import {
+  BANNER_EXTENSION_BY_MIME,
+  BannerService,
+  UPLOADS_ROOT,
+} from '../banner/banner.service';
 import { RootAdminGuard } from './guards/root-admin.guard';
 
-const BANNER_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+const BANNER_ALLOWED_MIME = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
 
 class SetStudentIdWindowDto {
   @IsOptional() @IsDateString() startsAt?: string;
@@ -72,7 +80,9 @@ class SetRoleDto {
 class SetCustomTitleDto {
   @IsString()
   @MaxLength(20, { message: '칭호는 20자 이하여야 합니다.' })
-  @Matches(/^[^\r\n<>]*$/, { message: '칭호에 줄바꿈이나 <, > 문자를 사용할 수 없습니다.' })
+  @Matches(/^[^\r\n<>]*$/, {
+    message: '칭호에 줄바꿈이나 <, > 문자를 사용할 수 없습니다.',
+  })
   title: string;
 }
 
@@ -127,7 +137,9 @@ class SetBannerDto {
   @IsOptional()
   @IsString()
   @MaxLength(2048)
-  @Matches(/^https?:\/\/[^\s]+$/i, { message: '배너 링크는 http:// 또는 https:// URL이어야 합니다.' })
+  @Matches(/^https?:\/\/[^\s]+$/i, {
+    message: '배너 링크는 http:// 또는 https:// URL이어야 합니다.',
+  })
   linkUrl?: string;
 }
 
@@ -165,7 +177,7 @@ export class AdminController {
     if (dto.count && dto.prefix) {
       return this.users.bulkGenerate(dto.count, dto.prefix);
     }
-    return this.users.bulkCreate((dto.users ?? []) as BulkUserSpec[]);
+    return this.users.bulkCreate(dto.users ?? []);
   }
 
   // ---- 계정 검색/제재 ----
@@ -179,7 +191,11 @@ export class AdminController {
 
   @Roles('ADMIN', 'TEACHER')
   @Post('users/:id/ban')
-  banUser(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: BanUserDto) {
+  banUser(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: BanUserDto,
+  ) {
     return this.users.ban(id, dto.reason, user.role);
   }
 
@@ -191,7 +207,11 @@ export class AdminController {
 
   // ---- 관리자 권한 부여/해제 ----
   @Post('users/:id/role')
-  setUserRole(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: SetRoleDto) {
+  setUserRole(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetRoleDto,
+  ) {
     return this.users.setRole(id, dto.role, user.userId);
   }
 
@@ -236,7 +256,10 @@ export class AdminController {
   }
 
   @Put('judge-config')
-  setJudgeConfig(@CurrentUser() user: RequestUser, @Body() dto: JudgeConfigUpdateDto) {
+  setJudgeConfig(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: JudgeConfigUpdateDto,
+  ) {
     return this.judgeConfig.update(dto.config, user.userId);
   }
 
@@ -252,7 +275,10 @@ export class AdminController {
   }
 
   @Put('mail/gmail')
-  saveGmailConfig(@CurrentUser() user: RequestUser, @Body() dto: SaveGmailConfigDto) {
+  saveGmailConfig(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SaveGmailConfigDto,
+  ) {
     return this.mail.saveGmailConfig(dto, user.userId);
   }
 
@@ -282,7 +308,10 @@ export class AdminController {
   }
 
   @Put('student-id/window')
-  async setStudentIdWindow(@CurrentUser() user: RequestUser, @Body() dto: SetStudentIdWindowDto) {
+  async setStudentIdWindow(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetStudentIdWindowDto,
+  ) {
     const window = await this.studentId.setWindow(
       dto.startsAt ? new Date(dto.startsAt) : null,
       dto.endsAt ? new Date(dto.endsAt) : null,
@@ -305,12 +334,21 @@ export class AdminController {
         destination: `${UPLOADS_ROOT}/banner`,
         // 원본 확장자는 공격자가 마음대로 정할 수 있으므로 신뢰하지 않고, 허용 MIME에 대응하는
         // 고정 확장자만 사용한다. (예: image/png + .html로 저장되는 저장형 XSS 차단)
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}${BANNER_EXTENSION_BY_MIME[file.mimetype] ?? ''}`),
+        filename: (_req, file, cb) =>
+          cb(
+            null,
+            `${randomUUID()}${BANNER_EXTENSION_BY_MIME[file.mimetype] ?? ''}`,
+          ),
       }),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB - 배너 하나에 그 이상은 과하다
       fileFilter: (_req, file, cb) => {
         if (!BANNER_ALLOWED_MIME.has(file.mimetype)) {
-          cb(new BadRequestException('png/jpeg/webp/gif 이미지만 업로드할 수 있습니다.'), false);
+          cb(
+            new BadRequestException(
+              'png/jpeg/webp/gif 이미지만 업로드할 수 있습니다.',
+            ),
+            false,
+          );
           return;
         }
         cb(null, true);
@@ -323,7 +361,11 @@ export class AdminController {
     @UploadedFile() image?: Express.Multer.File,
   ) {
     return this.banner.save(
-      { enabled: dto.enabled === 'true', linkUrl: dto.linkUrl?.trim() || null, newFile: image },
+      {
+        enabled: dto.enabled === 'true',
+        linkUrl: dto.linkUrl?.trim() || null,
+        newFile: image,
+      },
       user.userId,
     );
   }

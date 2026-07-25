@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { DEFAULT_TEMPLATE, LANGUAGE_OPTIONS } from '../lib/languages';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
 import { ProblemComments } from '../components/ProblemComments';
+import { ProblemTypeBadge } from '../components/ProblemTypeBadge';
 
 // Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
 const CodeEditor = lazy(() =>
@@ -40,11 +41,21 @@ export function ProblemDetailPage() {
       .then((p) => {
         setProblem(p);
         setVoteLevel(p.myDifficultyVote ?? p.level);
+        if (p.allowedLanguages.length > 0) {
+          setLanguage((current) => {
+            if (p.allowedLanguages.includes(current)) return current;
+            const next = p.allowedLanguages[0];
+            setCode((previous) =>
+              Object.values(DEFAULT_TEMPLATE).includes(previous) ? DEFAULT_TEMPLATE[next] : previous,
+            );
+            return next;
+          });
+        }
       })
       .catch(() => setError('문제를 불러오지 못했습니다.'));
   }
 
-  useEffect(loadProblem, [slug]);
+  useEffect(loadProblem, [slug, contestId]);
 
   async function onVote() {
     if (!problem || voteLevel == null) return;
@@ -112,6 +123,7 @@ export function ProblemDetailPage() {
             </span>
           )}
           <DifficultyBadge level={problem.level} />
+          <ProblemTypeBadge type={problem.problemType} isPractice={problem.isPractice} />
           <h1 className="text-2xl font-bold">{problem.title}</h1>
           {user && (user.role === 'ADMIN' || user.id === problem.authorId) && (
             <Link
@@ -122,6 +134,23 @@ export function ProblemDetailPage() {
             </Link>
           )}
         </div>
+
+        {problem.problemType !== 'STANDARD' && (
+          <p className="mt-3 rounded border border-[var(--color-brand)]/40 bg-ink-700 p-3 text-xs text-fg-muted">
+            {problem.problemType === 'SCORING'
+              ? `정확도형 문제입니다. ${
+                  problem.scoringMode === 'TARGET'
+                    ? '기준값에 가까울수록'
+                    : problem.scoringMode === 'MAXIMIZE'
+                      ? '출력값이 클수록'
+                      : '출력값이 작을수록'
+                } 높은 점수를 받으며 만점은 ${problem.maxScore}점입니다.`
+              : '인터랙티브형 문제입니다. 채점기가 입력의 각 줄을 순서대로 보내고, 프로그램은 매 요청마다 한 줄을 출력하고 즉시 flush해야 합니다.'}
+          </p>
+        )}
+        {problem.isPractice && (
+          <p className="mt-2 text-xs text-fg-muted">연습 문제의 정답 제출은 프로필 레이팅에 반영되지 않습니다.</p>
+        )}
 
         <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-ink-500 bg-ink-500 text-center text-xs sm:grid-cols-6">
           <div className="bg-white px-2 py-2">
@@ -203,9 +232,13 @@ export function ProblemDetailPage() {
           <div className="mt-8 space-y-5">
             {problem.testCases.map((tc, i) => (
               <div key={tc.id}>
-                <h3 className="border-b border-ink-500 pb-1 text-sm font-bold">예제 입력 {i + 1}</h3>
+                <h3 className="border-b border-ink-500 pb-1 text-sm font-bold">
+                  {problem.problemType === 'INTERACTIVE' ? '예제 요청' : '예제 입력'} {i + 1}
+                </h3>
                 <pre className="mt-2 rounded border border-ink-600 bg-ink-700 p-3 font-mono text-xs">{tc.input}</pre>
-                <h3 className="mt-3 border-b border-ink-500 pb-1 text-sm font-bold">예제 출력 {i + 1}</h3>
+                <h3 className="mt-3 border-b border-ink-500 pb-1 text-sm font-bold">
+                  {problem.problemType === 'INTERACTIVE' ? '예제 응답' : '예제 출력'} {i + 1}
+                </h3>
                 <pre className="mt-2 rounded border border-ink-600 bg-ink-700 p-3 font-mono text-xs">{tc.output}</pre>
               </div>
             ))}
@@ -220,7 +253,9 @@ export function ProblemDetailPage() {
             onChange={(e) => onLanguageChange(e.target.value as Language)}
             className="rounded border border-ink-500 bg-white px-2 py-1 text-sm"
           >
-            {LANGUAGE_OPTIONS.map((opt) => (
+            {LANGUAGE_OPTIONS.filter(
+              (opt) => problem.allowedLanguages.length === 0 || problem.allowedLanguages.includes(opt.value),
+            ).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

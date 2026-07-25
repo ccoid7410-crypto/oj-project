@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Docker = require('dockerode');
+import Docker from 'dockerode';
+import { Writable } from 'node:stream';
 
 export interface RunOptions {
   image: string;
@@ -45,7 +46,12 @@ export class DockerSandboxService {
   private readonly docker: Docker;
 
   constructor(private readonly config: ConfigService) {
-    this.docker = new Docker({ socketPath: this.config.get<string>('JUDGE_DOCKER_SOCK', '/var/run/docker.sock') });
+    this.docker = new Docker({
+      socketPath: this.config.get<string>(
+        'JUDGE_DOCKER_SOCK',
+        '/var/run/docker.sock',
+      ),
+    });
   }
 
   async run(options: RunOptions): Promise<RunResult> {
@@ -99,39 +105,62 @@ export class DockerSandboxService {
         this.logger.warn(`컨테이너 kill 실패 (이미 종료됐을 수 있음): ${e}`);
       }
     };
-    const timeoutHandle = setTimeout(() => void terminate('timeout'), options.timeoutMs);
+    const timeoutHandle = setTimeout(
+      () => void terminate('timeout'),
+      options.timeoutMs,
+    );
 
     try {
       // stdin은 attach 소켓으로 넘기지 않는다: Windows의 named pipe 기반 도커 데몬에서는
       // attach stdin 하이재킹이 안정적으로 동작하지 않아 컨테이너가 무한 대기하는 문제가 있었다.
       // 대신 호출부(judge.processor)가 입력을 /box에 파일로 써두고 cmd에서 셸 리다이렉션으로 읽는다.
-      const stream = await container.attach({ stream: true, stdin: false, stdout: true, stderr: true });
+      const stream = await container.attach({
+        stream: true,
+        stdin: false,
+        stdout: true,
+        stderr: true,
+      });
       await container.start();
 
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
-      const maxOutputBytes = Math.max(1024, options.maxOutputBytes ?? 1024 * 1024);
+      const maxOutputBytes = Math.max(
+        1024,
+        options.maxOutputBytes ?? 1024 * 1024,
+      );
       let capturedBytes = 0;
-      const boundedWriter = (chunks: Buffer[]) => ({
-        write: (value: Buffer | string) => {
-          const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
-          const remaining = Math.max(0, maxOutputBytes - capturedBytes);
-          if (remaining > 0) {
-            const kept = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
-            chunks.push(Buffer.from(kept));
-            capturedBytes += kept.length;
-          }
-          if (chunk.length > remaining) void terminate('output-limit');
-          return true;
-        },
-      });
-      container.modem.demuxStream(
+      const boundedWriter = (chunks: Buffer[]) =>
+        new Writable({
+          write(value: Buffer, _encoding, callback) {
+            const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+            const remaining = Math.max(0, maxOutputBytes - capturedBytes);
+            if (remaining > 0) {
+              const kept =
+                chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
+              chunks.push(Buffer.from(kept));
+              capturedBytes += kept.length;
+            }
+            if (chunk.length > remaining) void terminate('output-limit');
+            callback();
+          },
+        });
+
+      const modem = container.modem as unknown as {
+        demuxStream(
+          stream: NodeJS.ReadableStream,
+          stdout: NodeJS.WritableStream,
+          stderr: NodeJS.WritableStream,
+        ): void;
+      };
+      modem.demuxStream(
         stream,
-        boundedWriter(stdoutChunks) as any,
-        boundedWriter(stderrChunks) as any,
+        boundedWriter(stdoutChunks),
+        boundedWriter(stderrChunks),
       );
 
-      const waitResult: any = await container.wait();
+      const waitResult = (await container.wait()) as unknown as {
+        StatusCode: number;
+      };
       clearTimeout(timeoutHandle);
 
       return {
@@ -161,7 +190,9 @@ export class DockerSandboxService {
   async pruneOrphanedContainers(maxAgeMs: number): Promise<number> {
     const containers = await this.docker.listContainers({
       all: true,
-      filters: JSON.stringify({ label: ['com.durunuri-oj.role=judge-sandbox'] }),
+      filters: JSON.stringify({
+        label: ['com.durunuri-oj.role=judge-sandbox'],
+      }),
     });
     let removed = 0;
     for (const info of containers) {

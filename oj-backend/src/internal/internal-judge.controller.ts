@@ -4,6 +4,7 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -23,6 +24,7 @@ class TestResultDto {
   @IsString() @MaxLength(64) testCaseId: string;
   @IsIn(VERDICTS) status: JudgeVerdict;
   @IsInt() @Min(0) runtimeMs: number;
+  @IsOptional() @IsNumber() @Min(0) score?: number;
   @IsString() @MaxLength(4000) output: string;
 }
 
@@ -31,6 +33,7 @@ class IngestDto {
   @IsIn(VERDICTS) status: JudgeVerdict;
   @IsOptional() @IsInt() @Min(0) runtimeMs?: number;
   @IsOptional() @IsInt() @Min(0) memoryKb?: number;
+  @IsOptional() @IsNumber() @Min(0) score?: number;
   @IsOptional() @IsString() @MaxLength(8000) errorMessage?: string;
 
   @IsArray()

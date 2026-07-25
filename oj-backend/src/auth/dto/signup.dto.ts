@@ -1,4 +1,12 @@
-import { IsEmail, IsOptional, IsString, Length, MaxLength, MinLength, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Length,
+  MaxLength,
+  MinLength,
+  Matches,
+} from 'class-validator';
 
 export class SignupDto {
   @IsEmail()
@@ -24,6 +32,8 @@ export class SignupDto {
   /** 학번. 선택 입력이며, 동아리 명단이 등록돼 있으면 그 명단에 있는 학번이어야 한다. */
   @IsOptional()
   @IsString()
-  @Matches(/^[a-zA-Z0-9-]{1,20}$/, { message: '학번 형식이 올바르지 않습니다.' })
+  @Matches(/^[a-zA-Z0-9-]{1,20}$/, {
+    message: '학번 형식이 올바르지 않습니다.',
+  })
   studentId?: string;
 }
