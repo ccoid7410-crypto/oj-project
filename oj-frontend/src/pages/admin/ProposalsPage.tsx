@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 import type { ProblemProposal } from '../../api/types';
 import { DifficultyBadge } from '../../components/DifficultyBadge';
+import { ProblemTypeBadge } from '../../components/ProblemTypeBadge';
 
 export function ProposalsPage() {
   const [proposals, setProposals] = useState<ProblemProposal[] | null>(null);
@@ -63,6 +64,7 @@ export function ProposalsPage() {
               <span className="flex items-center gap-2">
                 <span className="text-xs text-fg-muted">{p.displayId}번</span>
                 <DifficultyBadge level={p.level} />
+                <ProblemTypeBadge type={p.problemType} isPractice={p.isPractice} />
                 <Link to={`/problems/${p.slug}`} className="font-bold text-[var(--color-brand)] hover:underline">
                   {p.title}
                 </Link>

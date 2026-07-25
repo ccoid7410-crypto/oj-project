@@ -49,16 +49,29 @@ describe('service token', () => {
   });
 
   it('rejects missing, placeholder, and short service tokens at boot', () => {
-    expect(() => requireServiceToken(config({}), 'JUDGE_SERVICE_TOKEN')).toThrow();
     expect(() =>
-      requireServiceToken(config({ JUDGE_SERVICE_TOKEN: 'changeme-run-setup-sh' }), 'JUDGE_SERVICE_TOKEN'),
+      requireServiceToken(config({}), 'JUDGE_SERVICE_TOKEN'),
     ).toThrow();
     expect(() =>
-      requireServiceToken(config({ JUDGE_SERVICE_TOKEN: 'a'.repeat(31) }), 'JUDGE_SERVICE_TOKEN'),
+      requireServiceToken(
+        config({ JUDGE_SERVICE_TOKEN: 'changeme-run-setup-sh' }),
+        'JUDGE_SERVICE_TOKEN',
+      ),
+    ).toThrow();
+    expect(() =>
+      requireServiceToken(
+        config({ JUDGE_SERVICE_TOKEN: 'a'.repeat(31) }),
+        'JUDGE_SERVICE_TOKEN',
+      ),
     ).toThrow();
   });
 
   it('accepts a 32-byte-or-longer service token', () => {
-    expect(requireServiceToken(config({ JUDGE_SERVICE_TOKEN: STRONG }), 'JUDGE_SERVICE_TOKEN')).toBe(STRONG);
+    expect(
+      requireServiceToken(
+        config({ JUDGE_SERVICE_TOKEN: STRONG }),
+        'JUDGE_SERVICE_TOKEN',
+      ),
+    ).toBe(STRONG);
   });
 });

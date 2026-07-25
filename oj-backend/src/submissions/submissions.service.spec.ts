@@ -18,7 +18,11 @@ describe('SubmissionsService authorization', () => {
   };
   const queue = { add: jest.fn() };
   const priority = { nextPriority: jest.fn() };
-  const service = new SubmissionsService(prisma as any, queue as any, priority as any);
+  const service = new SubmissionsService(
+    prisma as any,
+    queue as any,
+    priority as any,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +42,11 @@ describe('SubmissionsService authorization', () => {
   });
 
   it('blocks non-admin submission to an internal test problem', async () => {
-    prisma.problem.findUnique.mockResolvedValue({ ...problem, contestOnly: false, tags: ['test'] });
+    prisma.problem.findUnique.mockResolvedValue({
+      ...problem,
+      contestOnly: false,
+      tags: ['test'],
+    });
     await expect(
       service.create('attacker', 'USER', {
         problemId: problem.id,

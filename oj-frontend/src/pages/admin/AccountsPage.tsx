@@ -23,7 +23,12 @@ export function AccountsPage() {
       .catch(() => setError('계정 목록을 불러오지 못했습니다.'));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    api
+      .get<AdminUser[]>('/admin/users/search?q=')
+      .then(setUsers)
+      .catch(() => setError('계정 목록을 불러오지 못했습니다.'));
+  }, []);
 
   async function ban(id: string) {
     setBusyId(id);

@@ -111,7 +111,13 @@ export class LeaseService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       // API가 일시적으로 안 될 수 있다. 작업을 잃지 않도록 잠금만 풀어 큐에 돌려놓는다.
       this.logger.error(`채점 재료 조회 실패(${submissionId}): ${err}`);
-      await job.moveToFailed(new Error(String(err)), token, false).catch(() => undefined);
+      try {
+        await job.moveToWait(token);
+      } catch (requeueError) {
+        // 잠금 상태가 예상과 달라 재큐잉도 실패했다면 BullMQ의 stalled 복구에 맡긴다.
+        // failed로 옮기면 운영자가 수동 retry하기 전까지 제출이 영구 PENDING으로 남는다.
+        this.logger.error(`채점 작업 재큐잉 실패(${job.id}): ${requeueError}`);
+      }
       return null;
     }
     if (!payload) {

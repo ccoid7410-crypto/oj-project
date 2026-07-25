@@ -10,7 +10,9 @@ async function bootstrap() {
   // 대신 인터체인저에 붙기 위한 값들이 제대로 있는지 확인한다.
   requireServiceToken(env, 'JUDGE_SERVICE_TOKEN');
   if (!process.env.INTERCHANGER_URL) {
-    throw new Error('INTERCHANGER_URL을 설정해야 합니다. 채점기는 인터체인저를 통해서만 일감을 받습니다.');
+    throw new Error(
+      'INTERCHANGER_URL을 설정해야 합니다. 채점기는 인터체인저를 통해서만 일감을 받습니다.',
+    );
   }
 
   const logger = new Logger('JudgeWorker');
@@ -21,18 +23,15 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.error('Unhandled promise rejection', reason);
 });
 
 process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
   console.error('Uncaught exception', err);
   process.exit(1);
 });

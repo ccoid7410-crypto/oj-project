@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { MyProblem, ProblemStatus } from '../api/types';
 import { DifficultyBadge } from '../components/DifficultyBadge';
+import { ProblemTypeBadge } from '../components/ProblemTypeBadge';
 
 const STATUS_LABEL: Record<ProblemStatus, string> = {
   DRAFT: '초안',
@@ -81,6 +82,7 @@ export function MyProblemsPage() {
                 <td className="border border-ink-600 px-3 py-1.5">
                   <span className="flex items-center gap-1.5">
                     <DifficultyBadge level={p.level} />
+                    <ProblemTypeBadge type={p.problemType} isPractice={p.isPractice} />
                     {p.status === 'PUBLISHED' ? (
                       <Link to={`/problems/${p.slug}`} className="text-[var(--color-brand)] hover:underline">
                         {p.title}

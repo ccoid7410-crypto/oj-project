@@ -29,6 +29,7 @@ export function MySubmissionsPage() {
               <th className="py-2 font-medium">제출자</th>
               <th className="py-2 font-medium">메모리</th>
               <th className="py-2 font-medium">시간</th>
+              <th className="py-2 font-medium">점수</th>
               <th className="py-2 font-medium">언어</th>
               <th className="py-2 font-medium">제출한 시간</th>
             </tr>
@@ -61,6 +62,9 @@ export function MySubmissionsPage() {
                 </td>
                 <td className="py-3 text-fg-muted">{s.memoryKb != null ? `${s.memoryKb}KB` : '-'}</td>
                 <td className="py-3 text-fg-muted">{s.runtimeMs != null ? `${s.runtimeMs}ms` : '-'}</td>
+                <td className="py-3 text-fg-muted">
+                  {s.score != null ? s.score.toFixed(4).replace(/\.?0+$/, '') : '-'}
+                </td>
                 <td className="py-3 text-fg-muted">{s.language}</td>
                 <td className="py-3 text-fg-muted">{new Date(s.createdAt).toLocaleString('ko-KR')}</td>
               </tr>

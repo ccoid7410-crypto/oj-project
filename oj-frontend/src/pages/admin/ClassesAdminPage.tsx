@@ -133,7 +133,7 @@ function ClassManager({ classId, onChanged }: { classId: string; onChanged: () =
   }
 
   useEffect(() => {
-    loadMembers();
+    api.get<GroupMember[]>(`/admin/classes/${classId}/members`).then(setMembers);
     api.get<ProblemSummary[]>('/problems').then(setAllProblems);
   }, [classId]);
 

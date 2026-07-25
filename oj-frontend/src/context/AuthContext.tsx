@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// oxlint-disable-next-line react/only-export-components -- provider와 hook은 하나의 context 계약이다.
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth는 AuthProvider 내부에서만 사용할 수 있습니다.');

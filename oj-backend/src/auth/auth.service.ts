@@ -29,7 +29,9 @@ function normalizeEmail(email: string): string {
 function assertBcryptPasswordLength(password: string): void {
   // bcrypt는 72바이트 뒤를 무시한다. 서로 다른 비밀번호가 같은 값으로 취급되지 않도록 명시적으로 막는다.
   if (Buffer.byteLength(password, 'utf8') > 72) {
-    throw new BadRequestException('비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.');
+    throw new BadRequestException(
+      '비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.',
+    );
   }
 }
 
@@ -46,14 +48,19 @@ export class AuthService {
 
   /** 허용 이메일 도메인. 학교 계정으로만 가입을 받기 위함 (env로 바꿀 수 있게 하되 기본값은 cbsh.hs.kr). */
   private get allowedEmailDomain(): string {
-    return this.config.get<string>('SIGNUP_EMAIL_DOMAIN', 'cbsh.hs.kr').trim().toLowerCase();
+    return this.config
+      .get<string>('SIGNUP_EMAIL_DOMAIN', 'cbsh.hs.kr')
+      .trim()
+      .toLowerCase();
   }
 
   async signup(dto: SignupDto) {
     const email = normalizeEmail(dto.email);
     const domain = email.split('@')[1];
     if (domain !== this.allowedEmailDomain) {
-      throw new BadRequestException(`@${this.allowedEmailDomain} 이메일로만 가입할 수 있습니다.`);
+      throw new BadRequestException(
+        `@${this.allowedEmailDomain} 이메일로만 가입할 수 있습니다.`,
+      );
     }
     assertBcryptPasswordLength(dto.password);
 
@@ -66,12 +73,17 @@ export class AuthService {
       },
     });
     if (existing) {
-      throw new ConflictException('이미 사용 중인 이메일 또는 username 입니다.');
+      throw new ConflictException(
+        '이미 사용 중인 이메일 또는 username 입니다.',
+      );
     }
 
     if (dto.studentId) {
-      const studentIdTaken = await this.prisma.user.findUnique({ where: { studentId: dto.studentId } });
-      if (studentIdTaken) throw new ConflictException('이미 다른 계정에 등록된 학번입니다.');
+      const studentIdTaken = await this.prisma.user.findUnique({
+        where: { studentId: dto.studentId },
+      });
+      if (studentIdTaken)
+        throw new ConflictException('이미 다른 계정에 등록된 학번입니다.');
     }
 
     const name = dto.name.trim();
@@ -114,36 +126,54 @@ export class AuthService {
     }
 
     // 사용자명 우선 (이메일 아이디와 겹치면 어차피 같은 사람일 가능성이 높다)
-    const byUsername = await this.prisma.user.findUnique({ where: { username: id } });
+    const byUsername = await this.prisma.user.findUnique({
+      where: { username: id },
+    });
     if (byUsername) return byUsername;
 
     // 이메일 아이디만 입력 → 도메인 자동 완성. ex) cbsh12345 → cbsh12345@cbsh.hs.kr
     return this.prisma.user.findFirst({
-      where: { email: { equals: `${id}@${domain}`.toLowerCase(), mode: 'insensitive' } },
+      where: {
+        email: { equals: `${id}@${domain}`.toLowerCase(), mode: 'insensitive' },
+      },
     });
   }
 
   async login(dto: LoginDto) {
     const user = await this.resolveLoginUser(dto.identifier);
     if (!user) {
-      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
     }
 
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
-      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
     }
     if (user.banned) {
-      throw new ForbiddenException(`정지된 계정입니다.${user.bannedReason ? ` 사유: ${user.bannedReason}` : ''}`);
+      throw new ForbiddenException(
+        `정지된 계정입니다.${user.bannedReason ? ` 사유: ${user.bannedReason}` : ''}`,
+      );
     }
     if (!user.emailVerified) {
-      throw new ForbiddenException('이메일 인증이 필요합니다. 메일함을 확인하거나 인증 메일을 다시 요청하세요.');
+      throw new ForbiddenException(
+        '이메일 인증이 필요합니다. 메일함을 확인하거나 인증 메일을 다시 요청하세요.',
+      );
     }
 
     return this.buildAuthResponse(user);
   }
 
-  private async issueAndSendVerification(userId: string, email: string): Promise<boolean> {
+  private async issueAndSendVerification(
+    userId: string,
+    email: string,
+  ): Promise<boolean> {
     const raw = randomBytes(32).toString('hex');
     await this.prisma.emailVerificationToken.deleteMany({ where: { userId } });
     await this.prisma.emailVerificationToken.create({
@@ -162,7 +192,9 @@ export class AuthService {
       await this.mail.sendVerificationEmail(email, verifyUrl);
       return true;
     } catch (err) {
-      this.logger.error(`인증 메일 발송 실패(${email}): ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.error(
+        `인증 메일 발송 실패(${email}): ${err instanceof Error ? err.message : String(err)}`,
+      );
       return false;
     }
   }
@@ -173,10 +205,16 @@ export class AuthService {
     });
     // 계정 존재 여부를 굳이 노출하지 않는다 (이메일 존재 여부 스캐닝 방지).
     if (!user || user.emailVerified) {
-      return { message: '해당 이메일이 가입돼 있고 아직 인증 전이라면 인증 메일을 다시 보냈습니다.' };
+      return {
+        message:
+          '해당 이메일이 가입돼 있고 아직 인증 전이라면 인증 메일을 다시 보냈습니다.',
+      };
     }
     await this.issueAndSendVerification(user.id, user.email);
-    return { message: '해당 이메일이 가입돼 있고 아직 인증 전이라면 인증 메일을 다시 보냈습니다.' };
+    return {
+      message:
+        '해당 이메일이 가입돼 있고 아직 인증 전이라면 인증 메일을 다시 보냈습니다.',
+    };
   }
 
   async verifyEmail(token: string) {
@@ -197,18 +235,24 @@ export class AuthService {
         where: { tokenHash, expiresAt: { gte: now } },
       });
       if (consumed.count !== 1) {
-        throw new BadRequestException('이미 사용했거나 만료된 인증 링크입니다.');
+        throw new BadRequestException(
+          '이미 사용했거나 만료된 인증 링크입니다.',
+        );
       }
       const updated = await tx.user.update({
         where: { id: record.userId },
         data: { emailVerified: true },
       });
-      await tx.emailVerificationToken.deleteMany({ where: { userId: updated.id } });
+      await tx.emailVerificationToken.deleteMany({
+        where: { userId: updated.id },
+      });
       return updated;
     });
 
     if (user.banned) {
-      throw new ForbiddenException(`정지된 계정입니다.${user.bannedReason ? ` 사유: ${user.bannedReason}` : ''}`);
+      throw new ForbiddenException(
+        `정지된 계정입니다.${user.bannedReason ? ` 사유: ${user.bannedReason}` : ''}`,
+      );
     }
 
     // 인증 완료 직후에는 그대로 로그인시켜 UX를 매끄럽게 한다.

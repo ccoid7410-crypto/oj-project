@@ -28,7 +28,10 @@ export const JUDGE_VERDICTS: readonly JudgeVerdict[] = [
 ];
 
 export function isJudgeVerdict(value: unknown): value is JudgeVerdict {
-  return typeof value === 'string' && (JUDGE_VERDICTS as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' &&
+    (JUDGE_VERDICTS as readonly string[]).includes(value)
+  );
 }
 
 /** 채점기가 실제로 실행할 컴파일/실행 설정. API가 DB 오버라이드를 병합해 내려준다. */
@@ -46,6 +49,9 @@ export interface JudgeTestCase {
   output: string;
 }
 
+export type JudgeProblemType = 'STANDARD' | 'SCORING' | 'INTERACTIVE';
+export type JudgeScoringMode = 'TARGET' | 'MAXIMIZE' | 'MINIMIZE';
+
 /**
  * 채점 한 건에 필요한 모든 것을 담은 자족적(self-contained) 페이로드.
  * 채점 VM은 DB에 접근할 수 없으므로 여기 없는 정보는 알 수 없다.
@@ -60,6 +66,9 @@ export interface JudgeLease {
   /** API에서 이미 clamp된 값. 채점기는 그대로 신뢰해서 쓴다. */
   timeLimitMs: number;
   memoryLimitMb: number;
+  problemType: JudgeProblemType;
+  scoringMode: JudgeScoringMode;
+  maxScore: number;
   runnerConfig: JudgeRunnerConfig;
   testCases: JudgeTestCase[];
   /** epoch ms. 이 시각까지 heartbeat로 연장하지 않으면 리스가 회수된다. */
@@ -70,12 +79,16 @@ export interface JudgeLease {
  * API가 내려주는 채점 재료. 리스 메타데이터(leaseId/attempt/expiresAt)는
  * 인터체인저가 붙이므로 여기엔 없다.
  */
-export type JudgePayload = Omit<JudgeLease, 'leaseId' | 'attempt' | 'expiresAt'>;
+export type JudgePayload = Omit<
+  JudgeLease,
+  'leaseId' | 'attempt' | 'expiresAt'
+>;
 
 export interface JudgeTestResult {
   testCaseId: string;
   status: JudgeVerdict;
   runtimeMs: number;
+  score?: number;
   /** 최대 2000자로 잘라서 보낸다. */
   output: string;
 }
@@ -86,6 +99,7 @@ export interface JudgeResult {
   status: JudgeVerdict;
   runtimeMs?: number;
   memoryKb?: number;
+  score?: number;
   /** 채점기가 4000자로 자르고, API가 저장 전에 한 번 더 자른다. */
   errorMessage?: string;
   testResults: JudgeTestResult[];

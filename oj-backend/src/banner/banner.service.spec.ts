@@ -14,8 +14,14 @@ describe('banner security helpers', () => {
   });
 
   it('only accepts credential-free HTTP(S) banner links', () => {
-    expect(normalizeBannerLink('https://example.com/banner')).toBe('https://example.com/banner');
-    expect(() => normalizeBannerLink('javascript:alert(1)')).toThrow(BadRequestException);
-    expect(() => normalizeBannerLink('https://user:pass@example.com')).toThrow(BadRequestException);
+    expect(normalizeBannerLink('https://example.com/banner')).toBe(
+      'https://example.com/banner',
+    );
+    expect(() => normalizeBannerLink('javascript:alert(1)')).toThrow(
+      BadRequestException,
+    );
+    expect(() => normalizeBannerLink('https://user:pass@example.com')).toThrow(
+      BadRequestException,
+    );
   });
 });

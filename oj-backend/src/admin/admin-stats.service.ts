@@ -25,14 +25,24 @@ export class AdminStatsService {
       this.prisma.user.count({ where: { role: { in: ['MEMBER', 'ADMIN'] } } }),
       this.prisma.user.count({ where: { banned: true } }),
       this.prisma.problem.groupBy({ by: ['status'], _count: true }),
-      this.prisma.submission.count({ where: { createdAt: { gte: todayStart } } }),
-      this.prisma.submission.count(),
-      this.prisma.submission.count({ where: { status: { in: ['PENDING', 'JUDGING'] } } }),
       this.prisma.submission.count({
-        where: { status: 'INTERNAL_ERROR', createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+        where: { createdAt: { gte: todayStart } },
+      }),
+      this.prisma.submission.count(),
+      this.prisma.submission.count({
+        where: { status: { in: ['PENDING', 'JUDGING'] } },
       }),
       this.prisma.submission.count({
-        where: { status: 'COMPILE_ERROR', createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+        where: {
+          status: 'INTERNAL_ERROR',
+          createdAt: { gte: new Date(Date.now() - 24 * 3600_000) },
+        },
+      }),
+      this.prisma.submission.count({
+        where: {
+          status: 'COMPILE_ERROR',
+          createdAt: { gte: new Date(Date.now() - 24 * 3600_000) },
+        },
       }),
     ]);
 

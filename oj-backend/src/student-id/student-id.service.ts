@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -8,11 +13,17 @@ export class StudentIdService {
   // ---- 학번 "수정" 허용 기간 ----
 
   async getWindow() {
-    const row = await this.prisma.studentIdEditWindow.findUnique({ where: { id: 1 } });
+    const row = await this.prisma.studentIdEditWindow.findUnique({
+      where: { id: 1 },
+    });
     return { startsAt: row?.startsAt ?? null, endsAt: row?.endsAt ?? null };
   }
 
-  async setWindow(startsAt: Date | null, endsAt: Date | null, updatedById?: string) {
+  async setWindow(
+    startsAt: Date | null,
+    endsAt: Date | null,
+    updatedById?: string,
+  ) {
     if (startsAt && endsAt && endsAt <= startsAt) {
       throw new BadRequestException('종료 시각은 시작 시각보다 뒤여야 합니다.');
     }
@@ -38,7 +49,9 @@ export class StudentIdService {
     if (user.studentId) {
       const open = await this.isWindowOpen();
       if (!open) {
-        throw new BadRequestException('지금은 학번 수정 기간이 아닙니다. 관리자가 연 기간에만 수정할 수 있습니다.');
+        throw new BadRequestException(
+          '지금은 학번 수정 기간이 아닙니다. 관리자가 연 기간에만 수정할 수 있습니다.',
+        );
       }
     }
 

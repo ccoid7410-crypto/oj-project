@@ -32,12 +32,14 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableShutdownHooks();
 
-  // 모든 외부 트래픽은 프론트 nginx(단일 홉)를 거쳐 들어온다. trust proxy를 켜야
+  // 현재 모든 외부 트래픽은 프론트 nginx(단일 홉)를 거쳐 들어온다. trust proxy를 켜야
   // req.ip가 nginx가 붙여준 X-Forwarded-For의 실제 클라이언트 IP가 되어, rate limit이
   // 클라이언트별로 걸린다. 안 켜면 모두가 nginx 컨테이너 IP 하나로 묶여, 공격자 한 명이
   // 로그인 5회/분 같은 제한을 전체 사용자 대상으로 소진시킬 수 있다.
-  // (API를 127.0.0.1로 잠가서 nginx 외의 경로로는 못 들어오므로 X-Forwarded-For를 신뢰해도 안전)
-  app.set('trust proxy', 1);
+  // 6단계에서 인터체인저 공개 프록시까지 넣으면 두 홉이 되므로 TRUST_PROXY_HOPS=2로 함께
+  // 바꿔야 한다. 허용 범위를 1~2로 제한해 설정 실수로 임의의 외부 XFF를 신뢰하지 않게 한다.
+  const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS) === 2 ? 2 : 1;
+  app.set('trust proxy', trustProxyHops);
 
   // 보안 헤더. 이 서버는 JSON API + socket.io만 응답하므로(HTML 페이지는 nginx가 서빙)
   // CSP는 프론트 nginx 쪽에서 걸고, 여기서는 API 응답에 불필요한 CSP로 오작동하지 않게 끈다.
@@ -97,16 +99,26 @@ async function startInternalListener(logger: Logger): Promise<void> {
     logger.warn('INTERNAL_API_TOKEN이 없어 내부 리스너를 띄우지 않습니다.');
     return;
   }
-  requireServiceToken({ get: (key: string) => process.env[key] }, 'INTERNAL_API_TOKEN');
+  requireServiceToken(
+    { get: (key: string) => process.env[key] },
+    'INTERNAL_API_TOKEN',
+  );
 
-  const internalApp = await NestFactory.create<NestExpressApplication>(InternalApiModule, {
-    logger: ['error', 'warn'],
-  });
+  const internalApp = await NestFactory.create<NestExpressApplication>(
+    InternalApiModule,
+    {
+      logger: ['error', 'warn'],
+    },
+  );
   internalApp.enableShutdownHooks();
   // 이 리스너 앞에는 프록시가 없다. XFF를 신뢰하면 호출자가 자기 IP를 마음대로 위조할 수 있다.
   internalApp.set('trust proxy', false);
   internalApp.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
   );
   // 채점 결과 페이로드(테스트케이스 출력 다수)가 기본 100kb를 넘을 수 있다.
   internalApp.use(json({ limit: '20mb' }));
@@ -120,18 +132,16 @@ async function startInternalListener(logger: Logger): Promise<void> {
 bootstrap().catch((err) => {
   // Nest 기동 전 실패도 컨테이너 로그에 남기고 명확하게 종료한다.
   // 예: 운영 JWT_SECRET/CORS_ORIGIN 누락, DB 연결 실패.
-  // eslint-disable-next-line no-console
+
   console.error(err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.error('Unhandled promise rejection', reason);
 });
 
 process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
   console.error('Uncaught exception', err);
   process.exit(1);
 });

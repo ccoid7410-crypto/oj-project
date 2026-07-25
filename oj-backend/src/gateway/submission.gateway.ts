@@ -13,7 +13,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SUBMISSION_UPDATES_CHANNEL } from '../common/realtime.constants';
 import { isJudgeVerdict } from '../judge/judge-protocol';
 import type { JwtPayload } from '../auth/jwt.strategy';
-import { requireJwtSecret, resolveCorsOrigins } from '../common/security-config';
+import {
+  requireJwtSecret,
+  resolveCorsOrigins,
+} from '../common/security-config';
 
 // 데코레이터 인자는 모듈 로드 시점에 평가되므로 DI(ConfigService)가 아니라 process.env를 직접 읽는다.
 // (docker-compose의 env_file/environment는 Node 프로세스 시작 전에 이미 주입돼 있어 문제 없다)
@@ -65,21 +68,26 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
     // 인증 핸드셰이크: 연결이 "수립되기 전"에 미들웨어에서 JWT를 검증한다.
     // 이렇게 해야 handleConnection이 실행될 시점엔 이미 인증이 끝나 있어서,
     // 클라이언트가 연결 직후 보내는 join 이벤트가 유실되는 레이스가 없다.
-    this.server.use(async (client, next) => {
-      const auth = await this.authenticate(client as Socket);
-      if (!auth) {
-        next(new Error('unauthorized'));
-        return;
-      }
-      (client as AuthedSocket).data = auth;
-      next();
+    this.server.use((client, next) => {
+      void this.authenticate(client)
+        .then((auth) => {
+          if (!auth) {
+            next(new Error('unauthorized'));
+            return;
+          }
+          (client as AuthedSocket).data = auth;
+          next();
+        })
+        .catch((error: unknown) => {
+          next(error instanceof Error ? error : new Error('unauthorized'));
+        });
     });
 
     const subscriber = new Redis({
       host: this.config.get<string>('REDIS_HOST', 'localhost'),
       port: this.config.get<number>('REDIS_PORT', 6379),
     });
-    subscriber.subscribe(SUBMISSION_UPDATES_CHANNEL, (err) => {
+    void subscriber.subscribe(SUBMISSION_UPDATES_CHANNEL, (err) => {
       if (err) this.logger.error(`Redis 구독 실패: ${err.message}`);
     });
     subscriber.on('message', (_channel, message) => {
@@ -103,7 +111,9 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   /** 신뢰할 수 있는 형태일 때만 통과시킨다. 모르는 필드는 버린다. */
-  private parseUpdate(value: unknown): { submissionId: string; status: string } | null {
+  private parseUpdate(
+    value: unknown,
+  ): { submissionId: string; status: string } | null {
     if (!value || typeof value !== 'object') return null;
     const raw = value as Record<string, unknown>;
     if (typeof raw.submissionId !== 'string' || !raw.submissionId) return null;
@@ -116,15 +126,18 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
     };
     if (typeof raw.runtimeMs === 'number') payload.runtimeMs = raw.runtimeMs;
     if (typeof raw.memoryKb === 'number') payload.memoryKb = raw.memoryKb;
-    if (typeof raw.errorMessage === 'string') payload.errorMessage = raw.errorMessage;
+    if (typeof raw.errorMessage === 'string')
+      payload.errorMessage = raw.errorMessage;
     return payload as { submissionId: string; status: string };
   }
 
   /** 소켓 핸드셰이크에서 JWT를 꺼내 검증한다. 실패하면 null. */
-  private async authenticate(client: Socket): Promise<{ userId: string; role: string } | null> {
+  private async authenticate(
+    client: Socket,
+  ): Promise<{ userId: string; role: string } | null> {
     const raw =
       (client.handshake.auth && (client.handshake.auth.token as string)) ||
-      (client.handshake.headers.authorization as string | undefined);
+      client.handshake.headers.authorization;
     if (!raw) return null;
     const token = raw.startsWith('Bearer ') ? raw.slice(7) : raw;
     try {
@@ -149,7 +162,8 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
         !user.emailVerified ||
         user.mustChangePassword ||
         payload.ver !== user.authVersion
-      ) return null;
+      )
+        return null;
       return { userId: payload.sub, role: user.role };
     } catch {
       return null;
@@ -160,21 +174,26 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
   handleConnection(client: Socket) {
     const auth = (client as AuthedSocket).data;
 
-    client.on('join', async (submissionId: string) => {
+    client.on('join', (submissionId: string) => {
       if (typeof submissionId !== 'string' || !submissionId) return;
-      const allowed = await this.canAccessSubmission(auth, submissionId);
-      if (!allowed) {
-        client.emit('forbidden', { submissionId });
-        return;
-      }
-      client.join(submissionId);
+      void this.canAccessSubmission(auth, submissionId)
+        .then((allowed) => {
+          if (!allowed) {
+            client.emit('forbidden', { submissionId });
+            return;
+          }
+          void client.join(submissionId);
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(`제출 room 권한 확인 실패: ${String(error)}`);
+        });
     });
 
     // 소켓 하나가 앱 전체 수명 동안 재사용되며 여러 제출 페이지를 옮겨다니므로, 클라이언트가
     // 떠난 room은 명시적으로 나가야 한다(안 그러면 room 멤버십이 계속 쌓여서 오래 켜둔
     // 서버일수록 소켓 어댑터 메모리를 갉아먹는다).
     client.on('leave', (submissionId: string) => {
-      if (typeof submissionId === 'string') client.leave(submissionId);
+      if (typeof submissionId === 'string') void client.leave(submissionId);
     });
   }
 

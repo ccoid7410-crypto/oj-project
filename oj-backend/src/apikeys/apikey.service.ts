@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -12,7 +16,9 @@ export class ApiKeyService {
 
   /** 새 API 키 발급. 원문 키는 이 시점에만 반환되고 이후에는 해시만 저장된다. */
   async create(createdById: string, name: string, scopes?: string[]) {
-    const requestedScopes = scopes?.length ? [...new Set(scopes)] : ['users:read'];
+    const requestedScopes = scopes?.length
+      ? [...new Set(scopes)]
+      : ['users:read'];
     if (requestedScopes.some((scope) => scope !== 'users:read')) {
       throw new BadRequestException('허용되지 않는 API 키 scope입니다.');
     }
@@ -25,7 +31,13 @@ export class ApiKeyService {
         scopes: requestedScopes,
         createdById,
       },
-      select: { id: true, name: true, prefix: true, scopes: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        scopes: true,
+        createdAt: true,
+      },
     });
     // 원문 키(key)는 여기서만 노출
     return { ...record, key: raw };
@@ -56,9 +68,14 @@ export class ApiKeyService {
   /** 요청 헤더의 원문 키를 검증하고 유효하면 키 레코드를 반환. lastUsedAt 갱신. */
   async verify(rawKey: string) {
     if (!rawKey) return null;
-    const key = await this.prisma.apiKey.findUnique({ where: { keyHash: sha256(rawKey) } });
+    const key = await this.prisma.apiKey.findUnique({
+      where: { keyHash: sha256(rawKey) },
+    });
     if (!key || key.revoked) return null;
-    await this.prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
+    await this.prisma.apiKey.update({
+      where: { id: key.id },
+      data: { lastUsedAt: new Date() },
+    });
     return key;
   }
 }

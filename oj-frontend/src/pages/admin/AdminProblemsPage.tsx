@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { AdminProblemRow } from '../../api/types';
+import { ProblemTypeBadge } from '../../components/ProblemTypeBadge';
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: '초안',
@@ -50,6 +51,7 @@ export function AdminProblemsPage() {
               <th className="py-2 font-medium">제목</th>
               <th className="py-2 font-medium">작성자</th>
               <th className="py-2 font-medium">상태</th>
+              <th className="py-2 font-medium">유형</th>
               <th className="py-2 font-medium">대회 전용</th>
               <th className="py-2 font-medium"></th>
             </tr>
@@ -65,6 +67,7 @@ export function AdminProblemsPage() {
                 </td>
                 <td className="py-2 text-fg-muted">{p.author.username}</td>
                 <td className="py-2 text-fg-muted">{STATUS_LABEL[p.status] ?? p.status}</td>
+                <td className="py-2"><ProblemTypeBadge type={p.problemType} isPractice={p.isPractice} /></td>
                 <td className="py-2 text-fg-muted">{p.contestOnly ? 'O' : '-'}</td>
                 <td className="py-2 text-right">
                   <button

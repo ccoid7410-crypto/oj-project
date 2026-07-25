@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as os from 'os';
@@ -25,10 +30,10 @@ export class SandboxCleanupService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => this.sweep(), SWEEP_INTERVAL_MS);
+    this.timer = setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS);
     this.timer.unref?.(); // 이 타이머 때문에 프로세스 종료가 막히지 않게
     // 워커가 막 재시작됐을 수도 있으니(이전 실행이 비정상 종료돼 좀비를 남겼을 가능성) 시작하자마자 한 번 돈다.
-    this.sweep();
+    void this.sweep();
   }
 
   onModuleDestroy() {
@@ -37,15 +42,18 @@ export class SandboxCleanupService implements OnModuleInit, OnModuleDestroy {
 
   private async sweep() {
     try {
-      const removed = await this.sandbox.pruneOrphanedContainers(MAX_ORPHAN_AGE_MS);
-      if (removed > 0) this.logger.warn(`좀비 채점 컨테이너 ${removed}개 정리함`);
+      const removed =
+        await this.sandbox.pruneOrphanedContainers(MAX_ORPHAN_AGE_MS);
+      if (removed > 0)
+        this.logger.warn(`좀비 채점 컨테이너 ${removed}개 정리함`);
     } catch (e) {
       this.logger.warn(`컨테이너 정리 스윕 실패: ${e}`);
     }
 
     try {
       const removed = await this.sweepStaleTmpDirs();
-      if (removed > 0) this.logger.warn(`남은 채점 임시 디렉토리 ${removed}개 정리함`);
+      if (removed > 0)
+        this.logger.warn(`남은 채점 임시 디렉토리 ${removed}개 정리함`);
     } catch (e) {
       this.logger.warn(`임시 디렉토리 정리 스윕 실패: ${e}`);
     }

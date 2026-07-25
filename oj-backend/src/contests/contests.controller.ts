@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -7,6 +16,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/jwt.strategy';
 import { ContestsService } from './contests.service';
 import { CreateContestDto, SetContestProblemsDto } from './dto/contest.dto';
+import type { OptionalAuthRequest } from '../common/http-request.types';
 
 @Controller('contests')
 export class ContestsController {
@@ -19,7 +29,7 @@ export class ContestsController {
 
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':slug')
-  findOne(@Param('slug') slug: string, @Req() req: any) {
+  findOne(@Param('slug') slug: string, @Req() req: OptionalAuthRequest) {
     // 로그인은 선택: 토큰이 있으면 registered 여부를 채워준다.
     return this.contests.findBySlug(slug, req.user?.userId);
   }

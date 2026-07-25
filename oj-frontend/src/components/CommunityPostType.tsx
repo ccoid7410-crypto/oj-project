@@ -1,6 +1,7 @@
 import type { CommunityPostType } from '../api/types';
 
 // 공지=붉은색, 업데이트 로그=푸른색, 일반=기본색.
+// oxlint-disable-next-line react/only-export-components -- 목록/상세 화면이 같은 색상 규칙을 공유한다.
 export function postTitleColorClass(type: CommunityPostType): string {
   if (type === 'NOTICE') return 'text-[var(--color-wa)]';
   if (type === 'UPDATE_LOG') return 'text-[var(--color-brand)]';

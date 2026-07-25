@@ -7,7 +7,11 @@ import { RatingModule } from '../rating/rating.module';
 import { JUDGE_QUEUE } from '../judge/judge.constants';
 
 @Module({
-  imports: [NotificationsModule, RatingModule, BullModule.registerQueue({ name: JUDGE_QUEUE })],
+  imports: [
+    NotificationsModule,
+    RatingModule,
+    BullModule.registerQueue({ name: JUDGE_QUEUE }),
+  ],
   controllers: [ProblemsController],
   providers: [ProblemsService],
   exports: [ProblemsService],

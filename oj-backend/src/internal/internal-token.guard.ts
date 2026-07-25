@@ -1,7 +1,15 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { extractBearerToken, serviceTokenAccepted } from '../common/service-token';
+import {
+  extractBearerToken,
+  serviceTokenAccepted,
+} from '../common/service-token';
 
 /**
  * 내부 리스너(:3001) 전용 인증. 인터체인저만 통과할 수 있다.

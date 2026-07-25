@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { SUBMISSION_UPDATES_CHANNEL } from '../common/realtime.constants';
@@ -15,7 +20,9 @@ import { SubmissionCompletionRegistry } from './submission-completion.registry';
  * 채널을 거치면 배치가 어떻게 바뀌든(워커 분리, API 다중화) 항상 동작한다.
  */
 @Injectable()
-export class SubmissionCompletionSubscriber implements OnModuleInit, OnModuleDestroy {
+export class SubmissionCompletionSubscriber
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(SubmissionCompletionSubscriber.name);
   private subscriber?: Redis;
 
@@ -29,14 +36,21 @@ export class SubmissionCompletionSubscriber implements OnModuleInit, OnModuleDes
       host: this.config.get<string>('REDIS_HOST', 'localhost'),
       port: this.config.get<number>('REDIS_PORT', 6379),
     });
-    this.subscriber.subscribe(SUBMISSION_UPDATES_CHANNEL, (err) => {
+    void this.subscriber.subscribe(SUBMISSION_UPDATES_CHANNEL, (err) => {
       if (err) this.logger.error(`채점 완료 채널 구독 실패: ${err.message}`);
     });
     this.subscriber.on('message', (_channel, message) => {
       try {
-        const payload = JSON.parse(message) as { submissionId?: unknown; status?: unknown };
+        const payload = JSON.parse(message) as {
+          submissionId?: unknown;
+          status?: unknown;
+        };
         // JUDGING은 진행 상태라 완료가 아니다. 최종 판정일 때만 깨운다.
-        if (typeof payload.submissionId !== 'string' || !isJudgeVerdict(payload.status)) return;
+        if (
+          typeof payload.submissionId !== 'string' ||
+          !isJudgeVerdict(payload.status)
+        )
+          return;
         this.completions.complete(payload.submissionId, payload.status);
       } catch {
         // 형식이 깨진 메시지는 게이트웨이 쪽에서 이미 경고를 남기므로 여기선 조용히 무시한다.

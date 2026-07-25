@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { ArrayMaxSize, IsArray, IsOptional, IsString, MaxLength, Matches } from 'class-validator';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -77,7 +93,12 @@ export class AdminClassesController {
 
   @Post()
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateClassDto) {
-    return this.classes.create(user.userId, dto.name, dto.slug, dto.description);
+    return this.classes.create(
+      user.userId,
+      dto.name,
+      dto.slug,
+      dto.description,
+    );
   }
 
   @Delete(':id')
@@ -106,7 +127,11 @@ export class AdminClassesController {
   }
 
   @Post(':id/notices')
-  addNotice(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: NoticeDto) {
+  addNotice(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: NoticeDto,
+  ) {
     return this.classes.addNotice(id, user.userId, dto.title, dto.content);
   }
 

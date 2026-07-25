@@ -47,8 +47,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         authVersion: true,
       },
     });
-    if (!user || user.banned || !user.emailVerified || payload.ver !== user.authVersion) {
-      throw new UnauthorizedException('유효하지 않거나 만료된 로그인 정보입니다.');
+    if (
+      !user ||
+      user.banned ||
+      !user.emailVerified ||
+      payload.ver !== user.authVersion
+    ) {
+      throw new UnauthorizedException(
+        '유효하지 않거나 만료된 로그인 정보입니다.',
+      );
     }
     // 여기서 리턴하는 값이 req.user 에 들어감
     return {

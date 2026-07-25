@@ -6,7 +6,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(params: { type: string; message: string; problemId?: string; voterId?: string }) {
+  async create(params: {
+    type: string;
+    message: string;
+    problemId?: string;
+    voterId?: string;
+  }) {
     return this.prisma.adminNotification.create({ data: params });
   }
 
@@ -27,11 +32,17 @@ export class NotificationsService {
   }
 
   async markRead(id: string) {
-    return this.prisma.adminNotification.update({ where: { id }, data: { read: true } });
+    return this.prisma.adminNotification.update({
+      where: { id },
+      data: { read: true },
+    });
   }
 
   async markAllRead() {
-    await this.prisma.adminNotification.updateMany({ where: { read: false }, data: { read: true } });
+    await this.prisma.adminNotification.updateMany({
+      where: { read: false },
+      data: { read: true },
+    });
     return { success: true };
   }
 }

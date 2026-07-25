@@ -1,4 +1,11 @@
-import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApiKeyGuard } from './apikey.guard';
@@ -31,18 +38,26 @@ export class ExternalController {
     users: T[],
   ): Promise<Array<Omit<T, 'id'> & { solvedCount: number }>> {
     if (users.length === 0) return [];
-    const rows = await this.prisma.$queryRaw<Array<{ userId: string; solvedCount: bigint }>>`
+    const rows = await this.prisma.$queryRaw<
+      Array<{ userId: string; solvedCount: bigint }>
+    >`
       SELECT "userId", COUNT(DISTINCT "problemId") AS "solvedCount"
       FROM submissions
       WHERE status = 'ACCEPTED' AND "userId" = ANY(${users.map((u) => u.id)})
       GROUP BY "userId"
     `;
     const counts = new Map(rows.map((r) => [r.userId, Number(r.solvedCount)]));
-    return users.map(({ id, ...rest }) => ({ ...rest, solvedCount: counts.get(id) ?? 0 }));
+    return users.map(({ id, ...rest }) => ({
+      ...rest,
+      solvedCount: counts.get(id) ?? 0,
+    }));
   }
 
   @Get('users')
-  async listUsers(@Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+  async listUsers(
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
     const take = Math.min(Math.max(parseInt(limit ?? '50', 10) || 50, 1), 200);
     const users = await this.prisma.user.findMany({
       take,
@@ -51,7 +66,8 @@ export class ExternalController {
       select: { id: true, username: true, role: true, rating: true },
     });
     // nextCursor는 내부 페이지네이션 키(id)일 뿐이라 응답에 남겨도 되지만, 각 유저 레코드 자체에는 안 남긴다.
-    const nextCursor = users.length === take ? users[users.length - 1].id : null;
+    const nextCursor =
+      users.length === take ? users[users.length - 1].id : null;
     const view: ExternalUserView[] = await this.attachSolvedCounts(users);
     return { users: view, nextCursor };
   }

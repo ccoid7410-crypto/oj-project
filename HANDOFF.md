@@ -15,7 +15,7 @@ docker compose up -d
 - `api` 컨테이너는 기동 시 자동으로 `prisma migrate deploy`를 실행하므로 DB가 완전히 비어 있어도 알아서 스키마를 만든다.
 - 모든 Dockerfile은 `FROM`에 `--platform`을 고정하지 않는다. 사용하는 베이스 이미지(node, postgres, redis, gcc, python, eclipse-temurin, golang, nginx)가 전부 amd64/arm64 공식 멀티아키텍처 이미지라서, 빌드/실행하는 호스트 아키텍처에 맞는 이미지가 자동으로 선택된다. 에뮬레이션 없이 ARM 서버에서도 네이티브로 동작한다.
 - `setup.sh`가 채워주지 못하는 값(도메인, 이메일 발송 도메인, SMTP 등)은 `oj-backend/.env`를 직접 열어 확인해야 한다 — 아래 "배포 전 확인할 값" 참고.
-- 배포 도메인이 `localhost`가 아니라면 루트 `.env`의 `VITE_API_URL`을 실제 API 도메인으로 바꾸고 프론트 이미지를 다시 빌드해야 한다(`docker compose build frontend`). Vite는 이 값을 빌드 시점에 정적 파일에 박아 넣기 때문에 컨테이너 실행 중에는 바꿀 수 없다.
+- 루트 `.env`의 `VITE_API_URL`은 기본적으로 비워 둔다. 그러면 접속한 IP/도메인과 같은 origin의 nginx `/api` 프록시를 사용하므로 별도 CORS나 공개 API 포트가 필요 없다. 백엔드를 완전히 다른 도메인에 둘 때만 절대 URL을 넣고 프론트 이미지를 다시 빌드한다(`docker compose build frontend`).
 
 ### 배포 전 확인할 값 (`oj-backend/.env`)
 
@@ -29,16 +29,17 @@ docker compose up -d
 
 - `postgres` / `redis` — 상태 저장소
 - `api` (`dist/main.js`) — REST API + WebSocket 게이트웨이
-- `judge-worker` (`dist/main-worker.js`) — BullMQ 워커. `docker.sock`을 마운트해서 언어별 컴파일/실행용 컨테이너를 직접 띄운다(Docker-outside-of-Docker). **이 소켓 마운트는 사실상 호스트 root 권한과 동급**이므로, 운영 환경에서는 이 워커를 API 서버와 분리된 전용 서버/VM에 두는 걸 권장한다.
-- `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함). `/home/`은 homepage 컨테이너로, `/api/`는 api 컨테이너로 프록시한다.
+- `interchanger` — API와 채점기 사이에서 리스/결과를 중계한다. 공개 프록시도 구현돼 있지만 아직 프론트 트래픽에는 연결하지 않았다.
+- `judge-worker` (`dist/main-worker.js`) — 현재는 같은 Compose 호스트에서 `judge_net`으로만 분리되어 있다. `docker.sock` 마운트는 사실상 **현재 호스트 root 권한과 동급**이므로 VM 격리가 완료된 상태가 아니다. 별도 VM2 준비 시 `docker-compose.judge.yml` + `setup-judge.sh`를 만든다.
+- `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함). 현재 `/api/`와 `/socket.io/`는 api 컨테이너로 직접 프록시한다. 인터체인저 전환 조건과 위험은 [DEPLOYMENT_PHASES.md](./DEPLOYMENT_PHASES.md)를 참고한다.
 - `homepage` — 동아리 홈페이지(`club-homepage/`, 정적 HTML/CSS/JS)를 nginx로 서빙. 외부 포트는 열지 않고 frontend를 통해서만 접근한다. OJ와 같은 origin을 유지해 localStorage의 `oj_token`을 공유하므로 두 페이지 간 로그인 상태가 이어진다.
 
 ## 지금까지 만든 것 (요약)
 
 - `auth` — 회원가입(이메일 도메인 제한 + 이메일 인증), 로그인, JWT (역할 재확인 포함)
 - `users` — 프로필/랭킹(PII 최소화된 응답), 학번 등록 + 어드민이 지정한 수정 기간에만 수정 가능, 권한 3단계(USER/MEMBER/ADMIN — 부원(MEMBER) 이상만 동아리 홈페이지 접속·문제 등록 가능)
-- `problems` — 문제 CRUD, 일반 사용자 제안 → 어드민 승인 후 공개, solved.ac 스타일 티어(브론즈~루비 x 5레벨), 커뮤니티 난이도 투표
-- `submissions` / `judge` — BullMQ 큐 채점, 언어별(C/C++/Java/Python3/JS/Go) 샌드박스 실행, WebSocket 실시간 채점 로그
+- `problems` — 문제 CRUD, 일반/정확도(목표·최대화·최소화)/인터랙티브 유형, 문제별 컴파일 옵션·허용 언어, 레이팅 제외 연습 문제, 일반 사용자 제안 → 어드민 승인 후 공개, solved.ac 스타일 티어, 커뮤니티 난이도 투표
+- `submissions` / `judge` — BullMQ 큐 채점, 언어별(C/C++/Java/Python3/JS/Go) 샌드박스 실행, 정확도 점수 저장, 줄 단위 요청/응답 인터랙티브 채점, WebSocket 실시간 채점 로그
 - `rating` — 상위 100문제 난이도 합산 레이팅
 - `contests` — 대회 생성/문제 구성/리더보드
 - `admin` — 계정 대량 생성(첫 로그인 시 비밀번호 강제 변경), 계정 정지/차단, judge-config(컴파일 플래그 등) UI 편집, 난이도 투표 급변 알림, 외부 API 키 발급
@@ -50,6 +51,12 @@ docker compose up -d
 - 문제 태그/검색 필터링 고도화
 
 ## 운영 시 참고
+
+- 채점기 VM 분리(5단계)와 프론트 인터체인저 전환(6단계)의 **현재 상태/전환 조건**은
+  [DEPLOYMENT_PHASES.md](./DEPLOYMENT_PHASES.md)에 따로 기록한다. 현재 상태를 VM 분리 완료 또는
+  프론트 전환 완료로 간주하면 안 된다.
+- 문제 유형별 점수식, 줄 단위 인터랙티브 프로토콜, 문제별 컴파일 옵션의 정확한 의미는
+  [JUDGING_TYPES.md](./JUDGING_TYPES.md)를 참고한다.
 
 - judge 샌드박스(`docker-sandbox.service.ts`)는 non-root 유저, `ReadonlyRootfs`, `CapDrop: ALL`, `no-new-privileges`, tmpfs `/tmp`, PID 제한이 이미 적용되어 있다.
 - `prisma migrate diff`로 마이그레이션 파일과 실제 스키마 간 drift가 없는지 주기적으로 확인할 것 — 수기로 DB를 고친 적이 있다면 반드시 마이그레이션 파일에도 반영해야 한다(안 그러면 새 머신에 배포할 때만 실패하는 버그가 생긴다).

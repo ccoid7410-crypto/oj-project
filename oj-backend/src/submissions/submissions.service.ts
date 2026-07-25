@@ -1,10 +1,16 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
 import { QueuePriorityService } from '../judge/queue-priority.service';
+import { Language } from '@prisma/client';
 
 @Injectable()
 export class SubmissionsService {
@@ -15,32 +21,58 @@ export class SubmissionsService {
   ) {}
 
   async create(userId: string, userRole: string, dto: CreateSubmissionDto) {
-    const problem = await this.prisma.problem.findUnique({ where: { id: dto.problemId } });
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: dto.problemId },
+    });
     if (!problem) throw new NotFoundException('문제를 찾을 수 없습니다.');
 
     // 공개되지 않은 문제는 작성자/어드민만 제출(테스트) 가능
-    if (problem.status !== 'PUBLISHED' && problem.authorId !== userId && userRole !== 'ADMIN') {
+    if (
+      problem.status !== 'PUBLISHED' &&
+      problem.authorId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
       throw new ForbiddenException('아직 공개되지 않은 문제입니다.');
     }
-    if (problem.tags.includes('test') && problem.authorId !== userId && userRole !== 'ADMIN') {
+    if (
+      problem.tags.includes('test') &&
+      problem.authorId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
       throw new NotFoundException('문제를 찾을 수 없습니다.');
     }
 
     // 대회 전용 문제는 종료 후 공개 설정이 적용된 경우를 제외하면 반드시 유효한 대회 문맥으로만 제출한다.
-    if (problem.contestOnly && !dto.contestId && problem.authorId !== userId && userRole !== 'ADMIN') {
+    if (
+      problem.contestOnly &&
+      !dto.contestId &&
+      problem.authorId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
       const publiclyVisible = await this.prisma.problem.count({
         where: {
           id: problem.id,
           contestProblems: {
-            some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+            some: {
+              contest: {
+                endsAt: { lt: new Date() },
+                problemsVisibleAfterEnd: true,
+              },
+            },
           },
         },
       });
-      if (!publiclyVisible) throw new ForbiddenException('대회 전용 문제는 대회 페이지에서만 제출할 수 있습니다.');
+      if (!publiclyVisible)
+        throw new ForbiddenException(
+          '대회 전용 문제는 대회 페이지에서만 제출할 수 있습니다.',
+        );
     }
 
     // 문제별 허용 언어 제한 (비어 있으면 전체 허용)
-    if (problem.allowedLanguages.length > 0 && !problem.allowedLanguages.includes(dto.language as any)) {
+    if (
+      problem.allowedLanguages.length > 0 &&
+      !problem.allowedLanguages.includes(dto.language)
+    ) {
       throw new BadRequestException(
         `이 문제는 다음 언어로만 제출할 수 있습니다: ${problem.allowedLanguages.join(', ')}`,
       );
@@ -50,10 +82,16 @@ export class SubmissionsService {
     let contestId: string | null = null;
     if (dto.contestId) {
       const cp = await this.prisma.contestProblem.findUnique({
-        where: { contestId_problemId: { contestId: dto.contestId, problemId: dto.problemId } },
+        where: {
+          contestId_problemId: {
+            contestId: dto.contestId,
+            problemId: dto.problemId,
+          },
+        },
         include: { contest: true },
       });
-      if (!cp) throw new BadRequestException('해당 대회에 포함된 문제가 아닙니다.');
+      if (!cp)
+        throw new BadRequestException('해당 대회에 포함된 문제가 아닙니다.');
       const now = new Date();
       if (now < cp.contest.startsAt || now > cp.contest.endsAt) {
         throw new BadRequestException('대회 진행 시간이 아닙니다.');
@@ -61,7 +99,8 @@ export class SubmissionsService {
       const joined = await this.prisma.contestParticipant.findUnique({
         where: { contestId_userId: { contestId: dto.contestId, userId } },
       });
-      if (!joined && userRole !== 'ADMIN') throw new ForbiddenException('대회에 참가하지 않았습니다.');
+      if (!joined && userRole !== 'ADMIN')
+        throw new ForbiddenException('대회에 참가하지 않았습니다.');
       contestId = dto.contestId;
     }
 
@@ -70,7 +109,7 @@ export class SubmissionsService {
         userId,
         problemId: dto.problemId,
         contestId,
-        language: dto.language as any,
+        language: Language[dto.language],
         sourceCode: dto.sourceCode,
         status: 'PENDING',
       },
@@ -98,10 +137,13 @@ export class SubmissionsService {
     const submission = await this.prisma.submission.findUnique({
       where: { id },
       include: {
-        testResults: { include: { testCase: { select: { isSample: true, order: true } } } },
+        testResults: {
+          include: { testCase: { select: { isSample: true, order: true } } },
+        },
       },
     });
-    if (!submission) throw new NotFoundException('제출 내역을 찾을 수 없습니다.');
+    if (!submission)
+      throw new NotFoundException('제출 내역을 찾을 수 없습니다.');
     // 본인 제출이 아니면(관리자 제외) 소스코드 등 상세 내용을 볼 수 없다.
     if (submission.userId !== requesterId && requesterRole !== 'ADMIN') {
       throw new ForbiddenException('이 제출을 조회할 권한이 없습니다.');
@@ -120,6 +162,7 @@ export class SubmissionsService {
         status: true,
         runtimeMs: true,
         memoryKb: true,
+        score: true,
         createdAt: true,
       },
     });
@@ -138,7 +181,12 @@ export class SubmissionsService {
             {
               contestOnly: true,
               contestProblems: {
-                some: { contest: { endsAt: { lt: new Date() }, problemsVisibleAfterEnd: true } },
+                some: {
+                  contest: {
+                    endsAt: { lt: new Date() },
+                    problemsVisibleAfterEnd: true,
+                  },
+                },
               },
             },
           ],
@@ -153,9 +201,18 @@ export class SubmissionsService {
         status: true,
         runtimeMs: true,
         memoryKb: true,
+        score: true,
         createdAt: true,
         user: { select: { username: true } },
-        problem: { select: { title: true, slug: true, displayId: true } },
+        problem: {
+          select: {
+            title: true,
+            slug: true,
+            displayId: true,
+            problemType: true,
+            maxScore: true,
+          },
+        },
       },
     });
   }
