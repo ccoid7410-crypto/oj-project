@@ -17,6 +17,8 @@ services:
     # 어긋난다 - 에러 없이 조회 누락/중복 unique 통과 같은 미묘한 데이터 정합성 문제로만 나타남.
     # 이미지를 다시 바꿔야 한다면 반드시 REINDEX(또는 새 클러스터로 dump/restore)까지 같이 해야 한다.
     image: postgres:16-bookworm
+    networks:
+      - backend_net
     # 재부팅해도 docker 데몬이 뜨면 알아서 다시 켜지도록. (컨테이너가 죽었다가 살아나는 거지,
     # docker compose up을 매번 손으로 실행해야 하는 게 아니다.)
     restart: unless-stopped
@@ -53,6 +55,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    networks:
+      - backend_net
     restart: unless-stopped
     # 채점 큐/pub-sub 용도로만 쓰여 데이터량이 적으니 메모리 상한을 낮게 잡는다.
     # maxmemory-policy는 반드시 noeviction이어야 한다: BullMQ는 큐 데이터가 Redis에서
@@ -104,6 +108,8 @@ services:
     # 컨테이너에는 스키마만 들어있고 실제 마이그레이션 적용은 기동 시 한 번 실행한다.
     # (여러 인스턴스를 띄워도 prisma migrate deploy는 안전하게 반복 실행 가능)
     entrypoint: ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+    networks:
+      - backend_net
     deploy:
       resources:
         limits:
@@ -115,15 +121,62 @@ services:
     cap_drop:
       - ALL
 
+  # 프론트↔백엔드, 백엔드↔채점 VM 사이의 유일한 중개자.
+  # 공개(4000)와 내부(4001) 리스너를 분리해서, 경로 규칙 실수로 내부 엔드포인트가
+  # 브라우저에 노출되는 사고가 구조적으로 불가능하게 만든다.
+  interchanger:
+    build: ./interchanger
+    networks:
+      - backend_net
+      - judge_net
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      API_PUBLIC_URL: http://api:3000
+      API_INTERNAL_URL: http://api:3001
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?run ./setup.sh to generate service tokens}
+      JUDGE_SERVICE_TOKEN: ${JUDGE_SERVICE_TOKEN:?run ./setup.sh to generate service tokens}
+      PUBLIC_PORT: 4000
+      INTERNAL_PORT: 4001
+    ports:
+      # 4001은 채점 VM이 붙는 포트다. 같은 호스트 안의 별도 VM에서 접근해야 하므로
+      # JUDGE_BIND_IP를 그 내부망 IP로 지정한다(기본값은 로컬 전용).
+      - "${JUDGE_BIND_IP:-127.0.0.1}:4001:4001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+          cpus: "0.5"
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ⚠️ 이 서비스에는 절대 env_file(oj-backend/.env)을 달지 마세요.
+  # 그 파일에는 DB 비밀번호와 JWT_SECRET이 들어 있어서, 붙이는 순간 채점 VM에서
+  # `docker exec cat`으로 읽을 수 있는 형태로 자격증명이 올라갑니다.
+  # 채점기가 알아야 하는 값은 아래 environment에 있는 것이 전부입니다.
   judge-worker:
     build: ./oj-backend
     restart: unless-stopped
     command: ["node", "dist/main-worker.js"]
-    env_file: ./oj-backend/.env
+    networks:
+      - judge_net
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:?run ./setup.sh first}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
-      REDIS_HOST: redis
+      # DB/Redis 주소도 자격증명도 주지 않는다. 일감은 인터체인저에서만 받는다.
+      INTERCHANGER_URL: http://interchanger:4001
+      JUDGE_SERVICE_TOKEN: ${JUDGE_SERVICE_TOKEN:?run ./setup.sh to generate service tokens}
       JUDGE_DOCKER_SOCK: /var/run/docker.sock
+      JUDGE_TMP_DIR: /judge-tmp
+      HOST_JUDGE_TMP_DIR: ${HOST_JUDGE_TMP_DIR:?run ./setup.sh first to set this}
+      # 관리자가 DB에서 바꿀 수 있는 이미지 이름을 채점 VM이 무조건 신뢰하지 않도록 제한한다.
+      JUDGE_ALLOWED_IMAGE_PREFIXES: "gcc:,python:,eclipse-temurin:,node:,golang:"
       NODE_OPTIONS: --max-old-space-size=192
       # 라즈베리파이 4B(4코어) 기준 기본값. 컴파일 단계(특히 Java/C++)가 순간적으로
       # 512MB까지 쓸 수 있어서, 2로 두면 최악의 경우 동시에 ~1GB까지 튈 수 있다.
@@ -142,10 +195,8 @@ services:
     # Docker 소켓 접근 때문에 워커만 root로 실행한다. 공개 HTTP API는 Dockerfile의 node 유저로 실행된다.
     user: "0:0"
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      interchanger:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -164,6 +215,8 @@ services:
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - backend_net
     depends_on:
       - api
       - homepage
@@ -179,6 +232,8 @@ services:
   # 토큰(oj_token)이 공유되어 두 페이지 간 로그인 상태가 이어지기 때문이다.
   homepage:
     build: ./club-homepage
+    networks:
+      - backend_net
     restart: unless-stopped
     deploy:
       resources:
@@ -190,3 +245,15 @@ services:
 volumes:
   pg_data:
   banner_uploads:
+
+# 채점기를 백엔드 망에서 떼어놓는다.
+#
+# 자격증명을 빼앗는 것만으로는 부족하다 - 같은 네트워크에 있으면 채점 VM이 뚫렸을 때
+# 여전히 redis(비밀번호 없음)에 직접 붙어 큐를 조작하거나 가짜 채점 결과를 발행할 수 있다.
+# judge_net에는 인터체인저와 채점기만 있고, 인터체인저만 양쪽에 걸쳐 다리 역할을 한다.
+# 그래서 채점기가 백엔드에 닿는 경로가 물리적으로 인터체인저 하나뿐이 된다.
+networks:
+  backend_net:
+    driver: bridge
+  judge_net:
+    driver: bridge

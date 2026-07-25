@@ -1,33 +1,16 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bullmq';
-import { PrismaModule } from './prisma/prisma.module';
+import { ConfigModule } from '@nestjs/config';
 import { JudgeModule } from './judge/judge.module';
-import { InternalModule } from './internal/internal.module';
 
 /**
- * 채점 워커 전용 부트스트랩 모듈.
- * 이 프로세스만 docker.sock에 접근할 수 있어야 하며, HTTP 포트를 열 필요는 없다.
- * (API 서버와 완전히 분리해서 배포 → 코드 실행 관련 보안 사고가 API 서버로 번지지 않게 격리)
+ * 채점 워커 전용 부트스트랩 모듈. **이 파일이 곧 격리 경계다.**
+ *
+ * 여기에 PrismaModule이나 BullModule을 다시 넣는 순간 채점 VM이 DB/Redis 자격증명을
+ * 갖게 되고, 이 리팩터링의 목적이 통째로 사라진다. 채점기는 docker.sock(= 호스트 root)을
+ * 쥐고 남의 코드를 실행하는 가장 위험한 컴포넌트이므로, 여기서 밖으로 나갈 수 있는 경로는
+ * 인터체인저로 향하는 아웃바운드 HTTP 하나뿐이어야 한다.
  */
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
-    }),
-    PrismaModule,
-    // 4단계에서 통째로 빠진다: 그때부터 채점 VM은 DB에 접근하지 않고
-    // 인터체인저에서 리스를 받아 결과만 돌려준다.
-    InternalModule,
-    JudgeModule,
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), JudgeModule],
 })
 export class JudgeWorkerModule {}

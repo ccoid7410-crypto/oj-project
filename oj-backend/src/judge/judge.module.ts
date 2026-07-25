@@ -1,21 +1,23 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { JudgeProcessor } from './judge.processor';
+import { InterchangerClientService } from './interchanger-client.service';
 import { JudgeRunnerService } from './judge-runner.service';
 import { DockerSandboxService } from './sandbox/docker-sandbox.service';
 import { SandboxCleanupService } from './sandbox-cleanup.service';
-import { JUDGE_QUEUE } from './judge.constants';
 
 /**
- * 채점 실행 모듈.
+ * 채점 VM에 올라가는 전부.
  *
- * JudgeRunnerService/DockerSandboxService/SandboxCleanupService는 DB를 안 쓰므로
- * 채점 VM에 그대로 남고, DB가 필요한 payload/ingest는 InternalModule(Global)에서 주입된다.
- * 4단계에서 BullModule과 JudgeProcessor가 빠지면 이 모듈이 곧 채점 VM의 전부가 된다.
+ * 여기 어디에도 PrismaModule / BullModule이 없다는 점이 핵심이다. 채점기는 DB도 Redis도
+ * 모르고, 인터체인저로 아웃바운드 연결만 해서 일감을 받아 결과를 돌려준다.
+ * 샌드박스를 탈출당해도 넘어갈 자격증명이 애초에 존재하지 않는다.
  */
 @Module({
-  imports: [BullModule.registerQueue({ name: JUDGE_QUEUE })],
-  providers: [JudgeProcessor, JudgeRunnerService, DockerSandboxService, SandboxCleanupService],
+  providers: [
+    InterchangerClientService,
+    JudgeRunnerService,
+    DockerSandboxService,
+    SandboxCleanupService,
+  ],
   exports: [JudgeRunnerService],
 })
 export class JudgeModule {}
