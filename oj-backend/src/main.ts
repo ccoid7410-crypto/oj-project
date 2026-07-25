@@ -5,6 +5,7 @@ import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { InternalApiModule } from './internal/internal-api.module';
 import { UPLOADS_ROOT } from './banner/banner.service';
 import {
   requireFrontendOrigin,
@@ -12,6 +13,7 @@ import {
   requireSecureDatabaseUrl,
   resolveCorsOrigins,
 } from './common/security-config';
+import { requireServiceToken } from './common/service-token';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -79,6 +81,40 @@ async function bootstrap() {
   server.headersTimeout = 66_000;
   server.requestTimeout = 120_000;
   logger.log(`API server listening on ${port}`);
+
+  await startInternalListener(logger);
+}
+
+/**
+ * 인터체인저 전용 내부 리스너. 공개 앱과 라우트를 공유하지 않는 별도 Nest 앱이다.
+ * (이유는 InternalApiModule 주석 참고 - nginx의 /api 접두사 제거와 충돌하지 않게 하기 위함)
+ *
+ * INTERNAL_API_TOKEN이 없으면 아예 띄우지 않는다. 인터체인저를 아직 안 쓰는 배포에서
+ * 인증 없는 내부 엔드포인트가 조용히 열려 있는 것보다 낫다.
+ */
+async function startInternalListener(logger: Logger): Promise<void> {
+  if (!process.env.INTERNAL_API_TOKEN) {
+    logger.warn('INTERNAL_API_TOKEN이 없어 내부 리스너를 띄우지 않습니다.');
+    return;
+  }
+  requireServiceToken({ get: (key: string) => process.env[key] }, 'INTERNAL_API_TOKEN');
+
+  const internalApp = await NestFactory.create<NestExpressApplication>(InternalApiModule, {
+    logger: ['error', 'warn'],
+  });
+  internalApp.enableShutdownHooks();
+  // 이 리스너 앞에는 프록시가 없다. XFF를 신뢰하면 호출자가 자기 IP를 마음대로 위조할 수 있다.
+  internalApp.set('trust proxy', false);
+  internalApp.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
+  );
+  // 채점 결과 페이로드(테스트케이스 출력 다수)가 기본 100kb를 넘을 수 있다.
+  internalApp.use(json({ limit: '20mb' }));
+
+  const internalPort = Number(process.env.INTERNAL_PORT ?? 3001);
+  // 0.0.0.0에 붙지만 이 포트는 compose 내부망에만 존재하고 호스트로 publish하지 않는다.
+  await internalApp.listen(internalPort);
+  logger.log(`Internal listener listening on ${internalPort}`);
 }
 
 bootstrap().catch((err) => {
