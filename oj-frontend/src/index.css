@@ -26,6 +26,12 @@
 
   /* 헤더 로고 색 (다크 테마에서 밝게 뒤집는다) */
   --color-logo: #1a2b4c;
+  /* 백준 특유의 짙은 네이비 상단바 색. 헤더 전용이라 라이트/다크 공통으로 고정한다. */
+  --color-header-bg: #1b2a4a;
+  --color-header-fg: #c7d2e6;
+  --color-header-fg-hover: #ffffff;
+  /* 본문 배경(옅은 회색) - 흰 콘텐츠 박스가 그 위에 얹히는 백준 특유의 레이어감. */
+  --color-page-bg: #f4f6f9;
 
   /* solved.ac 관례를 따른 난이도(티어) 색상 */
   --color-bronze: #ad5600;
@@ -43,10 +49,11 @@ html {
 }
 
 body {
-  background-color: var(--color-white, #ffffff);
+  /* 백준처럼 순백 대신 옅은 회색 바탕 위에 콘텐츠가 놓이는 느낌. */
+  background-color: var(--color-page-bg, #f4f6f9);
   color: var(--color-fg);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   min-height: 100vh;
 }
 
@@ -89,6 +96,7 @@ body {
    참조하므로, .dark에서 변수만 뒤집으면 전체 UI가 함께 뒤집힌다. */
 :root.dark {
   --color-white: #14181d;   /* 페이지/카드 배경 */
+  --color-page-bg: #0e1116;
   --color-ink-900: #14181d;
   --color-ink-800: #171c22;
   --color-ink-700: #1e242c; /* 패널/코드 블록 배경 */

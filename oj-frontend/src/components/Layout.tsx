@@ -45,27 +45,80 @@ export function Layout() {
     };
   }, [user?.role]);
 
+  // 백준 특유의 밑줄 없는 짙은 네이비 상단바 안에서 쓰는 링크 스타일.
+  // 밑줄 대신 hover 시 글자색만 흰색으로 밝아진다.
+  const navLinkClass =
+    'shrink-0 py-3 text-[13px] font-medium text-[var(--color-header-fg)] hover:text-[var(--color-header-fg-hover)]';
+
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-ink-500 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 pt-4 pb-2">
-          <Link to="/" className="leading-none">
-            <div className="flex items-baseline gap-1 text-xl font-black tracking-tight text-[var(--color-logo)]">
-              {brandName}
-              <span className="text-[var(--color-brand)]">&gt;</span>
-            </div>
-            <div className="mt-0.5 text-[10px] font-semibold tracking-[0.2em] text-fg-muted">
-              ONLINE JUDGE
-            </div>
+    <div className="min-h-screen bg-[var(--color-page-bg)]">
+      <header className="bg-[var(--color-header-bg)]">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-7 gap-y-1 px-6">
+          <Link to="/" className="flex items-baseline gap-1 py-3 leading-none">
+            <span className="text-base font-black tracking-tight text-white">{brandName}</span>
+            <span className="text-[var(--color-brand)]">&gt;</span>
           </Link>
-          <div className="flex items-center gap-3 text-xs text-fg-muted">
+          <nav className="flex flex-wrap items-center gap-x-5">
+            <Link to="/problems" className={navLinkClass}>
+              문제
+            </Link>
+            <Link to="/contests" className={navLinkClass}>
+              대회
+            </Link>
+            <Link to="/ranking" className={navLinkClass}>
+              랭킹
+            </Link>
+            <Link to="/community" className={navLinkClass}>
+              커뮤니티
+            </Link>
+            {user && (
+              <Link to="/submissions" className={navLinkClass}>
+                채점 현황
+              </Link>
+            )}
+            {user && (
+              <Link to="/submissions/me" className={navLinkClass}>
+                내 제출
+              </Link>
+            )}
+            {user && (
+              <Link to="/problems/mine" className={navLinkClass}>
+                내 문제
+              </Link>
+            )}
+            {user && (
+              <Link to="/classes" className={navLinkClass}>
+                수업
+              </Link>
+            )}
+            {user?.role === 'ADMIN' && (
+              <Link to="/admin" className={navLinkClass}>
+                관리자
+              </Link>
+            )}
+            {user?.role === 'ADMIN' && (
+              <Link to="/admin/notifications" className={`relative ${navLinkClass}`}>
+                알림
+                {unreadCount > 0 && (
+                  <span className="ml-1 rounded-full bg-[var(--color-wa)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {/* 동아리 홈페이지로 이동. React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다. */}
+            <a href="/home/" className={navLinkClass}>
+              Durunuri ↗
+            </a>
+          </nav>
+          <div className="ml-auto flex shrink-0 items-center gap-3 py-3 text-[12px] text-[var(--color-header-fg)]">
             {user ? (
               <>
                 <Link
                   to={`/users/${user.username}`}
-                  className="flex items-center gap-2 hover:text-[var(--color-brand)]"
+                  className="flex items-center gap-1.5 hover:text-[var(--color-header-fg-hover)]"
                 >
-                  <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={20} />
+                  <Avatar username={user.username} avatarVersion={user.avatarVersion ?? null} size={18} />
                   <UserTitleBadge title={user.customTitle} />
                   {user.username}
                 </Link>
@@ -74,7 +127,7 @@ export function Layout() {
                     logout();
                     navigate('/');
                   }}
-                  className="hover:text-[var(--color-brand)]"
+                  className="hover:text-[var(--color-header-fg-hover)]"
                 >
                   로그아웃
                 </button>
@@ -84,106 +137,19 @@ export function Layout() {
                 <Link
                   // 로그인 후 지금 보던 페이지로 돌아올 수 있게 현재 위치를 redirect로 넘긴다
                   to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-                  className="hover:text-[var(--color-brand)]"
+                  className="hover:text-[var(--color-header-fg-hover)]"
                 >
                   로그인
                 </Link>
-                <Link to="/signup" className="hover:text-[var(--color-brand)]">
+                <Link to="/signup" className="hover:text-[var(--color-header-fg-hover)]">
                   회원가입
                 </Link>
               </>
             )}
           </div>
         </div>
-        <nav className="mx-auto flex max-w-5xl items-center gap-6 border-t border-ink-600 px-6 text-sm font-medium">
-          <Link
-            to="/problems"
-            className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-          >
-            문제
-          </Link>
-          <Link
-            to="/contests"
-            className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-          >
-            대회
-          </Link>
-          <Link
-            to="/ranking"
-            className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-          >
-            랭킹
-          </Link>
-          <Link
-            to="/community"
-            className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-          >
-            커뮤니티
-          </Link>
-          {user && (
-            <Link
-              to="/submissions"
-              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              채점 현황
-            </Link>
-          )}
-          {user && (
-            <Link
-              to="/submissions/me"
-              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              내 제출
-            </Link>
-          )}
-          {user && (
-            <Link
-              to="/problems/mine"
-              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              내 문제
-            </Link>
-          )}
-          {user && (
-            <Link
-              to="/classes"
-              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              수업
-            </Link>
-          )}
-          {user?.role === 'ADMIN' && (
-            <Link
-              to="/admin"
-              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              관리자
-            </Link>
-          )}
-          {user?.role === 'ADMIN' && (
-            <Link
-              to="/admin/notifications"
-              className="relative border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
-            >
-              알림
-              {unreadCount > 0 && (
-                <span className="ml-1 rounded-full bg-[var(--color-wa)] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
-          {/* 동아리 홈페이지로 이동 — 홈페이지의 "Online Judge ↗" 버튼과 같은 위치(메뉴 오른쪽 끝)·같은 모양.
-              홈페이지는 React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다. */}
-          <a
-            href="/home/"
-            className="ml-auto border-b-2 border-transparent py-2.5 text-[var(--color-brand)] hover:border-[var(--color-brand)]"
-          >
-            Durunuri ↗
-          </a>
-        </nav>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl bg-white px-6 py-6">
         <Outlet />
       </main>
     </div>
