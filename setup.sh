@@ -60,12 +60,25 @@ set_env_var() {
   fi
 }
 
+get_env_var() {
+  # get_env_var <file> <key> -- 키가 없어도 set -e/pipefail을 건드리지 않고 빈 문자열 반환
+  local file="$1" key="$2"
+  awk -v key="$key" '
+    index($0, key "=") == 1 {
+      sub("^[^=]*=", "")
+      gsub("\"", "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
 set_env_var ".env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 set_env_var "oj-backend/.env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 echo "==> HOST_JUDGE_TMP_DIR을 두 .env 파일에 채워 넣었다"
 
 # 3. DB 비밀번호와 JWT_SECRET이 예시 값 그대로면 무작위로 생성
-current_db_password="$(grep '^POSTGRES_PASSWORD=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+current_db_password="$(get_env_var ".env" "POSTGRES_PASSWORD")"
 if [ -z "$current_db_password" ] || [ "$current_db_password" = "oj_password" ] || [ "$current_db_password" = "changeme-run-setup-sh" ]; then
   new_db_password="$(openssl rand -hex 32)"
   set_env_var ".env" "POSTGRES_PASSWORD" "$new_db_password"
@@ -76,12 +89,12 @@ else
   set_env_var "oj-backend/.env" "POSTGRES_PASSWORD" "\"$current_db_password\""
   echo "==> PostgreSQL 비밀번호가 이미 설정되어 있어 건너뜀"
 fi
-db_user="$(grep '^POSTGRES_USER=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
-db_name="$(grep '^POSTGRES_DB=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
-effective_db_password="$(grep '^POSTGRES_PASSWORD=' ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+db_user="$(get_env_var ".env" "POSTGRES_USER")"
+db_name="$(get_env_var ".env" "POSTGRES_DB")"
+effective_db_password="$(get_env_var ".env" "POSTGRES_PASSWORD")"
 set_env_var "oj-backend/.env" "DATABASE_URL" "\"postgresql://${db_user:-oj_user}:${effective_db_password}@localhost:5432/${db_name:-oj_db}?schema=public\""
 
-current_secret="$(grep '^JWT_SECRET=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+current_secret="$(get_env_var "oj-backend/.env" "JWT_SECRET")"
 if [ -z "$current_secret" ] || [ "$current_secret" = "changeme-run-setup-sh" ]; then
   new_secret="$(openssl rand -hex 48)"
   set_env_var "oj-backend/.env" "JWT_SECRET" "\"$new_secret\""
@@ -92,7 +105,7 @@ fi
 
 # 인터체인저의 두 신뢰 경계에 쓰는 서비스 토큰도 루트 .env에서 각각 독립적으로 생성한다.
 for service_token_key in INTERNAL_API_TOKEN JUDGE_SERVICE_TOKEN; do
-  current_service_token="$(grep "^${service_token_key}=" ".env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  current_service_token="$(get_env_var ".env" "$service_token_key")"
   if [ -z "$current_service_token" ] || [ "$current_service_token" = "changeme-run-setup-sh" ]; then
     set_env_var ".env" "$service_token_key" "$(openssl rand -hex 32)"
     echo "==> ${service_token_key}을 무작위로 새로 생성했다"
@@ -117,7 +130,7 @@ detect_lan_ip() {
 LAN_IP="$(detect_lan_ip)"
 
 if [ -n "$LAN_IP" ]; then
-  current_cors="$(grep '^CORS_ORIGIN=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  current_cors="$(get_env_var "oj-backend/.env" "CORS_ORIGIN")"
   if [ -z "$current_cors" ] || [ "$current_cors" = "http://localhost:5173" ] || [ "$current_cors" = "http://localhost:8080" ]; then
     set_env_var "oj-backend/.env" "CORS_ORIGIN" "\"http://$LAN_IP:8080,http://localhost:8080\""
     echo "==> CORS_ORIGIN을 이 머신의 IP 기준으로 채웠다"
@@ -125,7 +138,7 @@ if [ -n "$LAN_IP" ]; then
     echo "==> CORS_ORIGIN이 이미 커스텀 값이라 건너뜀"
   fi
 
-  current_frontend_url="$(grep '^FRONTEND_URL=' "oj-backend/.env" | head -n1 | cut -d= -f2- | tr -d '"')"
+  current_frontend_url="$(get_env_var "oj-backend/.env" "FRONTEND_URL")"
   if [ -z "$current_frontend_url" ] || [ "$current_frontend_url" = "http://localhost:5173" ] || [ "$current_frontend_url" = "http://localhost:8080" ]; then
     set_env_var "oj-backend/.env" "FRONTEND_URL" "\"http://$LAN_IP:8080\""
     echo "==> FRONTEND_URL을 이 머신의 IP 기준으로 채웠다"
