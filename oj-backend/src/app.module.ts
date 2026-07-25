@@ -19,6 +19,8 @@ import { ClassesModule } from './classes/classes.module';
 import { BannerModule } from './banner/banner.module';
 import { TagsModule } from './tags/tags.module';
 import { CommunityModule } from './community/community.module';
+import { InternalModule } from './internal/internal.module';
+import { SubmissionCompletionSubscriber } from './internal/submission-completion.subscriber';
 
 /**
  * API 서버 모듈. 채점 워커(JudgeModule)는 보안/스케일링 상 별도 프로세스로 분리해서
@@ -55,8 +57,15 @@ import { CommunityModule } from './community/community.module';
     BannerModule,
     TagsModule,
     CommunityModule,
+    InternalModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  // 완료 신호 구독은 API 프로세스에만 둔다. 채점 워커는 4단계에서 Redis 자격증명을 잃고,
+  // 애초에 결과를 기다리는 쪽도 아니다.
+  providers: [
+    AppService,
+    SubmissionCompletionSubscriber,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

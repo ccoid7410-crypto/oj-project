@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { JudgeModule } from './judge/judge.module';
+import { InternalModule } from './internal/internal.module';
 
 /**
  * 채점 워커 전용 부트스트랩 모듈.
@@ -23,6 +24,9 @@ import { JudgeModule } from './judge/judge.module';
       }),
     }),
     PrismaModule,
+    // 4단계에서 통째로 빠진다: 그때부터 채점 VM은 DB에 접근하지 않고
+    // 인터체인저에서 리스를 받아 결과만 돌려준다.
+    InternalModule,
     JudgeModule,
   ],
 })

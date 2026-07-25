@@ -9,13 +9,13 @@ import { clampLevel, labelOfLevel, tierOfLevel } from '../common/difficulty';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RatingService } from '../rating/rating.service';
 import { JUDGE_QUEUE, JudgeJobData } from '../judge/judge.constants';
+import { SubmissionCompletionRegistry } from '../internal/submission-completion.registry';
 
 // 투표 난이도가 현재 공식 난이도와 이 값 이상 벌어지면(약 1.5~2티어) 관리자에게 알린다.
 const DIFFICULTY_ALERT_THRESHOLD = 8;
 
 // 검증 제출이 채점되길 기다리는 최대 시간/폴링 간격.
 const VERIFICATION_TIMEOUT_MS = 30_000;
-const VERIFICATION_POLL_MS = 500;
 const MAX_TEST_CASES_PER_PROBLEM = 300;
 const MAX_TEST_CASE_BYTES_PER_PROBLEM = 20 * 1024 * 1024;
 
@@ -52,6 +52,7 @@ export class ProblemsService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly rating: RatingService,
+    private readonly completions: SubmissionCompletionRegistry,
     @InjectQueue(JUDGE_QUEUE) private readonly judgeQueue: Queue<JudgeJobData>,
   ) {}
 
@@ -278,22 +279,27 @@ export class ProblemsService {
     const submission = await this.prisma.submission.create({
       data: { userId: authorId, problemId, language: language as any, sourceCode, status: 'PENDING' },
     });
+
+    // 큐에 넣기 "전에" 먼저 기다리기 시작해야 한다. 순서가 뒤바뀌면 채점이 워낙 빨리 끝나는
+    // 경우 완료 신호가 먼저 지나가 버려서 타임아웃까지 헛기다리게 된다.
+    // (예전에는 DB를 500ms마다 폴링했는데, 이제 결과 수집이 같은 프로세스 안에서 일어나므로
+    //  이벤트로 곧바로 깨어난다 - 정답 코드면 30초가 아니라 채점이 끝나는 즉시 반환된다.)
+    const completion = this.completions.wait(submission.id, VERIFICATION_TIMEOUT_MS);
+
     await this.judgeQueue.add(
       'judge',
       { submissionId: submission.id },
       { attempts: 1, removeOnComplete: 1000, removeOnFail: 1000 },
     );
 
-    const deadline = Date.now() + VERIFICATION_TIMEOUT_MS;
-    let finalStatus = submission.status;
-    while (Date.now() < deadline) {
+    // null이면 타임아웃. 그 경우엔 DB를 한 번만 확인해서 마지막 상태를 확정한다.
+    let finalStatus = await completion;
+    if (finalStatus === null) {
       const current = await this.prisma.submission.findUnique({
         where: { id: submission.id },
         select: { status: true },
       });
-      finalStatus = current?.status ?? finalStatus;
-      if (finalStatus !== 'PENDING' && finalStatus !== 'JUDGING') break;
-      await new Promise((resolve) => setTimeout(resolve, VERIFICATION_POLL_MS));
+      finalStatus = current?.status ?? submission.status;
     }
 
     if (finalStatus === 'ACCEPTED') return;

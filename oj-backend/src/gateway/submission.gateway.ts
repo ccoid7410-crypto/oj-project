@@ -10,7 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
-import { SUBMISSION_UPDATES_CHANNEL } from '../judge/judge.processor';
+import { SUBMISSION_UPDATES_CHANNEL } from '../common/realtime.constants';
+import { isJudgeVerdict } from '../judge/judge-protocol';
 import type { JwtPayload } from '../auth/jwt.strategy';
 import { requireJwtSecret, resolveCorsOrigins } from '../common/security-config';
 
@@ -82,13 +83,41 @@ export class SubmissionGateway implements OnGatewayInit, OnGatewayConnection {
       if (err) this.logger.error(`Redis 구독 실패: ${err.message}`);
     });
     subscriber.on('message', (_channel, message) => {
+      let parsed: unknown;
       try {
-        const payload = JSON.parse(message);
-        this.server.to(payload.submissionId).emit('submission-update', payload);
-      } catch (e) {
-        this.logger.warn(`잘못된 payload 수신: ${message}`);
+        parsed = JSON.parse(message);
+      } catch {
+        this.logger.warn('채널에서 JSON이 아닌 메시지를 받아 버렸습니다.');
+        return;
       }
+      // 파싱된 값을 검증 없이 그대로 room 이름으로 쓰면, 이 채널에 쓸 수 있는 누구든
+      // 임의의 room에 임의의 내용을 브로드캐스트할 수 있다. 발행자를 API 하나로 좁힌 뒤에도
+      // 방어적으로 형태를 확인한다(구독 측이 마지막 방어선이다).
+      const payload = this.parseUpdate(parsed);
+      if (!payload) {
+        this.logger.warn('형식이 맞지 않는 채점 업데이트를 무시했습니다.');
+        return;
+      }
+      this.server.to(payload.submissionId).emit('submission-update', payload);
     });
+  }
+
+  /** 신뢰할 수 있는 형태일 때만 통과시킨다. 모르는 필드는 버린다. */
+  private parseUpdate(value: unknown): { submissionId: string; status: string } | null {
+    if (!value || typeof value !== 'object') return null;
+    const raw = value as Record<string, unknown>;
+    if (typeof raw.submissionId !== 'string' || !raw.submissionId) return null;
+    // 'JUDGING'은 최종 판정이 아니라 진행 상태라 JudgeVerdict에 없다.
+    if (raw.status !== 'JUDGING' && !isJudgeVerdict(raw.status)) return null;
+
+    const payload: Record<string, unknown> = {
+      submissionId: raw.submissionId,
+      status: raw.status,
+    };
+    if (typeof raw.runtimeMs === 'number') payload.runtimeMs = raw.runtimeMs;
+    if (typeof raw.memoryKb === 'number') payload.memoryKb = raw.memoryKb;
+    if (typeof raw.errorMessage === 'string') payload.errorMessage = raw.errorMessage;
+    return payload as { submissionId: string; status: string };
   }
 
   /** 소켓 핸드셰이크에서 JWT를 꺼내 검증한다. 실패하면 null. */
