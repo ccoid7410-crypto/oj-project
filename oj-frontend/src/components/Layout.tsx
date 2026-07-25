@@ -130,6 +130,14 @@ export function Layout() {
           )}
           {user && (
             <Link
+              to="/submissions/me"
+              className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+            >
+              내 제출
+            </Link>
+          )}
+          {user && (
+            <Link
               to="/problems/mine"
               className="border-b-2 border-transparent py-2.5 text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
             >

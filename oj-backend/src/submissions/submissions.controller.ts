@@ -26,9 +26,13 @@ export class SubmissionsController {
     return this.submissionsService.create(user.userId, user.role, dto);
   }
 
+  // 본인 제출 목록. ':id' 라우트보다 먼저 선언해야 'me'가 제출 ID로 잡히지 않는다.
   @Get('me')
-  findMine(@CurrentUser() user: RequestUser) {
-    return this.submissionsService.findByUser(user.userId);
+  findMine(@CurrentUser() user: RequestUser, @Query('limit') limit?: string) {
+    return this.submissionsService.findByUser(
+      user.userId,
+      limit ? Number(limit) : undefined,
+    );
   }
 
   // 전체 사용자 채점 현황 피드. 로그인한 사용자면 누구나 볼 수 있다(소스코드는 포함되지 않음).

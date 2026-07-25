@@ -101,9 +101,21 @@ export interface SubmissionSummary {
   memoryKb: number | null;
   score: number | null;
   createdAt: string;
-  // 전체 채점 현황 피드(GET /submissions)에서만 내려온다. 내 제출 목록(GET /submissions/me)엔 없음.
+  // 전체 채점 현황 피드(GET /submissions)에서만 내려온다.
   user?: { username: string };
   problem?: { title: string; slug: string; displayId: number };
+}
+
+/** 내 제출 목록(GET /submissions/me). 제출자는 나 자신이라 user가 없고, 문제 정보가 더 자세하다. */
+export interface MySubmission extends Omit<SubmissionSummary, 'user' | 'problem'> {
+  problem?: {
+    title: string;
+    slug: string;
+    displayId: number;
+    problemType: ProblemType;
+    maxScore: number;
+    isPractice: boolean;
+  };
 }
 
 export interface SubmissionDetail extends SubmissionSummary {

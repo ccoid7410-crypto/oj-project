@@ -151,10 +151,19 @@ export class SubmissionsService {
     return submission;
   }
 
-  async findByUser(userId: string) {
+  /**
+   * 본인 제출 목록.
+   *
+   * 전체 피드(findAll)와 달리 공개 여부로 거르지 않는다 - 자기가 작성 중인 비공개 문제나
+   * 대회 전용 문제에 낸 제출도 본인은 볼 수 있어야 하기 때문이다.
+   * 문제 정보를 같이 내려주지 않으면 목록에서 "어느 문제였는지"를 알 수 없어 함께 포함한다.
+   */
+  async findByUser(userId: string, limit = 100) {
+    const capped = Math.min(Math.max(limit, 1), 200);
     return this.prisma.submission.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: capped,
       select: {
         id: true,
         problemId: true,
@@ -164,6 +173,16 @@ export class SubmissionsService {
         memoryKb: true,
         score: true,
         createdAt: true,
+        problem: {
+          select: {
+            title: true,
+            slug: true,
+            displayId: true,
+            problemType: true,
+            maxScore: true,
+            isPractice: true,
+          },
+        },
       },
     });
   }

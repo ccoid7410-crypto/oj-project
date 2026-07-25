@@ -15,6 +15,7 @@ import { ProblemDetailPage } from './pages/ProblemDetailPage';
 import { MyProblemsPage } from './pages/MyProblemsPage';
 import { SubmissionPage } from './pages/SubmissionPage';
 import { MySubmissionsPage } from './pages/MySubmissionsPage';
+import { SubmissionFeedPage } from './pages/SubmissionFeedPage';
 import { ContestListPage } from './pages/contests/ContestListPage';
 import { ContestDetailPage } from './pages/contests/ContestDetailPage';
 import { ContestLeaderboardPage } from './pages/contests/ContestLeaderboardPage';
@@ -74,7 +75,9 @@ export default function App() {
             </Route>
             <Route path="/problems/:slug" element={<ProblemDetailPage />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/submissions" element={<MySubmissionsPage />} />
+              <Route path="/submissions" element={<SubmissionFeedPage />} />
+              {/* ':id'보다 먼저 둬서 'me'가 제출 ID로 해석되지 않게 한다. */}
+              <Route path="/submissions/me" element={<MySubmissionsPage />} />
               <Route path="/submissions/:id" element={<SubmissionPage />} />
             </Route>
             <Route element={<AdminRoute />}>
