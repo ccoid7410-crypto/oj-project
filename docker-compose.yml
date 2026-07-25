@@ -82,6 +82,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-oj_user}:${POSTGRES_PASSWORD:?run ./setup.sh first}@postgres:5432/${POSTGRES_DB:-oj_db}?schema=public
       REDIS_HOST: redis
+      # 인터체인저 전용 내부 리스너. 호스트로 publish하지 않으므로 compose 내부망에서만 닿는다.
+      INTERNAL_PORT: 3001
       # 컨테이너 메모리 상한(384M)보다 여유 있게 힙을 잡아두면 OOM-kill 직전에 GC가 못 돌아
       # 급사하는 대신, V8이 스스로 컬렉션을 더 자주 돌려서 은근슬쩍 버틴다.
       NODE_OPTIONS: --max-old-space-size=320
