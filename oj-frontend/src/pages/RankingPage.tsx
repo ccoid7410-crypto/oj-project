@@ -4,8 +4,10 @@ import { Avatar } from '../components/Avatar';
 import { api } from '../api/client';
 import type { RankingRow } from '../api/types';
 import { UserTitleBadge } from '../components/UserTitleBadge';
+import { useAuth } from '../context/AuthContext';
 
 export function RankingPage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<RankingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,15 +35,20 @@ export function RankingPage() {
         <table className="mt-4 w-full border-collapse text-left text-[13px]">
           <thead>
             <tr className="bg-ink-700 text-fg-muted">
-              <th className="w-14 border border-ink-600 px-2 py-1.5 text-center font-medium">#</th>
+              <th className="w-[50px] border border-ink-600 px-2 py-1.5 text-center font-medium">#</th>
               <th className="border border-ink-600 px-3 py-1.5 font-medium">사용자</th>
-              <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">레이팅</th>
-              <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">해결한 문제</th>
+              <th className="w-[90px] border border-ink-600 px-2 py-1.5 text-center font-medium">맞은 문제</th>
+              <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">점수</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.username} className="hover:bg-ink-700/60">
+              <tr
+                key={r.username}
+                className={`hover:bg-ink-700/60 ${
+                  user?.username === r.username ? 'bg-ink-800' : ''
+                }`}
+              >
                 <td className="border border-ink-600 px-2 py-1.5 text-center font-bold">{r.rank}</td>
                 <td className="border border-ink-600 px-3 py-1.5">
                   <Link to={`/users/${r.username}`} className="inline-flex items-center gap-1.5 text-[var(--color-brand)] hover:underline">
@@ -50,10 +57,10 @@ export function RankingPage() {
                     {r.username}
                   </Link>
                 </td>
+                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{r.solvedCount}</td>
                 <td className="border border-ink-600 px-2 py-1.5 text-center font-bold text-[var(--color-brand)]">
                   {r.rating}
                 </td>
-                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{r.solvedCount}</td>
               </tr>
             ))}
           </tbody>

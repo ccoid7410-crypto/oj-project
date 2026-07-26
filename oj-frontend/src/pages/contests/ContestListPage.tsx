@@ -10,9 +10,9 @@ const PHASE_LABEL: Record<ContestSummary['phase'], string> = {
 };
 
 const PHASE_COLOR: Record<ContestSummary['phase'], string> = {
-  UPCOMING: 'text-[var(--color-brand)]',
-  RUNNING: 'text-[var(--color-ac)]',
-  ENDED: 'text-fg-muted',
+  UPCOMING: 'border-[var(--color-brand)] text-[var(--color-brand)]',
+  RUNNING: 'border-[var(--color-ac)] text-[var(--color-ac)]',
+  ENDED: 'border-ink-500 text-fg-muted',
 };
 
 export function ContestListPage() {
@@ -51,8 +51,12 @@ export function ContestListPage() {
           <tbody>
             {contests.map((c) => (
               <tr key={c.id} className="hover:bg-ink-700/60">
-                <td className={`border border-ink-600 px-2 py-1.5 font-bold ${PHASE_COLOR[c.phase]}`}>
-                  {PHASE_LABEL[c.phase]}
+                <td className="border border-ink-600 px-2 py-1.5">
+                  <span
+                    className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${PHASE_COLOR[c.phase]}`}
+                  >
+                    {PHASE_LABEL[c.phase]}
+                  </span>
                 </td>
                 <td className="border border-ink-600 px-3 py-1.5">
                   <Link to={`/contests/${c.slug}`} className="text-[var(--color-brand)] hover:underline">

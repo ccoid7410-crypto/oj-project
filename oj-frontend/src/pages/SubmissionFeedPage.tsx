@@ -21,28 +21,28 @@ export function SubmissionFeedPage() {
       )}
 
       {submissions && submissions.length > 0 && (
-        <table className="mt-4 w-full border-collapse text-left text-sm">
+        <table className="mt-4 w-full border-collapse text-left text-[13px]">
           <thead>
-            <tr className="border-b border-ink-500 text-xs text-fg-muted">
-              <th className="py-2 font-medium">결과</th>
-              <th className="py-2 font-medium">문제</th>
-              <th className="py-2 font-medium">제출자</th>
-              <th className="py-2 font-medium">메모리</th>
-              <th className="py-2 font-medium">시간</th>
-              <th className="py-2 font-medium">점수</th>
-              <th className="py-2 font-medium">언어</th>
-              <th className="py-2 font-medium">제출한 시간</th>
+            <tr className="bg-ink-700 text-fg-muted">
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">결과</th>
+              <th className="border border-ink-600 px-3 py-1.5 font-medium">문제</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">제출자</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">메모리</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">시간</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">점수</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">언어</th>
+              <th className="border border-ink-600 px-2 py-1.5 font-medium">제출한 시간</th>
             </tr>
           </thead>
           <tbody>
             {submissions.map((s) => (
-              <tr key={s.id} className="border-b border-ink-600 hover:bg-white">
-                <td className="py-3">
+              <tr key={s.id} className="hover:bg-ink-700/60">
+                <td className="border border-ink-600 px-2 py-1.5">
                   <Link to={`/submissions/${s.id}`}>
-                    <VerdictBadge status={s.status} />
+                    <VerdictBadge status={s.status} showPulse={false} />
                   </Link>
                 </td>
-                <td className="py-3 text-fg-muted">
+                <td className="border border-ink-600 px-3 py-1.5 text-fg-muted">
                   {s.problem ? (
                     <Link to={`/problems/${s.problem.slug}`} className="hover:text-[var(--color-brand)]">
                       {s.problem.title}
@@ -51,7 +51,7 @@ export function SubmissionFeedPage() {
                     '-'
                   )}
                 </td>
-                <td className="py-3 text-fg-muted">
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">
                   {s.user ? (
                     <Link to={`/users/${s.user.username}`} className="hover:text-[var(--color-brand)]">
                       {s.user.username}
@@ -60,13 +60,13 @@ export function SubmissionFeedPage() {
                     '-'
                   )}
                 </td>
-                <td className="py-3 text-fg-muted">{s.memoryKb != null ? `${s.memoryKb}KB` : '-'}</td>
-                <td className="py-3 text-fg-muted">{s.runtimeMs != null ? `${s.runtimeMs}ms` : '-'}</td>
-                <td className="py-3 text-fg-muted">
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{s.memoryKb != null ? `${s.memoryKb}KB` : '-'}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{s.runtimeMs != null ? `${s.runtimeMs}ms` : '-'}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">
                   {s.score != null ? s.score.toFixed(4).replace(/\.?0+$/, '') : '-'}
                 </td>
-                <td className="py-3 text-fg-muted">{s.language}</td>
-                <td className="py-3 text-fg-muted">{new Date(s.createdAt).toLocaleString('ko-KR')}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{s.language}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{new Date(s.createdAt).toLocaleString('ko-KR')}</td>
               </tr>
             ))}
           </tbody>

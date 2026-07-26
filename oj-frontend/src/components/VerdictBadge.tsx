@@ -24,8 +24,15 @@ const COLOR: Record<SubmissionStatus, string> = {
   INTERNAL_ERROR: 'text-[var(--color-ce)]',
 };
 
-export function VerdictBadge({ status }: { status: SubmissionStatus }) {
-  const isLive = status === 'PENDING' || status === 'JUDGING';
+export function VerdictBadge({
+  status,
+  showPulse = true,
+}: {
+  status: SubmissionStatus;
+  /** 목록 화면에서는 스펙상 진행 상태 pulse 애니메이션을 제외한다. 실시간 상세 화면(SubmissionPage)만 유지. */
+  showPulse?: boolean;
+}) {
+  const isLive = showPulse && (status === 'PENDING' || status === 'JUDGING');
   return (
     <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${COLOR[status]}`}>
       {isLive && <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />}
