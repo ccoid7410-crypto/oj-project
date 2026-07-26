@@ -1,35 +1,29 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { Language, ProblemDetail } from '../api/types';
+import type { ProblemDetail } from '../api/types';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
-import { DEFAULT_TEMPLATE, LANGUAGE_OPTIONS } from '../lib/languages';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
 import { ProblemComments } from '../components/ProblemComments';
 import { ProblemTypeBadge } from '../components/ProblemTypeBadge';
-
-// Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
-const CodeEditor = lazy(() =>
-  import('../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
-);
 
 // KaTeX(수식) 번들이 커서 문제 페이지에서만 lazy load 한다.
 const MarkdownView = lazy(() =>
   import('../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
 );
 
+/**
+ * 문제 상세: 설명·제한·예제·댓글만 보여준다. 코드 제출은 별도 화면(`SubmitPage`,
+ * `/problems/:slug/submit`)으로 분리돼 있다 - 예전엔 여기 인라인 에디터가 있었다.
+ */
 export function ProblemDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const contestId = searchParams.get('contestId');
 
   const [problem, setProblem] = useState<ProblemDetail | null>(null);
-  const [language, setLanguage] = useState<Language>('CPP');
-  const [code, setCode] = useState(DEFAULT_TEMPLATE.CPP);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [voteLevel, setVoteLevel] = useState<number | null>(null);
   const [voting, setVoting] = useState(false);
@@ -41,16 +35,6 @@ export function ProblemDetailPage() {
       .then((p) => {
         setProblem(p);
         setVoteLevel(p.myDifficultyVote ?? p.level);
-        if (p.allowedLanguages.length > 0) {
-          setLanguage((current) => {
-            if (p.allowedLanguages.includes(current)) return current;
-            const next = p.allowedLanguages[0];
-            setCode((previous) =>
-              Object.values(DEFAULT_TEMPLATE).includes(previous) ? DEFAULT_TEMPLATE[next] : previous,
-            );
-            return next;
-          });
-        }
       })
       .catch(() => setError('문제를 불러오지 못했습니다.'));
   }
@@ -70,42 +54,13 @@ export function ProblemDetailPage() {
     }
   }
 
-  function onLanguageChange(next: Language) {
-    setLanguage(next);
-    // 아직 직접 코드를 안 건드렸으면 템플릿도 같이 바꿔줌
-    setCode((prev) => (Object.values(DEFAULT_TEMPLATE).includes(prev) ? DEFAULT_TEMPLATE[next] : prev));
-  }
-
-  // 프로필에 설정한 기본 제출 언어를 자동 선택한다.
-  useEffect(() => {
-    if (user?.preferredLanguage) onLanguageChange(user.preferredLanguage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.preferredLanguage]);
-
-  async function onSubmit() {
-    if (!problem) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const submission = await api.post<{ id: string }>('/submissions', {
-        problemId: problem.id,
-        contestId: contestId ?? undefined,
-        language,
-        sourceCode: code,
-      });
-      navigate(`/submissions/${submission.id}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : '제출에 실패했습니다.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   if (error && !problem) return <p className="text-sm text-[var(--color-wa)]">{error}</p>;
   if (!problem) return <p className="text-sm text-fg-muted">불러오는 중...</p>;
 
+  const submitLink = `/problems/${problem.slug}/submit${contestId ? `?contestId=${contestId}` : ''}`;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div>
       <div>
         <div className="flex items-center gap-2 text-xs text-fg-muted">
           <span>{problem.displayId}번</span>
@@ -246,51 +201,32 @@ export function ProblemDetailPage() {
         )}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between">
-          <select
-            value={language}
-            onChange={(e) => onLanguageChange(e.target.value as Language)}
-            className="rounded border border-ink-500 bg-white px-2 py-1 text-sm"
+      <div className="mt-6 flex items-center gap-2 border-t border-ink-600 pt-4">
+        {user ? (
+          <Link
+            to={submitLink}
+            className="rounded bg-[var(--color-brand)] px-5 py-2.5 font-bold text-white hover:bg-[var(--color-brand-dim)]"
           >
-            {LANGUAGE_OPTIONS.filter(
-              (opt) => problem.allowedLanguages.length === 0 || problem.allowedLanguages.includes(opt.value),
-            ).map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          {!user && <span className="text-xs text-fg-muted">제출하려면 로그인하세요</span>}
-        </div>
-
-        <div className="mt-3">
-          <Suspense
-            fallback={
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                spellCheck={false}
-                className="h-[420px] w-full resize-none rounded border border-ink-500 bg-white p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--color-brand)]"
-              />
-            }
-          >
-            <CodeEditor value={code} onChange={setCode} mode={language} heightClass="h-[420px]" />
-          </Suspense>
-        </div>
-
-        {error && <p className="mt-2 text-xs text-[var(--color-wa)]">{error}</p>}
-
-        <button
-          onClick={onSubmit}
-          disabled={!user || submitting}
-          className="mt-3 w-full rounded bg-[var(--color-brand)] py-2 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-50"
+            제출하기
+          </Link>
+        ) : (
+          <span className="text-xs text-fg-muted">제출하려면 로그인하세요</span>
+        )}
+        <Link
+          to="/submissions/me"
+          className="rounded border border-ink-500 px-5 py-2.5 font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
         >
-          {submitting ? '제출 중...' : '제출'}
-        </button>
+          내 제출
+        </Link>
+        <Link
+          to="/problems"
+          className="ml-auto rounded border border-ink-500 px-5 py-2.5 font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+        >
+          목록으로
+        </Link>
       </div>
 
-      <div className="lg:col-span-2">
+      <div className="mt-8">
         <ProblemComments problemId={problem.id} contestId={contestId} />
       </div>
     </div>

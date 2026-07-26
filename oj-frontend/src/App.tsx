@@ -12,6 +12,7 @@ import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { RegisterNamePage } from './pages/RegisterNamePage';
 import { ProblemListPage } from './pages/ProblemListPage';
 import { ProblemDetailPage } from './pages/ProblemDetailPage';
+import { SubmitPage } from './pages/SubmitPage';
 import { MyProblemsPage } from './pages/MyProblemsPage';
 import { SubmissionPage } from './pages/SubmissionPage';
 import { MySubmissionsPage } from './pages/MySubmissionsPage';
@@ -72,6 +73,7 @@ export default function App() {
               <Route path="/problems/:slug/edit" element={<EditProblemPage />} />
               <Route path="/classes" element={<ClassListPage />} />
               <Route path="/classes/:slug" element={<ClassDetailPage />} />
+              <Route path="/problems/:slug/submit" element={<SubmitPage />} />
             </Route>
             <Route path="/problems/:slug" element={<ProblemDetailPage />} />
             <Route element={<ProtectedRoute />}>
