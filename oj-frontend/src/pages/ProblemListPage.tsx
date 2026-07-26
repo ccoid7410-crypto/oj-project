@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { ProblemSummary } from '../api/types';
 import { DifficultyBadge } from '../components/DifficultyBadge';
@@ -10,7 +10,13 @@ export function ProblemListPage() {
   const [problems, setProblems] = useState<ProblemSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [scope, setScope] = useState<'ALL' | 'PRACTICE'>('ALL');
+  // 헤더의 "문제" 드롭다운에서 ?scope=PRACTICE로 바로 연습 문제 탭으로 진입할 수 있게
+  // URL 쿼리와 동기화한다(탭을 눌러도 URL이 갱신돼 새로고침/공유 시 탭이 유지된다).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope: 'ALL' | 'PRACTICE' = searchParams.get('scope') === 'PRACTICE' ? 'PRACTICE' : 'ALL';
+  const setScope = (next: 'ALL' | 'PRACTICE') => {
+    setSearchParams(next === 'PRACTICE' ? { scope: 'PRACTICE' } : {});
+  };
 
   useEffect(() => {
     api
@@ -33,16 +39,25 @@ export function ProblemListPage() {
     );
   }, [problems, query, scope]);
 
+  const solvedCount = problems?.filter((p) => p.myStatus === 'solved').length ?? 0;
+
   return (
     <div>
+      <h1 className="text-2xl font-bold">문제</h1>
+      {problems && (
+        <p className="mt-1 text-xs text-fg-muted">
+          전체 {problems.length.toLocaleString()}문제 · 내가 푼 문제 {solvedCount.toLocaleString()}문제
+        </p>
+      )}
+
       {/* 상단 탭 + 검색 툴바 */}
-      <div className="flex items-center justify-between border-b border-ink-500">
+      <div className="mt-4 flex items-center justify-between border-b border-ink-500">
         <div className="flex gap-1">
           <button
             type="button"
             onClick={() => setScope('ALL')}
             className={`rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
-              scope === 'ALL' ? 'bg-white text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+              scope === 'ALL' ? 'bg-[var(--color-surface)] text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
             }`}
           >
             전체
@@ -51,7 +66,9 @@ export function ProblemListPage() {
             type="button"
             onClick={() => setScope('PRACTICE')}
             className={`rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
-              scope === 'PRACTICE' ? 'bg-white text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+              scope === 'PRACTICE'
+                ? 'bg-[var(--color-surface)] text-[var(--color-brand)]'
+                : 'bg-ink-700 text-fg-muted'
             }`}
           >
             연습 문제
@@ -59,15 +76,20 @@ export function ProblemListPage() {
         </div>
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="mb-1.5 flex items-center overflow-hidden rounded border border-ink-500"
+          className="mb-1.5 flex items-center gap-1.5"
         >
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="문제 번호, 제목, 태그로 검색"
-            className="w-56 px-3 py-1.5 text-sm outline-none"
+            className="rounded border border-ink-500 px-[9px] py-1.5 text-sm outline-none focus:border-[var(--color-brand)]"
           />
-          <span className="border-l border-ink-500 bg-[var(--color-brand)] px-3 py-1.5 text-white">🔍</span>
+          <button
+            type="button"
+            className="shrink-0 rounded bg-[var(--color-brand)] px-4 py-1.5 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)]"
+          >
+            검색
+          </button>
         </form>
       </div>
 
@@ -85,15 +107,15 @@ export function ProblemListPage() {
             <tr className="bg-ink-700 text-fg-muted">
               <th className="w-16 border border-ink-600 px-2 py-1.5 text-center font-medium">문제</th>
               <th className="border border-ink-600 px-3 py-1.5 font-medium">문제 제목</th>
-              <th className="w-40 border border-ink-600 px-2 py-1.5 font-medium">태그</th>
-              <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">맞힌 사람</th>
+              <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">맞힌 사람</th>
               <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">제출</th>
-              <th className="w-24 border border-ink-600 px-2 py-1.5 text-center font-medium">정답 비율</th>
+              <th className="w-20 border border-ink-600 px-2 py-1.5 text-center font-medium">정답 비율</th>
+              <th className="w-[120px] border border-ink-600 px-2 py-1.5 font-medium">유형</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((p) => (
-              <tr key={p.id} className="hover:bg-ink-700/60">
+              <tr key={p.id} className="hover:bg-ink-700">
                 <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{p.displayId}</td>
                 <td className="border border-ink-600 px-3 py-1.5">
                   <Link
@@ -115,6 +137,11 @@ export function ProblemListPage() {
                     {p.title}
                   </Link>
                 </td>
+                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{p.solvedCount}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{p.submissionCount}</td>
+                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">
+                  {p.submissionCount > 0 ? `${p.accuracy}%` : '-'}
+                </td>
                 <td className="border border-ink-600 px-2 py-1.5">
                   <span className="flex flex-wrap gap-1">
                     {p.tags.map((t) => {
@@ -131,11 +158,6 @@ export function ProblemListPage() {
                       );
                     })}
                   </span>
-                </td>
-                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{p.solvedCount}</td>
-                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">{p.submissionCount}</td>
-                <td className="border border-ink-600 px-2 py-1.5 text-center text-fg-muted">
-                  {p.submissionCount > 0 ? `${p.accuracy}%` : '-'}
                 </td>
               </tr>
             ))}
