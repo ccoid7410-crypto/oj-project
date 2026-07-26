@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
 import { api } from '../api/client';
 import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
+import { MegaMenuTrigger, MegaMenuPanel, type MegaMenu } from './HeaderDropdown';
+import { HeaderThemeToggle } from './HeaderThemeToggle';
+
+// 마우스가 트리거에서 패널로 넘어가는 짧은 순간 깜빡이며 닫히는 걸 막기 위한 유예 시간.
+const CLOSE_DELAY_MS = 120;
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -12,6 +17,8 @@ export function Layout() {
   const location = useLocation();
   const brandName = useBrandName();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 관리자가 대량 생성한 계정은 최초 로그인 후 비밀번호를 바꾸기 전까지 다른 화면을 못 쓰게 막는다.
   useEffect(() => {
@@ -45,52 +52,68 @@ export function Layout() {
     };
   }, [user?.role]);
 
-  // 백준 특유의 밑줄 없는 짙은 네이비 상단바 안에서 쓰는 링크 스타일.
-  // 밑줄 대신 hover 시 글자색만 흰색으로 밝아진다.
+  // 백준 특유의 밑줄 없는 상단바 안에서 쓰는 링크 스타일.
+  // 밑줄 대신 hover 시 글자색만 밝아진다.
   const navLinkClass =
     'shrink-0 py-3 text-[13px] font-medium text-[var(--color-header-fg)] hover:text-[var(--color-header-fg-hover)]';
 
+  // 하위 항목이 2개 이상인 메뉴만 메가패널이 열린다(1개짜리는 트리거 자체가 그 링크).
+  // "내 문제"는 예전엔 별도 최상위 링크였는데, "문제" 메뉴 하나로 모으는 게 자연스러워 여기로 옮겼다.
+  const megaMenus: MegaMenu[] = [
+    {
+      key: 'problems',
+      label: '문제',
+      items: [
+        { to: '/problems', label: '전체 문제' },
+        { to: '/problems?scope=PRACTICE', label: '연습 문제' },
+        ...(user ? [{ to: '/problems/mine', label: '내 문제' }] : []),
+      ],
+    },
+    { key: 'contests', label: '대회', items: [{ to: '/contests', label: '대회' }] },
+    ...(user
+      ? [
+          {
+            key: 'submissions',
+            label: '채점 현황',
+            items: [
+              { to: '/submissions', label: '전체 제출' },
+              { to: '/submissions/me', label: '내 제출' },
+            ],
+          },
+        ]
+      : []),
+    { key: 'ranking', label: '랭킹', items: [{ to: '/ranking', label: '랭킹' }] },
+    ...(user ? [{ key: 'classes', label: '수업', items: [{ to: '/classes', label: '수업' }] }] : []),
+    { key: 'community', label: '커뮤니티', items: [{ to: '/community', label: '커뮤니티' }] },
+  ];
+  const openMenuData = megaMenus.find((m) => m.key === openMenu) ?? null;
+
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpenMenu(null), CLOSE_DELAY_MS);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--color-page-bg)]">
-      <header className="bg-[var(--color-header-bg)]">
+      <header
+        className="relative bg-[var(--color-header-bg)] border-b border-[var(--color-header-line)]"
+        onMouseLeave={scheduleClose}
+      >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-7 gap-y-1 px-6">
           <Link to="/" className="flex items-baseline gap-1 py-3 leading-none">
-            <span className="text-base font-black tracking-tight text-white">{brandName}</span>
+            <span className="text-base font-black tracking-tight text-fg">{brandName}</span>
             <span className="text-[var(--color-brand)]">&gt;</span>
           </Link>
           <nav className="flex flex-wrap items-center gap-x-5">
-            <Link to="/problems" className={navLinkClass}>
-              문제
-            </Link>
-            <Link to="/contests" className={navLinkClass}>
-              대회
-            </Link>
-            <Link to="/ranking" className={navLinkClass}>
-              랭킹
-            </Link>
-            <Link to="/community" className={navLinkClass}>
-              커뮤니티
-            </Link>
-            {user && (
-              <Link to="/submissions" className={navLinkClass}>
-                채점 현황
-              </Link>
-            )}
-            {user && (
-              <Link to="/submissions/me" className={navLinkClass}>
-                내 제출
-              </Link>
-            )}
-            {user && (
-              <Link to="/problems/mine" className={navLinkClass}>
-                내 문제
-              </Link>
-            )}
-            {user && (
-              <Link to="/classes" className={navLinkClass}>
-                수업
-              </Link>
-            )}
+            {megaMenus.map((menu) => (
+              <MegaMenuTrigger key={menu.key} menu={menu} className={navLinkClass} onOpen={setOpenMenu} />
+            ))}
             {user?.role === 'ADMIN' && (
               <Link to="/admin" className={navLinkClass}>
                 관리자
@@ -112,6 +135,7 @@ export function Layout() {
             </a>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-3 py-3 text-[12px] text-[var(--color-header-fg)]">
+            <HeaderThemeToggle />
             {user ? (
               <>
                 <Link
@@ -148,8 +172,16 @@ export function Layout() {
             )}
           </div>
         </div>
+        {openMenuData && (
+          <MegaMenuPanel
+            menu={openMenuData}
+            onClose={() => setOpenMenu(null)}
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
+          />
+        )}
       </header>
-      <main className="mx-auto max-w-5xl bg-white px-6 py-6">
+      <main className="mx-auto max-w-5xl border-x border-ink-600 bg-[var(--color-surface)] px-6 py-6">
         <Outlet />
       </main>
     </div>

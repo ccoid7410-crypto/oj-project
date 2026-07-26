@@ -5,31 +5,35 @@
   --font-body: "Noto Sans KR", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* BOJ 스타일 라이트 테마. ink-9xx가 가장 밝고(배경), ink-5xx로 갈수록 어두워진다(테두리/보더). */
+  /* BOJ 스타일 라이트 테마. ink-9xx가 가장 밝고(배경), ink-5xx로 갈수록 어두워진다(테두리/보더).
+     디자인 핸드오프(design_handoff_oj_frontend) 값 기준. */
   --color-ink-900: #ffffff;
-  --color-ink-800: #ffffff;
-  --color-ink-700: #f8f9fa;
-  --color-ink-600: #e3e6ea;
-  --color-ink-500: #ced4da;
+  --color-ink-800: #fafbfc;
+  --color-ink-700: #f1f4f8;
+  --color-ink-600: #dde2e9;
+  --color-ink-500: #c2cad6;
+  /* 흰 콘텐츠 박스 배경. 다크에서 반전되므로 하드코딩 대신 이 토큰을 쓸 것. */
+  --color-surface: #ffffff;
 
-  --color-fg: #212529;
-  --color-fg-muted: #6c757d;
+  --color-fg: #1f2430;
+  --color-fg-muted: #6b7684;
 
   --color-brand: #2f6fed;
-  --color-brand-dim: #1f4fb8;
+  --color-brand-dim: #1f52b8;
 
-  --color-ac: #1a9c4b;
-  --color-wa: #e0393e;
-  --color-tle: #e08423;
+  --color-ac: #009874;
+  --color-wa: #dd4124;
+  --color-tle: #e08b12;
   --color-ce: #8b5cf6;
   --color-pending: #2f6fed;
 
   /* 헤더 로고 색 (다크 테마에서 밝게 뒤집는다) */
   --color-logo: #1a2b4c;
-  /* 백준 특유의 짙은 네이비 상단바 색. 헤더 전용이라 라이트/다크 공통으로 고정한다. */
-  --color-header-bg: #1b2a4a;
-  --color-header-fg: #c7d2e6;
-  --color-header-fg-hover: #ffffff;
+  /* 상단바 색. 더 이상 짙은 네이비 고정이 아니라 라이트/다크 테마를 그대로 탄다(흰 바 + 라인). */
+  --color-header-bg: #ffffff;
+  --color-header-fg: #5c6674;
+  --color-header-fg-hover: #1f2430;
+  --color-header-line: #dde2e9;
   /* 본문 배경(옅은 회색) - 흰 콘텐츠 박스가 그 위에 얹히는 백준 특유의 레이어감. */
   --color-page-bg: #f4f6f9;
 
@@ -37,9 +41,9 @@
   --color-bronze: #ad5600;
   --color-silver: #435f7a;
   --color-gold: #ec9a00;
-  --color-platinum: #27e2a4;
-  --color-diamond: #00b4d8;
-  --color-ruby: #e0115f;
+  --color-platinum: #0ec9a4;
+  --color-diamond: #00b4fc;
+  --color-ruby: #e0004c;
 }
 
 /* 스크롤바를 항상 표시해서, 내용 길이에 따라 가운데 정렬된 레이아웃이
@@ -95,21 +99,33 @@ body {
    Tailwind 4 유틸리티(bg-white, bg-ink-700, border-ink-500 등)가 전부 CSS 변수를
    참조하므로, .dark에서 변수만 뒤집으면 전체 UI가 함께 뒤집힌다. */
 :root.dark {
-  --color-white: #14181d;   /* 페이지/카드 배경 */
+  --color-white: #161a20;   /* 페이지/카드 배경 */
   --color-page-bg: #0e1116;
-  --color-ink-900: #14181d;
-  --color-ink-800: #171c22;
-  --color-ink-700: #1e242c; /* 패널/코드 블록 배경 */
-  --color-ink-600: #2b323d; /* 옅은 테두리 */
-  --color-ink-500: #3a4350; /* 테두리 */
+  --color-ink-900: #161a20;
+  --color-ink-800: #1b2027;
+  --color-ink-700: #212832; /* 패널/코드 블록 배경 */
+  --color-ink-600: #2e3743; /* 옅은 테두리 */
+  --color-ink-500: #414c5c; /* 테두리 */
+  --color-surface: #161a20;
 
-  --color-fg: #e6eaf0;
-  --color-fg-muted: #9aa4b1;
+  --color-fg: #dbe0e8;
+  --color-fg-muted: #8b95a5;
 
-  --color-brand: #6b9aff;   /* 어두운 배경에서 가독성 있게 살짝 밝힘 */
-  --color-brand-dim: #4a77d9;
+  --color-brand: #4b86f7;
+  --color-brand-dim: #77a4ff;
+
+  --color-ac: #22c08c;
+  --color-wa: #f0604a;
+  --color-tle: #f0a83a;
+  --color-ce: #a78bfa;
+  --color-pending: #4b86f7;
 
   --color-logo: #dbe4f5;
+  /* 상단바도 다크에서는 페이지와 거의 같은 짙은 톤 + 옅은 라인만. */
+  --color-header-bg: #161a20;
+  --color-header-fg: #8b95a5;
+  --color-header-fg-hover: #dbe0e8;
+  --color-header-line: #2e3743;
 }
 :root.dark ::selection {
   background: var(--color-brand);
