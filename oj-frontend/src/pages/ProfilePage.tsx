@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
-import type { Language, StudentIdWindow, UserProfile } from '../api/types';
+import type { Language, MySubmission, StudentIdWindow, UserProfile } from '../api/types';
 import { LANGUAGE_OPTIONS } from '../lib/languages';
 import { Avatar } from '../components/Avatar';
 import { ThemeButtons } from '../components/ThemeButtons';
@@ -9,6 +9,7 @@ import { bannerUrl, fileToAvatarPayload, fileToBannerPayload } from '../lib/avat
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
 import { UserTitleBadge } from '../components/UserTitleBadge';
+import { VerdictBadge } from '../components/VerdictBadge';
 
 // KaTeX(수식) 번들이 커서 소개(bio)가 있을 때만 lazy load 한다.
 const MarkdownView = lazy(() =>
@@ -87,18 +88,18 @@ export function ProfilePage() {
         </Suspense>
       )}
 
-      <div className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-ink-500 bg-ink-500 text-center text-xs">
-        <div className="bg-white px-2 py-3">
-          <div className="text-fg-muted">레이팅</div>
-          <div className="mt-0.5 text-lg font-bold text-[var(--color-brand)]">{profile.rating}</div>
+      <div className="mt-4 grid grid-cols-3 rounded border border-ink-500">
+        <div className="px-4 py-3">
+          <div className="text-xs text-fg-muted">레이팅</div>
+          <div className="mt-0.5 text-[22px] font-black text-[var(--color-brand)]">{profile.rating}</div>
         </div>
-        <div className="bg-white px-2 py-3">
-          <div className="text-fg-muted">랭킹</div>
-          <div className="mt-0.5 text-lg font-bold">{profile.rank ? `#${profile.rank}` : '-'}</div>
+        <div className="border-l border-ink-500 px-4 py-3">
+          <div className="text-xs text-fg-muted">랭킹</div>
+          <div className="mt-0.5 text-[22px] font-black text-fg">{profile.rank ? `#${profile.rank}` : '-'}</div>
         </div>
-        <div className="bg-white px-2 py-3">
-          <div className="text-fg-muted">해결한 문제</div>
-          <div className="mt-0.5 text-lg font-bold">{profile.solvedCount}</div>
+        <div className="border-l border-ink-500 px-4 py-3">
+          <div className="text-xs text-fg-muted">해결한 문제</div>
+          <div className="mt-0.5 text-[22px] font-black text-fg">{profile.solvedCount}</div>
         </div>
       </div>
 
@@ -108,6 +109,10 @@ export function ProfilePage() {
       {isSelf && <StudentIdSection onUpdated={() => refreshUser().then(load)} />}
       {isSelf && <PreferredLanguageSection />}
       {isSelf && user?.role !== 'ADMIN' && <DeleteAccountSection />}
+
+      {/* 다른 유저의 제출 목록을 볼 수 있는 공개 API가 없어(/submissions/me는 본인 전용),
+          본인 프로필에서만 최근 제출을 보여준다 - 없는 데이터를 꾸며내지 않는다. */}
+      {isSelf && <RecentSubmissionsSection />}
 
       <h2 className="mt-8 border-b border-ink-500 pb-1 text-base font-bold">푼 문제 (난이도 높은 순)</h2>
       {profile.solvedProblems.length === 0 ? (
@@ -322,6 +327,56 @@ function AccountInfoSection() {
       <div className="mt-1.5">
         <ThemeButtons />
       </div>
+    </div>
+  );
+}
+
+function RecentSubmissionsSection() {
+  const [submissions, setSubmissions] = useState<MySubmission[] | null>(null);
+
+  useEffect(() => {
+    api.get<MySubmission[]>('/submissions/me?limit=10').then(setSubmissions);
+  }, []);
+
+  if (!submissions || submissions.length === 0) return null;
+
+  return (
+    <div className="mt-8">
+      <h2 className="border-b border-ink-500 pb-1 text-base font-bold">최근 제출</h2>
+      <table className="mt-3 w-full border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="bg-ink-700 text-fg-muted">
+            <th className="border border-ink-600 px-2 py-1.5 font-medium">결과</th>
+            <th className="border border-ink-600 px-3 py-1.5 font-medium">문제</th>
+            <th className="border border-ink-600 px-2 py-1.5 font-medium">언어</th>
+            <th className="border border-ink-600 px-2 py-1.5 font-medium">제출한 시간</th>
+          </tr>
+        </thead>
+        <tbody>
+          {submissions.map((s) => (
+            <tr key={s.id} className="hover:bg-ink-700/60">
+              <td className="border border-ink-600 px-2 py-1.5">
+                <Link to={`/submissions/${s.id}`}>
+                  <VerdictBadge status={s.status} showPulse={false} />
+                </Link>
+              </td>
+              <td className="border border-ink-600 px-3 py-1.5 text-fg-muted">
+                {s.problem ? (
+                  <Link to={`/problems/${s.problem.slug}`} className="hover:text-[var(--color-brand)]">
+                    {s.problem.displayId}. {s.problem.title}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </td>
+              <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">{s.language}</td>
+              <td className="border border-ink-600 px-2 py-1.5 text-fg-muted">
+                {new Date(s.createdAt).toLocaleString('ko-KR')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
