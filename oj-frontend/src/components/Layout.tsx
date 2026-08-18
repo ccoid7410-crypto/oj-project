@@ -65,9 +65,6 @@ export function Layout() {
             <Link to="/contests" className={navLinkClass}>
               대회
             </Link>
-            <Link to="/calendar" className={navLinkClass}>
-              일정
-            </Link>
             <Link to="/ranking" className={navLinkClass}>
               랭킹
             </Link>

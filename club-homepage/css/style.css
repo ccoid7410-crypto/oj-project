@@ -301,6 +301,227 @@ body.gate-pending .site-footer {
   font-size: 0.875rem;
 }
 
+/* ===== 동아리 일정 달력 ===== */
+.header-nav a[aria-current="page"] {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+}
+
+.calendar-section {
+  padding-top: 32px;
+}
+
+.calendar-page-header,
+.calendar-month-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-page-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.calendar-page-header h2 {
+  margin-bottom: 4px;
+}
+
+.calendar-page-header p,
+.calendar-empty p {
+  color: var(--color-fg-muted);
+  font-size: 0.875rem;
+}
+
+.calendar-controls {
+  display: flex;
+}
+
+.calendar-controls button {
+  height: 32px;
+  min-width: 36px;
+  border: 1px solid var(--color-ink-500);
+  border-right: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calendar-controls button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.calendar-controls button:last-child {
+  border-right: 1px solid var(--color-ink-500);
+  border-radius: 0 4px 4px 0;
+}
+
+.calendar-controls button:hover {
+  color: var(--color-brand);
+  background: var(--color-ink-700);
+}
+
+.calendar-month-row {
+  margin-top: 20px;
+  align-items: center;
+}
+
+.calendar-month-row h3 {
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 16px;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-assessment {
+  background: var(--color-brand);
+}
+
+.legend-exam {
+  background: #e08423;
+}
+
+.calendar-scroll {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.calendar {
+  min-width: 700px;
+  overflow: hidden;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekdays {
+  background: var(--color-ink-700);
+}
+
+.calendar-weekdays span {
+  padding: 8px;
+  border-right: 1px solid var(--color-ink-600);
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendar-weekdays span:first-child,
+.calendar-day-sunday:not(.calendar-day-outside) .calendar-day-number {
+  color: #e0393e;
+}
+
+.calendar-weekdays span:last-child,
+.calendar-day-saturday:not(.calendar-day-outside) .calendar-day-number {
+  color: var(--color-brand);
+}
+
+.calendar-weekdays span:last-child {
+  border-right: 0;
+}
+
+.calendar-day {
+  min-height: 96px;
+  padding: 8px;
+  border-top: 1px solid var(--color-ink-600);
+  border-right: 1px solid var(--color-ink-600);
+  background: var(--color-bg);
+}
+
+.calendar-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.calendar-day-outside {
+  background: color-mix(in srgb, var(--color-ink-700) 55%, var(--color-bg));
+}
+
+.calendar-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.calendar-day-outside .calendar-day-number {
+  color: color-mix(in srgb, var(--color-fg-muted) 45%, transparent);
+}
+
+.calendar-day-today,
+.calendar-day-outside .calendar-day-today {
+  background: var(--color-brand);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.calendar-empty {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px dashed var(--color-ink-500);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-ink-700) 45%, transparent);
+  text-align: center;
+}
+
+.calendar-empty p {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .header-nav {
+    gap: 16px;
+    overflow-x: auto;
+  }
+
+  .header-nav a {
+    flex: 0 0 auto;
+  }
+
+  .nav-oj {
+    margin-left: 0;
+  }
+
+  .calendar-page-header,
+  .calendar-month-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calendar-day {
+    min-height: 80px;
+  }
+}
+
 .info-table {
   margin-top: 16px;
   border-collapse: collapse;
