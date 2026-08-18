@@ -43,6 +43,7 @@ import { ClassDetailPage } from './pages/classes/ClassDetailPage';
 import { CommunityListPage } from './pages/community/CommunityListPage';
 import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
+import { ClubSchedulesAdminPage } from './pages/admin/ClubSchedulesAdminPage';
 
 export default function App() {
   return (
@@ -90,6 +91,7 @@ export default function App() {
                 <Route path="/admin/judge-config" element={<JudgeConfigPage />} />
                 <Route path="/admin/mail" element={<MailSettingsPage />} />
                 <Route path="/admin/banner" element={<BannerSettingsPage />} />
+                <Route path="/admin/club-schedules" element={<ClubSchedulesAdminPage />} />
                 <Route path="/admin/api-keys" element={<ApiKeysPage />} />
                 <Route path="/admin/accounts" element={<AccountsPage />} />
                 <Route path="/admin/notifications" element={<NotificationsPage />} />

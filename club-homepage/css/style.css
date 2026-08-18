@@ -453,6 +453,7 @@ body.gate-pending .site-footer {
   border-top: 1px solid var(--color-ink-600);
   border-right: 1px solid var(--color-ink-600);
   background: var(--color-bg);
+  overflow: hidden;
 }
 
 .calendar-day:nth-child(7n) {
@@ -482,6 +483,108 @@ body.gate-pending .site-footer {
   background: var(--color-brand);
   color: #ffffff;
   font-weight: 700;
+}
+
+.calendar-schedule-chip {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  padding: 3px 5px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.schedule-assessment {
+  --schedule-color: var(--color-brand);
+}
+
+.schedule-exam {
+  --schedule-color: #e08423;
+}
+
+.calendar-schedule-chip.schedule-assessment,
+.calendar-schedule-chip.schedule-exam {
+  background: var(--schedule-color);
+}
+
+.calendar-schedule-chip:hover {
+  filter: brightness(0.9);
+}
+
+.calendar-schedule-list {
+  margin-top: 24px;
+}
+
+.calendar-list-heading {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.calendar-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.calendar-schedule-card {
+  border: 1px solid var(--color-ink-600);
+  border-left: 4px solid var(--schedule-color);
+  border-radius: 4px;
+  padding: 14px;
+  background: var(--color-bg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-schedule-card.calendar-schedule-active {
+  border-color: var(--schedule-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--schedule-color) 20%, transparent);
+}
+
+.calendar-schedule-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-fg-muted);
+  font-size: 0.72rem;
+}
+
+.calendar-schedule-badge {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--schedule-color) 14%, transparent);
+  color: var(--schedule-color);
+  font-weight: 700;
+}
+
+.calendar-schedule-card h4 {
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.calendar-schedule-scope,
+.calendar-schedule-description {
+  margin-top: 8px;
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+}
+
+.calendar-schedule-scope {
+  color: var(--color-fg);
+}
+
+.calendar-schedule-description {
+  color: var(--color-fg-muted);
 }
 
 .calendar-empty {
