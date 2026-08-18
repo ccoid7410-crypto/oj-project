@@ -43,6 +43,7 @@ import { ClassDetailPage } from './pages/classes/ClassDetailPage';
 import { CommunityListPage } from './pages/community/CommunityListPage';
 import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
+import { CalendarPage } from './pages/CalendarPage';
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/contests" element={<ContestListPage />} />
             <Route path="/contests/:slug" element={<ContestDetailPage />} />
             <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboardPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/community" element={<CommunityListPage />} />
             <Route path="/community/:id" element={<CommunityPostPage />} />
