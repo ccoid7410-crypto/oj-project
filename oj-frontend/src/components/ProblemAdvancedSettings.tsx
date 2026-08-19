@@ -1,7 +1,21 @@
 import type { Language, ProblemType, ScoringMode } from '../api/types';
 import { LANGUAGE_OPTIONS } from '../lib/languages';
 
-const COMPILED_LANGUAGES: Language[] = ['C', 'CPP', 'JAVA', 'GO'];
+const COMPILED_LANGUAGES: Language[] = [
+  'C',
+  'CPP',
+  'JAVA',
+  'GO',
+  'CSHARP',
+  'KOTLIN',
+  'SWIFT',
+  'RUST',
+  'HASKELL',
+  'DART',
+  'NIM',
+  'CRYSTAL',
+  'PASCAL',
+];
 
 interface Props {
   problemType: ProblemType;

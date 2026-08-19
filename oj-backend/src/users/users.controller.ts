@@ -51,7 +51,7 @@ class DeleteAccountDto {
   password: string;
 }
 
-const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO'] as const;
+const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO', 'TEXT', 'CSHARP', 'KOTLIN', 'SWIFT', 'RUBY', 'RUST', 'PHP', 'LUA', 'PERL', 'HASKELL', 'R', 'DART', 'BASH', 'JULIA', 'NIM', 'CRYSTAL', 'PASCAL'] as const;
 type LanguageValue = (typeof LANGUAGES)[number];
 
 class UpdatePreferredLanguageDto {

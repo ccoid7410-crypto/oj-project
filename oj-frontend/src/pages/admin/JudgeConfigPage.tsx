@@ -2,7 +2,31 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import type { JudgeConfigEffective, Language, LanguageRunnerConfig } from '../../api/types';
 
-const LANGS: Language[] = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO'];
+const LANGS: Language[] = [
+  'C',
+  'CPP',
+  'JAVA',
+  'PYTHON3',
+  'JAVASCRIPT',
+  'GO',
+  'TEXT',
+  'CSHARP',
+  'KOTLIN',
+  'SWIFT',
+  'RUBY',
+  'RUST',
+  'PHP',
+  'LUA',
+  'PERL',
+  'HASKELL',
+  'R',
+  'DART',
+  'BASH',
+  'JULIA',
+  'NIM',
+  'CRYSTAL',
+  'PASCAL',
+];
 
 // 편집 폼에서는 배열을 줄바꿈으로 구분한 텍스트로 다룬다.
 type EditState = Record<Language, { compileCmd: string; runCmd: string; compileImage: string; runImage: string }>;

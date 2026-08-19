@@ -71,7 +71,30 @@ export interface ProblemDetail extends ProblemSummary {
   canVoteDifficulty: boolean;
 }
 
-export type Language = 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO';
+export type Language =
+  | 'C'
+  | 'CPP'
+  | 'JAVA'
+  | 'PYTHON3'
+  | 'JAVASCRIPT'
+  | 'GO'
+  | 'TEXT'
+  | 'CSHARP'
+  | 'KOTLIN'
+  | 'SWIFT'
+  | 'RUBY'
+  | 'RUST'
+  | 'PHP'
+  | 'LUA'
+  | 'PERL'
+  | 'HASKELL'
+  | 'R'
+  | 'DART'
+  | 'BASH'
+  | 'JULIA'
+  | 'NIM'
+  | 'CRYSTAL'
+  | 'PASCAL';
 
 export type SubmissionStatus =
   | 'PENDING'

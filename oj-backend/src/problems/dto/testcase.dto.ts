@@ -12,11 +12,11 @@ import { Type } from 'class-transformer';
 
 export class CreateTestCaseDto {
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   input: string;
 
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   output: string;
 
   @IsOptional()
@@ -38,12 +38,12 @@ export class BulkCreateTestCasesDto {
 export class UpdateTestCaseDto {
   @IsOptional()
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   input?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   output?: string;
 
   @IsOptional()
@@ -59,11 +59,11 @@ export class SyncTestCaseItemDto {
   id?: string;
 
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   input: string;
 
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   output: string;
 
   @IsOptional()

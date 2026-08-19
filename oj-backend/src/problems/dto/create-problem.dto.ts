@@ -32,6 +32,23 @@ export enum LanguageDto {
   PYTHON3 = 'PYTHON3',
   JAVASCRIPT = 'JAVASCRIPT',
   GO = 'GO',
+  TEXT = 'TEXT',
+  CSHARP = 'CSHARP',
+  KOTLIN = 'KOTLIN',
+  SWIFT = 'SWIFT',
+  RUBY = 'RUBY',
+  RUST = 'RUST',
+  PHP = 'PHP',
+  LUA = 'LUA',
+  PERL = 'PERL',
+  HASKELL = 'HASKELL',
+  R = 'R',
+  DART = 'DART',
+  BASH = 'BASH',
+  JULIA = 'JULIA',
+  NIM = 'NIM',
+  CRYSTAL = 'CRYSTAL',
+  PASCAL = 'PASCAL',
 }
 
 export enum ProblemTypeDto {
@@ -48,11 +65,11 @@ export enum ScoringModeDto {
 
 export class TestCaseInputDto {
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   input: string;
 
   @IsString()
-  @MaxLength(1_000_000)
+  @MaxLength(20_000_000)
   output: string;
 
   @IsOptional()

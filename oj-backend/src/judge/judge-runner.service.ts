@@ -52,6 +52,23 @@ const DEFAULT_ALLOWED_IMAGE_PREFIXES = [
   'eclipse-temurin:',
   'node:',
   'golang:',
+  'busybox:',
+  'mono:',
+  'zenika/kotlin:',
+  'swift:',
+  'ruby:',
+  'rust:',
+  'php:',
+  'nickblah/lua:',
+  'perl:',
+  'haskell:',
+  'r-base:',
+  'dart:',
+  'bash:',
+  'julia:',
+  'nimlang/nim:',
+  'crystallang/crystal:',
+  'silkeh/fpc:',
 ];
 
 /**

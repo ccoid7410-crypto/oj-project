@@ -571,7 +571,30 @@ export class UsersService {
   /** 기본 제출 언어 설정. 문제 페이지에서 자동 선택된다. */
   async updatePreferredLanguage(
     userId: string,
-    language: 'C' | 'CPP' | 'JAVA' | 'PYTHON3' | 'JAVASCRIPT' | 'GO',
+    language:
+      | 'C'
+      | 'CPP'
+      | 'JAVA'
+      | 'PYTHON3'
+      | 'JAVASCRIPT'
+      | 'GO'
+      | 'TEXT'
+      | 'CSHARP'
+      | 'KOTLIN'
+      | 'SWIFT'
+      | 'RUBY'
+      | 'RUST'
+      | 'PHP'
+      | 'LUA'
+      | 'PERL'
+      | 'HASKELL'
+      | 'R'
+      | 'DART'
+      | 'BASH'
+      | 'JULIA'
+      | 'NIM'
+      | 'CRYSTAL'
+      | 'PASCAL',
   ) {
     return this.prisma.user.update({
       where: { id: userId },

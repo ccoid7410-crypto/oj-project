@@ -25,6 +25,23 @@ enum Language {
   PYTHON3
   JAVASCRIPT
   GO
+  TEXT
+  CSHARP
+  KOTLIN
+  SWIFT
+  RUBY
+  RUST
+  PHP
+  LUA
+  PERL
+  HASKELL
+  R
+  DART
+  BASH
+  JULIA
+  NIM
+  CRYSTAL
+  PASCAL
 }
 
 enum SubmissionStatus {

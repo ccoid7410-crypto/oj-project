@@ -11,6 +11,23 @@ import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/mode-python';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/mode-golang';
+import 'ace-builds/src-noconflict/mode-csharp';
+import 'ace-builds/src-noconflict/mode-kotlin';
+import 'ace-builds/src-noconflict/mode-swift';
+import 'ace-builds/src-noconflict/mode-ruby';
+import 'ace-builds/src-noconflict/mode-rust';
+import 'ace-builds/src-noconflict/mode-php';
+import 'ace-builds/src-noconflict/mode-lua';
+import 'ace-builds/src-noconflict/mode-perl';
+import 'ace-builds/src-noconflict/mode-haskell';
+import 'ace-builds/src-noconflict/mode-r';
+import 'ace-builds/src-noconflict/mode-dart';
+import 'ace-builds/src-noconflict/mode-sh';
+import 'ace-builds/src-noconflict/mode-julia';
+import 'ace-builds/src-noconflict/mode-nim';
+import 'ace-builds/src-noconflict/mode-crystal';
+import 'ace-builds/src-noconflict/mode-pascal';
+import 'ace-builds/src-noconflict/mode-text';
 import 'ace-builds/src-noconflict/mode-markdown';
 import 'ace-builds/src-noconflict/theme-textmate';
 import 'ace-builds/src-noconflict/theme-one_dark';
@@ -26,6 +43,23 @@ const LANGUAGE_MODE: Record<Language, string> = {
   PYTHON3: 'python',
   JAVASCRIPT: 'javascript',
   GO: 'golang',
+  CSHARP: 'csharp',
+  KOTLIN: 'kotlin',
+  SWIFT: 'swift',
+  RUBY: 'ruby',
+  RUST: 'rust',
+  PHP: 'php',
+  LUA: 'lua',
+  PERL: 'perl',
+  HASKELL: 'haskell',
+  R: 'r',
+  DART: 'dart',
+  BASH: 'sh',
+  JULIA: 'julia',
+  NIM: 'nim',
+  CRYSTAL: 'crystal',
+  PASCAL: 'pascal',
+  TEXT: 'text',
 };
 
 export type EditorMode = Language | 'markdown';

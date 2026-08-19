@@ -30,8 +30,8 @@ const DIFFICULTY_ALERT_THRESHOLD = 8;
 const VERIFICATION_TIMEOUT_MS = 30_000;
 const MAX_TEST_CASES_PER_PROBLEM = 300;
 const MAX_TEST_CASE_BYTES_PER_PROBLEM = 20 * 1024 * 1024;
-const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO'] as const;
-const COMPILED_LANGUAGES = new Set(['C', 'CPP', 'JAVA', 'GO']);
+const LANGUAGES = ['C', 'CPP', 'JAVA', 'PYTHON3', 'JAVASCRIPT', 'GO', 'TEXT', 'CSHARP', 'KOTLIN', 'SWIFT', 'RUBY', 'RUST', 'PHP', 'LUA', 'PERL', 'HASKELL', 'R', 'DART', 'BASH', 'JULIA', 'NIM', 'CRYSTAL', 'PASCAL'] as const;
+const COMPILED_LANGUAGES = new Set(['C', 'CPP', 'JAVA', 'GO', 'CSHARP', 'KOTLIN', 'SWIFT', 'RUST', 'HASKELL', 'DART', 'NIM', 'CRYSTAL', 'PASCAL']);
 
 const VERDICT_LABEL: Record<string, string> = {
   ACCEPTED: '맞았습니다',
