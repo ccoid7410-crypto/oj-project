@@ -94,7 +94,10 @@ export class ClubSchedulesService {
         type: dto.type,
         status: 'PENDING',
         title: dto.title.trim(),
-        subject: dto.subject?.trim() ?? '',
+        subject:
+          dto.type === 'ASSESSMENT' || dto.type === 'EXAM'
+            ? (dto.subject?.trim() ?? '')
+            : '',
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
@@ -121,7 +124,10 @@ export class ClubSchedulesService {
       data: {
         type: dto.type,
         title: dto.title.trim(),
-        subject: dto.subject?.trim() ?? '',
+        subject:
+          dto.type === 'ASSESSMENT' || dto.type === 'EXAM'
+            ? (dto.subject?.trim() ?? '')
+            : '',
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',

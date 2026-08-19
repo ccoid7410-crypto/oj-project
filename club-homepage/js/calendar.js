@@ -10,6 +10,8 @@ const proposalSubmit = document.getElementById("schedule-submit");
 const proposalToggle = document.getElementById("schedule-proposal-toggle");
 const editCancel = document.getElementById("schedule-edit-cancel");
 const scheduleType = document.getElementById("schedule-type");
+const scheduleSubjectField = document.getElementById("schedule-subject-field");
+const scheduleSubject = document.getElementById("schedule-subject");
 const scheduleDateOptions = document.getElementById("schedule-date-options");
 const scheduleIncludeStart = document.getElementById("schedule-include-start");
 const scheduleIncludeEndTime = document.getElementById("schedule-include-end-time");
@@ -65,6 +67,13 @@ function scheduleTypeLabel(type) {
     EVENT: "행사 및 축제",
     OTHER: "기타",
   }[type] || "기타";
+}
+
+function scheduleTitle(schedule) {
+  const usesSubject = schedule.type === "ASSESSMENT" || schedule.type === "EXAM";
+  return usesSubject && schedule.subject
+    ? `${schedule.subject} · ${schedule.title}`
+    : schedule.title;
 }
 
 function getAuthHeaders(includeJson = false) {
@@ -157,9 +166,7 @@ function renderScheduleList(schedules) {
     top.append(badge, date);
 
     const title = document.createElement("h4");
-    title.textContent = schedule.subject
-      ? `${schedule.subject} · ${schedule.title}`
-      : schedule.title;
+    title.textContent = scheduleTitle(schedule);
     card.append(top, title);
     appendClassTags(card, schedule.classTags);
 
@@ -213,9 +220,7 @@ function renderScheduleChips(schedules) {
       const classLabel = Array.isArray(schedule.classTags) && schedule.classTags.length
         ? `[${schedule.classTags.join(", ")}] `
         : "";
-      chip.textContent = classLabel + (schedule.subject
-        ? `${schedule.subject} · ${schedule.title}`
-        : schedule.title);
+      chip.textContent = classLabel + scheduleTitle(schedule);
       chip.title = `${formatDateRange(schedule)} ${chip.textContent}`;
       chip.addEventListener("click", () => {
         const card = document.getElementById(`schedule-${schedule.id}`);
@@ -273,6 +278,8 @@ function updateDateFields() {
   const includesEndTime = isFlexible && scheduleIncludeEndTime.checked;
 
   scheduleDateOptions.hidden = !isFlexible;
+  scheduleSubjectField.hidden = isFlexible;
+  scheduleSubject.required = !isFlexible;
   scheduleStartField.hidden = isFlexible && !includesStart;
   scheduleEndField.hidden = isAssessment;
   scheduleDeadlineField.hidden = !(isAssessment || includesEndTime);
@@ -353,7 +360,7 @@ async function submitProposal(event) {
   );
   const payload = {
     type,
-    subject: document.getElementById("schedule-subject").value,
+    subject: isFlexible ? "" : scheduleSubject.value,
     title: document.getElementById("schedule-title").value,
     classTags,
     startsOn: effectiveStartsOn,
@@ -429,7 +436,7 @@ function renderPendingSchedules(schedules) {
     meta.className = "calendar-approval-meta";
     meta.textContent = `${schedule.proposedBy || "알 수 없음"} 제안 · ${formatDateRange(schedule)} · ${scheduleTypeLabel(schedule.type)}`;
     const title = document.createElement("h4");
-    title.textContent = schedule.subject ? `${schedule.subject} · ${schedule.title}` : schedule.title;
+    title.textContent = scheduleTitle(schedule);
     card.append(meta, title);
     appendClassTags(card, schedule.classTags);
 

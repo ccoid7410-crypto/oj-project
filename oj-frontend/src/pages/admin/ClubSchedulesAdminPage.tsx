@@ -254,16 +254,18 @@ export function ClubSchedulesAdminPage() {
               ))}
             </div>
           </fieldset>
-          <label className="flex flex-col gap-1 text-xs text-fg-muted">
-            과목
-            <input
-              value={form.subject}
-              maxLength={80}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              placeholder="예: 정보, 수학"
-              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
-            />
-          </label>
+          {!isFlexibleType(form.type) && (
+            <label className="flex flex-col gap-1 text-xs text-fg-muted">
+              과목
+              <input
+                value={form.subject}
+                maxLength={80}
+                onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                placeholder="예: 정보, 수학"
+                className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          )}
           <label className="flex flex-col gap-1 text-xs text-fg-muted sm:col-span-2">
             제목
             <input
@@ -421,7 +423,9 @@ export function ClubSchedulesAdminPage() {
                     </td>
                     <td className="border border-ink-600 px-3 py-2">
                       <strong>{schedule.title}</strong>
-                      {schedule.subject && <span className="ml-2 text-xs text-fg-muted">{schedule.subject}</span>}
+                      {!isFlexibleType(schedule.type) && schedule.subject && (
+                        <span className="ml-2 text-xs text-fg-muted">{schedule.subject}</span>
+                      )}
                       {schedule.classTags.length > 0 && (
                         <span className="ml-2 text-xs text-[var(--color-brand)]">{schedule.classTags.join(' · ')}</span>
                       )}

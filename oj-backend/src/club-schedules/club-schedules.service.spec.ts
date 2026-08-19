@@ -139,13 +139,17 @@ describe('ClubSchedulesService', () => {
     await service.propose('member-1', {
       type: 'EVENT',
       title: '학교 축제',
+      subject: '입력돼도 무시',
       startsOn: '2026-09-01',
       endsOn: '2026-09-01',
       deadlineTime: '18:30',
     });
 
     expect(create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ deadlineTime: '18:30' }),
+      data: expect.objectContaining({
+        subject: '',
+        deadlineTime: '18:30',
+      }),
     });
   });
 
