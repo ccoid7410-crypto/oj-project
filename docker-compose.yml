@@ -208,7 +208,7 @@ services:
       JUDGE_TMP_DIR: /judge-tmp
       HOST_JUDGE_TMP_DIR: ${HOST_JUDGE_TMP_DIR:?run ./setup.sh first to set this}
       # 관리자가 DB에서 바꿀 수 있는 이미지 이름을 채점 VM이 무조건 신뢰하지 않도록 제한한다.
-      JUDGE_ALLOWED_IMAGE_PREFIXES: "gcc:,python:,eclipse-temurin:,node:,golang:"
+      JUDGE_ALLOWED_IMAGE_PREFIXES: "gcc:,python:,eclipse-temurin:,node:,golang:,busybox:,mono:,zenika/kotlin:,swift:,ruby:,rust:,php:,nickblah/lua:,perl:,haskell:,r-base:,dart:,bash:,julia:,nimlang/nim:,crystallang/crystal:,silkeh/fpc:"
       NODE_OPTIONS: --max-old-space-size=192
       # 라즈베리파이 4B(4코어) 기준 기본값. 컴파일 단계(특히 Java/C++)가 순간적으로
       # 512MB까지 쓸 수 있어서, 2로 두면 최악의 경우 동시에 ~1GB까지 튈 수 있다.
