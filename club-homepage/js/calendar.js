@@ -7,6 +7,13 @@ const calendarScheduleList = document.getElementById("calendar-schedule-list");
 const proposalForm = document.getElementById("schedule-proposal-form");
 const proposalMessage = document.getElementById("schedule-proposal-message");
 const proposalSubmit = document.getElementById("schedule-submit");
+const proposalToggle = document.getElementById("schedule-proposal-toggle");
+const editCancel = document.getElementById("schedule-edit-cancel");
+const scheduleType = document.getElementById("schedule-type");
+const scheduleStartLabel = document.getElementById("schedule-start-label");
+const scheduleEndField = document.getElementById("schedule-end-field");
+const scheduleDeadlineField = document.getElementById("schedule-deadline-field");
+const scheduleDeadlineTime = document.getElementById("schedule-deadline-time");
 const approvalSection = document.getElementById("schedule-approval-section");
 const approvalList = document.getElementById("schedule-approval-list");
 const approvalRefresh = document.getElementById("schedule-approval-refresh");
@@ -14,6 +21,8 @@ const approvalRefresh = document.getElementById("schedule-approval-refresh");
 const today = new Date();
 let visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let requestNumber = 0;
+let canManageSchedules = false;
+let editingScheduleId = null;
 
 function isSameDate(left, right) {
   return (
@@ -31,6 +40,9 @@ function toDateString(date) {
 }
 
 function formatDateRange(schedule) {
+  if (schedule.type === "ASSESSMENT") {
+    return `${schedule.startsOn}${schedule.deadlineTime ? ` ${schedule.deadlineTime} 마감` : ""}`;
+  }
   if (schedule.startsOn === schedule.endsOn) return schedule.startsOn;
   return `${schedule.startsOn} ~ ${schedule.endsOn}`;
 }
@@ -146,6 +158,23 @@ function renderScheduleList(schedules) {
       card.appendChild(description);
     }
 
+    if (canManageSchedules) {
+      const actions = document.createElement("div");
+      actions.className = "calendar-schedule-actions";
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "btn btn-ghost btn-sm";
+      edit.textContent = "수정";
+      edit.addEventListener("click", () => beginScheduleEdit(schedule));
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "btn btn-danger btn-sm";
+      remove.textContent = "삭제";
+      remove.addEventListener("click", () => deleteSchedule(schedule));
+      actions.append(edit, remove);
+      card.appendChild(actions);
+    }
+
     list.appendChild(card);
   }
   calendarScheduleList.appendChild(list);
@@ -208,6 +237,57 @@ function setProposalMessage(message, kind = "") {
   proposalMessage.className = kind;
 }
 
+function setProposalOpen(open) {
+  if (!proposalForm || !proposalToggle) return;
+  proposalForm.hidden = !open;
+  proposalToggle.setAttribute("aria-expanded", String(open));
+  proposalToggle.textContent = open ? "접기" : "펼치기";
+}
+
+function updateDateFields() {
+  const isAssessment = scheduleType?.value === "ASSESSMENT";
+  if (scheduleStartLabel) scheduleStartLabel.textContent = isAssessment ? "날짜" : "시작일";
+  if (scheduleEndField) scheduleEndField.hidden = isAssessment;
+  if (scheduleDeadlineField) scheduleDeadlineField.hidden = !isAssessment;
+  const endInput = document.getElementById("schedule-end");
+  if (endInput) endInput.required = !isAssessment;
+  if (scheduleDeadlineTime) scheduleDeadlineTime.required = isAssessment;
+}
+
+function resetProposalForm() {
+  if (!proposalForm) return;
+  proposalForm.reset();
+  const dateToday = toDateString(today);
+  document.getElementById("schedule-start").value = dateToday;
+  document.getElementById("schedule-end").value = dateToday;
+  scheduleDeadlineTime.value = "23:59";
+  editingScheduleId = null;
+  proposalSubmit.textContent = "승인 요청하기";
+  editCancel.hidden = true;
+  updateDateFields();
+}
+
+function beginScheduleEdit(schedule) {
+  editingScheduleId = schedule.id;
+  scheduleType.value = schedule.type;
+  document.getElementById("schedule-subject").value = schedule.subject;
+  document.getElementById("schedule-title").value = schedule.title;
+  document.getElementById("schedule-start").value = schedule.startsOn;
+  document.getElementById("schedule-end").value = schedule.endsOn;
+  scheduleDeadlineTime.value = schedule.deadlineTime || "23:59";
+  document.getElementById("schedule-scope").value = schedule.examScope;
+  document.getElementById("schedule-description").value = schedule.description;
+  proposalForm.querySelectorAll('input[name="schedule-class"]').forEach((input) => {
+    input.checked = schedule.classTags.includes(input.value);
+  });
+  proposalSubmit.textContent = "수정 저장";
+  editCancel.hidden = false;
+  setProposalMessage("승인된 일정을 수정하고 있습니다.");
+  updateDateFields();
+  setProposalOpen(true);
+  proposalForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function getErrorMessage(response, fallback) {
   return response.json()
     .then((body) => Array.isArray(body.message) ? body.message.join(" ") : body.message || fallback)
@@ -219,8 +299,9 @@ async function submitProposal(event) {
   if (!proposalForm || !proposalSubmit) return;
 
   const startsOn = document.getElementById("schedule-start").value;
-  const endsOn = document.getElementById("schedule-end").value;
-  if (endsOn < startsOn) {
+  const isAssessment = scheduleType.value === "ASSESSMENT";
+  const endsOn = isAssessment ? startsOn : document.getElementById("schedule-end").value;
+  if (!isAssessment && endsOn < startsOn) {
     setProposalMessage("종료일은 시작일보다 빠를 수 없습니다.", "error");
     return;
   }
@@ -230,34 +311,58 @@ async function submitProposal(event) {
     (input) => input.value,
   );
   const payload = {
-    type: document.getElementById("schedule-type").value,
+    type: scheduleType.value,
     subject: document.getElementById("schedule-subject").value,
     title: document.getElementById("schedule-title").value,
     classTags,
     startsOn,
     endsOn,
+    deadlineTime: isAssessment ? scheduleDeadlineTime.value : undefined,
     examScope: document.getElementById("schedule-scope").value,
     description: document.getElementById("schedule-description").value,
   };
 
   proposalSubmit.disabled = true;
-  setProposalMessage("승인 요청을 보내는 중...");
+  setProposalMessage(editingScheduleId ? "일정을 수정하는 중..." : "승인 요청을 보내는 중...");
   try {
-    const response = await fetch("/api/club-schedules", {
-      method: "POST",
+    const url = editingScheduleId
+      ? `/api/club-schedules/${encodeURIComponent(editingScheduleId)}`
+      : "/api/club-schedules";
+    const response = await fetch(url, {
+      method: editingScheduleId ? "PUT" : "POST",
       headers: getAuthHeaders(true),
       body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error(await getErrorMessage(response, "일정을 제안하지 못했습니다."));
-    proposalForm.reset();
-    document.getElementById("schedule-start").value = toDateString(today);
-    document.getElementById("schedule-end").value = toDateString(today);
-    setProposalMessage("제안이 접수되었습니다. hift가 승인하면 달력에 표시됩니다.", "success");
+    const wasEditing = Boolean(editingScheduleId);
+    resetProposalForm();
+    setProposalMessage(
+      wasEditing
+        ? "일정을 수정했습니다."
+        : "제안이 접수되었습니다. 관리자가 승인하면 달력에 표시됩니다.",
+      "success",
+    );
+    if (wasEditing) refreshCalendar();
     if (approvalSection && !approvalSection.hidden) void loadPendingSchedules();
   } catch (error) {
     setProposalMessage(error.message || "일정을 제안하지 못했습니다.", "error");
   } finally {
     proposalSubmit.disabled = false;
+  }
+}
+
+async function deleteSchedule(schedule) {
+  if (!window.confirm(`'${schedule.title}' 일정을 삭제할까요?`)) return;
+  try {
+    const response = await fetch(`/api/club-schedules/${encodeURIComponent(schedule.id)}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error(await getErrorMessage(response, "일정을 삭제하지 못했습니다."));
+    if (editingScheduleId === schedule.id) resetProposalForm();
+    refreshCalendar();
+  } catch (error) {
+    window.alert(error.message || "일정을 삭제하지 못했습니다.");
   }
 }
 
@@ -391,12 +496,21 @@ if (
   const dateToday = toDateString(today);
   document.getElementById("schedule-start").value = dateToday;
   document.getElementById("schedule-end").value = dateToday;
+  updateDateFields();
+  scheduleType?.addEventListener("change", updateDateFields);
+  proposalToggle?.addEventListener("click", () => setProposalOpen(proposalForm.hidden));
   proposalForm?.addEventListener("submit", submitProposal);
+  editCancel?.addEventListener("click", () => {
+    resetProposalForm();
+    setProposalMessage("");
+  });
   approvalRefresh?.addEventListener("click", () => void loadPendingSchedules());
 
   window.clubProfileReady?.then((profile) => {
     if (profile?.username !== "hift" || !approvalSection) return;
+    canManageSchedules = true;
     approvalSection.hidden = false;
     void loadPendingSchedules();
+    refreshCalendar();
   });
 }

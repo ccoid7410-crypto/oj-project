@@ -72,20 +72,20 @@ export class ClubSchedulesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('MEMBER', 'ADMIN')
   @Put(':id')
   update(
     @Param('id') id: string,
     @CurrentUser() user: RequestUser,
     @Body() dto: SaveClubScheduleDto,
   ) {
-    return this.schedules.update(id, user.userId, dto);
+    return this.schedules.update(id, user.userId, user.role, dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('MEMBER', 'ADMIN')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.schedules.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.schedules.remove(id, user.userId, user.role);
   }
 }

@@ -311,6 +311,10 @@ body.gate-pending .site-footer {
   padding-top: 32px;
 }
 
+.calendar-section [hidden] {
+  display: none !important;
+}
+
 .calendar-page-header,
 .calendar-month-row {
   display: flex;
@@ -361,6 +365,11 @@ body.gate-pending .site-footer {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 16px;
+}
+
+.calendar-proposal-form[hidden],
+.calendar-field[hidden] {
+  display: none;
 }
 
 .calendar-field {
@@ -713,6 +722,12 @@ body.gate-pending .site-footer {
 
 .calendar-schedule-description {
   color: var(--color-fg-muted);
+}
+
+.calendar-schedule-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .calendar-empty {

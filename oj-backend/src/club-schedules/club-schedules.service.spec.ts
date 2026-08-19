@@ -57,6 +57,7 @@ describe('ClubSchedulesService', () => {
       classTags: ['1반', '3반'],
       description: '안내',
       examScope: '1~3단원',
+      deadlineTime: '',
       startsOn: new Date('2026-08-20T00:00:00.000Z'),
       endsOn: new Date('2026-08-21T00:00:00.000Z'),
       createdById: 'admin-1',
@@ -75,6 +76,7 @@ describe('ClubSchedulesService', () => {
       classTags: ['1반', '3반'],
       description: ' 안내 ',
       examScope: ' 1~3단원 ',
+      deadlineTime: undefined,
       startsOn: '2026-08-20',
       endsOn: '2026-08-21',
     });
@@ -101,5 +103,38 @@ describe('ClubSchedulesService', () => {
       service.approve('schedule-1', 'user-1'),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('requires a deadline time for assessments', async () => {
+    await expect(
+      service.propose('member-1', {
+        type: 'ASSESSMENT',
+        title: '수행평가',
+        startsOn: '2026-08-25',
+        endsOn: '2026-08-20',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('does not let a regular member delete schedules', async () => {
+    findUser.mockResolvedValue({ username: 'someone-else' });
+
+    await expect(
+      service.remove('schedule-1', 'member-1', 'MEMBER'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.clubSchedule.delete).not.toHaveBeenCalled();
+  });
+
+  it('lets the hift member delete schedules', async () => {
+    findUser.mockResolvedValue({ username: 'hift' });
+    prisma.clubSchedule.findUnique.mockResolvedValue({ id: 'schedule-1' });
+
+    await expect(
+      service.remove('schedule-1', 'hift-user', 'MEMBER'),
+    ).resolves.toEqual({ deleted: true });
+    expect(prisma.clubSchedule.delete).toHaveBeenCalledWith({
+      where: { id: 'schedule-1' },
+    });
   });
 });

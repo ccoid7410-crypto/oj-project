@@ -32,6 +32,7 @@ function serializeSchedule(schedule: ClubSchedule) {
     classTags: schedule.classTags,
     description: schedule.description,
     examScope: schedule.examScope,
+    deadlineTime: schedule.deadlineTime,
     startsOn: schedule.startsOn.toISOString().slice(0, 10),
     endsOn: schedule.endsOn.toISOString().slice(0, 10),
     createdAt: schedule.createdAt.toISOString(),
@@ -97,6 +98,7 @@ export class ClubSchedulesService {
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
+        deadlineTime: dto.type === 'ASSESSMENT' ? (dto.deadlineTime ?? '') : '',
         ...dates,
         createdById: userId,
         updatedById: userId,
@@ -105,7 +107,13 @@ export class ClubSchedulesService {
     return serializeSchedule(schedule);
   }
 
-  async update(id: string, userId: string, dto: SaveClubScheduleDto) {
+  async update(
+    id: string,
+    userId: string,
+    role: string,
+    dto: SaveClubScheduleDto,
+  ) {
+    await this.assertScheduleManager(userId, role);
     await this.ensureExists(id);
     const dates = this.validateDates(dto);
     const schedule = await this.prisma.clubSchedule.update({
@@ -117,6 +125,7 @@ export class ClubSchedulesService {
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
+        deadlineTime: dto.type === 'ASSESSMENT' ? (dto.deadlineTime ?? '') : '',
         ...dates,
         updatedById: userId,
       },
@@ -162,7 +171,8 @@ export class ClubSchedulesService {
     return { rejected: true };
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string, role: string) {
+    await this.assertScheduleManager(userId, role);
     await this.ensureExists(id);
     await this.prisma.clubSchedule.delete({ where: { id } });
     return { deleted: true };
@@ -170,12 +180,18 @@ export class ClubSchedulesService {
 
   private validateDates(dto: SaveClubScheduleDto) {
     const startsOn = parseDateOnly(dto.startsOn, '시작일');
+    if (!dto.title.trim()) {
+      throw new BadRequestException('일정 제목을 입력해주세요.');
+    }
+    if (dto.type === 'ASSESSMENT') {
+      if (!dto.deadlineTime) {
+        throw new BadRequestException('수행평가 마감 시간을 입력해주세요.');
+      }
+      return { startsOn, endsOn: startsOn };
+    }
     const endsOn = parseDateOnly(dto.endsOn, '종료일');
     if (endsOn < startsOn) {
       throw new BadRequestException('종료일은 시작일과 같거나 뒤여야 합니다.');
-    }
-    if (!dto.title.trim()) {
-      throw new BadRequestException('일정 제목을 입력해주세요.');
     }
     return { startsOn, endsOn };
   }
@@ -193,7 +209,12 @@ export class ClubSchedulesService {
       select: { username: true },
     });
     if (user?.username !== 'hift') {
-      throw new ForbiddenException('일정 승인은 hift 계정만 할 수 있습니다.');
+      throw new ForbiddenException('일정 승인은 지정 관리자만 할 수 있습니다.');
     }
+  }
+
+  private async assertScheduleManager(userId: string, role: string) {
+    if (role === 'ADMIN') return;
+    await this.assertHiftApprover(userId);
   }
 }

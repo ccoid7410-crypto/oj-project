@@ -13,6 +13,7 @@ type ClubSchedule = {
   classTags: string[];
   description: string;
   examScope: string;
+  deadlineTime: string;
   startsOn: string;
   endsOn: string;
   createdAt: string;
@@ -23,7 +24,15 @@ type ClubSchedule = {
 
 type ScheduleForm = Pick<
   ClubSchedule,
-  'type' | 'title' | 'subject' | 'classTags' | 'description' | 'examScope' | 'startsOn' | 'endsOn'
+  | 'type'
+  | 'title'
+  | 'subject'
+  | 'classTags'
+  | 'description'
+  | 'examScope'
+  | 'deadlineTime'
+  | 'startsOn'
+  | 'endsOn'
 >;
 
 function localDateString() {
@@ -41,6 +50,7 @@ function emptyForm(): ScheduleForm {
     classTags: [],
     description: '',
     examScope: '',
+    deadlineTime: '23:59',
     startsOn: today,
     endsOn: today,
   };
@@ -81,8 +91,12 @@ export function ClubSchedulesAdminPage() {
       setError('일정 제목을 입력해주세요.');
       return;
     }
-    if (form.endsOn < form.startsOn) {
+    if (form.type === 'EXAM' && form.endsOn < form.startsOn) {
       setError('종료일은 시작일과 같거나 뒤여야 합니다.');
+      return;
+    }
+    if (form.type === 'ASSESSMENT' && !form.deadlineTime) {
+      setError('수행평가 마감 시간을 입력해주세요.');
       return;
     }
 
@@ -95,7 +109,7 @@ export function ClubSchedulesAdminPage() {
         setResult('일정을 수정했습니다.');
       } else {
         await api.post('/club-schedules', form);
-        setResult('일정을 제안했습니다. hift 계정의 승인 후 달력에 표시됩니다.');
+        setResult('일정을 제안했습니다. 관리자의 승인 후 달력에 표시됩니다.');
       }
       resetForm();
       await load();
@@ -115,6 +129,7 @@ export function ClubSchedulesAdminPage() {
       classTags: schedule.classTags,
       description: schedule.description,
       examScope: schedule.examScope,
+      deadlineTime: schedule.deadlineTime,
       startsOn: schedule.startsOn,
       endsOn: schedule.endsOn,
     });
@@ -202,7 +217,7 @@ export function ClubSchedulesAdminPage() {
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-fg-muted">
-            시작일
+            {form.type === 'ASSESSMENT' ? '날짜' : '시작일'}
             <input
               type="date"
               value={form.startsOn}
@@ -210,15 +225,27 @@ export function ClubSchedulesAdminPage() {
               className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs text-fg-muted">
-            종료일
-            <input
-              type="date"
-              value={form.endsOn}
-              onChange={(e) => setForm({ ...form, endsOn: e.target.value })}
-              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
-            />
-          </label>
+          {form.type === 'ASSESSMENT' ? (
+            <label className="flex flex-col gap-1 text-xs text-fg-muted">
+              마감 시간
+              <input
+                type="time"
+                value={form.deadlineTime}
+                onChange={(e) => setForm({ ...form, deadlineTime: e.target.value })}
+                className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1 text-xs text-fg-muted">
+              종료일
+              <input
+                type="date"
+                value={form.endsOn}
+                onChange={(e) => setForm({ ...form, endsOn: e.target.value })}
+                className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          )}
           <label className="flex flex-col gap-1 text-xs text-fg-muted sm:col-span-2">
             시험 범위
             <textarea
@@ -301,7 +328,7 @@ export function ClubSchedulesAdminPage() {
                     </td>
                     <td className="border border-ink-600 px-3 py-2 tabular-nums">
                       {schedule.startsOn === schedule.endsOn
-                        ? schedule.startsOn
+                        ? `${schedule.startsOn}${schedule.deadlineTime ? ` ${schedule.deadlineTime} 마감` : ''}`
                         : `${schedule.startsOn} ~ ${schedule.endsOn}`}
                     </td>
                     <td className="max-w-xs whitespace-pre-wrap border border-ink-600 px-3 py-2 text-xs text-fg-muted">

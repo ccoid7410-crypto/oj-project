@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_ONLY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export class ScheduleRangeDto {
   @IsOptional()
@@ -52,6 +53,12 @@ export class SaveClubScheduleDto {
   @IsString()
   @MaxLength(5000)
   examScope?: string;
+
+  @IsOptional()
+  @Matches(TIME_ONLY_PATTERN, {
+    message: 'deadlineTime은 HH:mm 형식이어야 합니다.',
+  })
+  deadlineTime?: string;
 
   @Matches(DATE_ONLY_PATTERN, {
     message: 'startsOn은 YYYY-MM-DD 형식이어야 합니다.',

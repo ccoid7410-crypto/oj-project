@@ -50,10 +50,11 @@
         <div class="calendar-panel-heading">
           <div>
             <h3 id="calendar-proposal-title">일정 제안</h3>
-            <p>부원 누구나 일정을 제안할 수 있습니다. hift가 승인하면 달력에 공개됩니다.</p>
+            <p>부원 누구나 일정을 제안할 수 있습니다. 관리자가 승인하면 달력에 공개됩니다.</p>
           </div>
+          <button id="schedule-proposal-toggle" type="button" class="btn btn-ghost" aria-expanded="false" aria-controls="schedule-proposal-form">펼치기</button>
         </div>
-        <form id="schedule-proposal-form" class="calendar-proposal-form">
+        <form id="schedule-proposal-form" class="calendar-proposal-form" hidden>
           <label class="calendar-field">
             <span>종류</span>
             <select id="schedule-type" class="field-select" required>
@@ -76,12 +77,16 @@
             <label><input type="checkbox" name="schedule-class" value="3반"> 3반</label>
           </fieldset>
           <label class="calendar-field">
-            <span>시작일</span>
+            <span id="schedule-start-label">날짜</span>
             <input id="schedule-start" class="field-input" type="date" required>
           </label>
-          <label class="calendar-field">
+          <label id="schedule-end-field" class="calendar-field" hidden>
             <span>종료일</span>
             <input id="schedule-end" class="field-input" type="date" required>
+          </label>
+          <label id="schedule-deadline-field" class="calendar-field">
+            <span>마감 시간</span>
+            <input id="schedule-deadline-time" class="field-input" type="time" value="23:59" required>
           </label>
           <label class="calendar-field calendar-field-wide">
             <span>시험 범위</span>
@@ -93,6 +98,7 @@
           </label>
           <div class="calendar-proposal-actions calendar-field-wide">
             <button id="schedule-submit" type="submit" class="btn btn-primary">승인 요청하기</button>
+            <button id="schedule-edit-cancel" type="button" class="btn btn-ghost" hidden>수정 취소</button>
             <p id="schedule-proposal-message" aria-live="polite"></p>
           </div>
         </form>
@@ -102,7 +108,7 @@
         <div class="calendar-panel-heading">
           <div>
             <h3 id="schedule-approval-title">승인 대기 일정</h3>
-            <p>hift 계정에서 승인한 일정만 아래 달력에 표시됩니다.</p>
+            <p>관리자가 승인한 일정만 아래 달력에 표시됩니다.</p>
           </div>
           <button id="schedule-approval-refresh" type="button" class="btn btn-ghost">새로고침</button>
         </div>
