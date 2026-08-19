@@ -256,6 +256,8 @@ enum CommunityPostType {
 enum ClubScheduleType {
   ASSESSMENT // 수행평가
   EXAM       // 시험
+  EVENT      // 행사 및 축제
+  OTHER      // 기타
 }
 
 enum ClubScheduleStatus {
@@ -467,7 +469,7 @@ model SiteBanner {
   @@map("site_banner")
 }
 
-/// 동아리 홈페이지에 표시하는 수행평가/시험 일정. 시각이 아닌 날짜 단위 일정이므로
+/// 동아리 홈페이지에 표시하는 학교 일정. 시각이 아닌 날짜 단위 일정이므로
 /// startsOn/endsOn은 PostgreSQL DATE로 저장해 타임존에 따라 날짜가 밀리지 않게 한다.
 model ClubSchedule {
   id              String             @id @default(uuid())

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 
-type ScheduleType = 'ASSESSMENT' | 'EXAM';
+type ScheduleType = 'ASSESSMENT' | 'EXAM' | 'EVENT' | 'OTHER';
 type ScheduleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type ClubSchedule = {
@@ -39,6 +39,15 @@ function localDateString() {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function scheduleTypeLabel(type: ScheduleType) {
+  return {
+    ASSESSMENT: '수행평가',
+    EXAM: '시험',
+    EVENT: '행사 및 축제',
+    OTHER: '기타',
+  }[type];
 }
 
 function emptyForm(): ScheduleForm {
@@ -91,7 +100,7 @@ export function ClubSchedulesAdminPage() {
       setError('일정 제목을 입력해주세요.');
       return;
     }
-    if (form.type === 'EXAM' && form.endsOn < form.startsOn) {
+    if (form.type !== 'ASSESSMENT' && form.endsOn < form.startsOn) {
       setError('종료일은 시작일과 같거나 뒤여야 합니다.');
       return;
     }
@@ -155,7 +164,7 @@ export function ClubSchedulesAdminPage() {
   return (
     <div>
       <h2 className="text-lg font-bold">동아리 일정 관리</h2>
-      <p className="mt-1 text-sm text-fg-muted">동아리 홈페이지 달력에 표시할 수행평가와 시험 일정을 관리합니다.</p>
+      <p className="mt-1 text-sm text-fg-muted">동아리 홈페이지 달력에 표시할 학교 일정을 관리합니다.</p>
 
       {error && <p className="mt-3 text-sm text-[var(--color-wa)]">{error}</p>}
       {result && <p className="mt-3 text-sm text-[var(--color-ac)]">{result}</p>}
@@ -172,6 +181,8 @@ export function ClubSchedulesAdminPage() {
             >
               <option value="ASSESSMENT">수행평가</option>
               <option value="EXAM">시험</option>
+              <option value="EVENT">행사 및 축제</option>
+              <option value="OTHER">기타</option>
             </select>
           </label>
           <fieldset className="flex flex-col gap-1 text-xs text-fg-muted">
@@ -247,7 +258,7 @@ export function ClubSchedulesAdminPage() {
             </label>
           )}
           <label className="flex flex-col gap-1 text-xs text-fg-muted sm:col-span-2">
-            시험 범위
+            범위
             <textarea
               value={form.examScope}
               maxLength={5000}
@@ -299,7 +310,7 @@ export function ClubSchedulesAdminPage() {
                   <th className="border border-ink-600 px-3 py-2">종류</th>
                   <th className="border border-ink-600 px-3 py-2">과목 / 제목</th>
                   <th className="border border-ink-600 px-3 py-2">기간</th>
-                  <th className="border border-ink-600 px-3 py-2">시험 범위</th>
+                  <th className="border border-ink-600 px-3 py-2">범위</th>
                   <th className="border border-ink-600 px-3 py-2">관리</th>
                 </tr>
               </thead>
@@ -317,7 +328,7 @@ export function ClubSchedulesAdminPage() {
                       )}
                     </td>
                     <td className="border border-ink-600 px-3 py-2">
-                      {schedule.type === 'ASSESSMENT' ? '수행평가' : '시험'}
+                      {scheduleTypeLabel(schedule.type)}
                     </td>
                     <td className="border border-ink-600 px-3 py-2">
                       <strong>{schedule.title}</strong>

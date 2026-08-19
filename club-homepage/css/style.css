@@ -514,6 +514,7 @@ body.gate-pending .site-footer {
 
 .calendar-legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   color: var(--color-fg-muted);
   font-size: 0.75rem;
@@ -537,6 +538,14 @@ body.gate-pending .site-footer {
 
 .legend-exam {
   background: #e08423;
+}
+
+.legend-event {
+  background: #2b9a66;
+}
+
+.legend-other {
+  background: #7b61c9;
 }
 
 .calendar-scroll {
@@ -648,8 +657,18 @@ body.gate-pending .site-footer {
   --schedule-color: #e08423;
 }
 
+.schedule-event {
+  --schedule-color: #2b9a66;
+}
+
+.schedule-other {
+  --schedule-color: #7b61c9;
+}
+
 .calendar-schedule-chip.schedule-assessment,
-.calendar-schedule-chip.schedule-exam {
+.calendar-schedule-chip.schedule-exam,
+.calendar-schedule-chip.schedule-event,
+.calendar-schedule-chip.schedule-other {
   background: var(--schedule-color);
 }
 

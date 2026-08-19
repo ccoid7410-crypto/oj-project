@@ -37,7 +37,7 @@
       <div class="calendar-page-header">
         <div>
           <h2>일정</h2>
-          <p>수행평가 일정과 시험 범위를 한눈에 확인하세요.</p>
+          <p>수행평가, 시험, 행사와 학교 일정을 한눈에 확인하세요.</p>
         </div>
         <div class="calendar-controls">
           <button type="button" id="calendar-prev" aria-label="이전 달">‹</button>
@@ -60,6 +60,8 @@
             <select id="schedule-type" class="field-select" required>
               <option value="ASSESSMENT">수행평가</option>
               <option value="EXAM">시험</option>
+              <option value="EVENT">행사 및 축제</option>
+              <option value="OTHER">기타</option>
             </select>
           </label>
           <label class="calendar-field">
@@ -89,7 +91,7 @@
             <input id="schedule-deadline-time" class="field-input" type="time" value="23:59" required>
           </label>
           <label class="calendar-field calendar-field-wide">
-            <span>시험 범위</span>
+            <span>범위</span>
             <textarea id="schedule-scope" class="field-textarea" maxlength="1000" rows="3" placeholder="시험이나 수행평가 범위를 적어주세요."></textarea>
           </label>
           <label class="calendar-field calendar-field-wide">
@@ -120,6 +122,8 @@
         <div class="calendar-legend" aria-label="일정 종류">
           <span><i class="legend-dot legend-assessment"></i>수행평가</span>
           <span><i class="legend-dot legend-exam"></i>시험</span>
+          <span><i class="legend-dot legend-event"></i>행사 및 축제</span>
+          <span><i class="legend-dot legend-other"></i>기타</span>
         </div>
       </div>
 

@@ -47,6 +47,15 @@ function formatDateRange(schedule) {
   return `${schedule.startsOn} ~ ${schedule.endsOn}`;
 }
 
+function scheduleTypeLabel(type) {
+  return {
+    ASSESSMENT: "수행평가",
+    EXAM: "시험",
+    EVENT: "행사 및 축제",
+    OTHER: "기타",
+  }[type] || "기타";
+}
+
 function getAuthHeaders(includeJson = false) {
   const token = localStorage.getItem("oj_token");
   return {
@@ -131,7 +140,7 @@ function renderScheduleList(schedules) {
     top.className = "calendar-schedule-top";
     const badge = document.createElement("span");
     badge.className = "calendar-schedule-badge";
-    badge.textContent = schedule.type === "ASSESSMENT" ? "수행평가" : "시험";
+    badge.textContent = scheduleTypeLabel(schedule.type);
     const date = document.createElement("time");
     date.textContent = formatDateRange(schedule);
     top.append(badge, date);
@@ -147,7 +156,7 @@ function renderScheduleList(schedules) {
       const scope = document.createElement("p");
       scope.className = "calendar-schedule-scope";
       const label = document.createElement("strong");
-      label.textContent = "시험 범위 ";
+      label.textContent = "범위 ";
       scope.append(label, document.createTextNode(schedule.examScope));
       card.appendChild(scope);
     }
@@ -384,7 +393,7 @@ function renderPendingSchedules(schedules) {
 
     const meta = document.createElement("p");
     meta.className = "calendar-approval-meta";
-    meta.textContent = `${schedule.proposedBy || "알 수 없음"} 제안 · ${formatDateRange(schedule)} · ${schedule.type === "EXAM" ? "시험" : "수행평가"}`;
+    meta.textContent = `${schedule.proposedBy || "알 수 없음"} 제안 · ${formatDateRange(schedule)} · ${scheduleTypeLabel(schedule.type)}`;
     const title = document.createElement("h4");
     title.textContent = schedule.subject ? `${schedule.subject} · ${schedule.title}` : schedule.title;
     card.append(meta, title);
