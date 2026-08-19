@@ -95,9 +95,9 @@ export class RunnerFactory {
     },
     KOTLIN: {
       fileName: 'main.kt',
-      compileImage: 'zenika/kotlin:1.9-jdk17',
+      compileImage: 'tmvdl/kotlin:latest',
       compileCmd: ['kotlinc', '/box/main.kt', '-include-runtime', '-d', '/box/a.jar'],
-      runImage: 'zenika/kotlin:1.9-jdk17',
+      runImage: 'tmvdl/kotlin:latest',
       runCmd: ['java', '-jar', '/box/a.jar'],
     },
     SWIFT: {
@@ -186,9 +186,9 @@ export class RunnerFactory {
     },
     PASCAL: {
       fileName: 'main.pas',
-      compileImage: 'silkeh/fpc:latest',
+      compileImage: 'freepascal/fpc:3.2.2-slim',
       compileCmd: ['fpc', '-O2', '-o/box/a.out', '/box/main.pas'],
-      runImage: 'silkeh/fpc:latest',
+      runImage: 'freepascal/fpc:3.2.2-slim',
       runCmd: ['/box/a.out'],
     },
   };

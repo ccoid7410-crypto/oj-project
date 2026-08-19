@@ -54,7 +54,7 @@ const DEFAULT_ALLOWED_IMAGE_PREFIXES = [
   'golang:',
   'busybox:',
   'mono:',
-  'zenika/kotlin:',
+  'tmvdl/kotlin:',
   'swift:',
   'ruby:',
   'rust:',
@@ -68,7 +68,7 @@ const DEFAULT_ALLOWED_IMAGE_PREFIXES = [
   'julia:',
   'nimlang/nim:',
   'crystallang/crystal:',
-  'silkeh/fpc:',
+  'freepascal/fpc:',
 ];
 
 /**
