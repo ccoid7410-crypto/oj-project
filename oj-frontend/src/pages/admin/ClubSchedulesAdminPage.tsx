@@ -33,7 +33,10 @@ type ScheduleForm = Pick<
   | 'deadlineTime'
   | 'startsOn'
   | 'endsOn'
->;
+> & {
+  includeStart: boolean;
+  includeEndTime: boolean;
+};
 
 function localDateString() {
   const now = new Date();
@@ -50,6 +53,22 @@ function scheduleTypeLabel(type: ScheduleType) {
   }[type];
 }
 
+function isFlexibleType(type: ScheduleType) {
+  return type === 'EVENT' || type === 'OTHER';
+}
+
+function formatScheduleDate(schedule: ClubSchedule) {
+  if (schedule.type === 'ASSESSMENT') {
+    return `${schedule.startsOn}${schedule.deadlineTime ? ` ${schedule.deadlineTime} 마감` : ''}`;
+  }
+  const range = schedule.startsOn === schedule.endsOn
+    ? schedule.startsOn
+    : `${schedule.startsOn} ~ ${schedule.endsOn}`;
+  return isFlexibleType(schedule.type) && schedule.deadlineTime
+    ? `${range} ${schedule.deadlineTime} 종료`
+    : range;
+}
+
 function emptyForm(): ScheduleForm {
   const today = localDateString();
   return {
@@ -62,6 +81,8 @@ function emptyForm(): ScheduleForm {
     deadlineTime: '23:59',
     startsOn: today,
     endsOn: today,
+    includeStart: false,
+    includeEndTime: false,
   };
 }
 
@@ -100,7 +121,9 @@ export function ClubSchedulesAdminPage() {
       setError('일정 제목을 입력해주세요.');
       return;
     }
-    if (form.type !== 'ASSESSMENT' && form.endsOn < form.startsOn) {
+    const flexible = isFlexibleType(form.type);
+    const effectiveStartsOn = flexible && !form.includeStart ? form.endsOn : form.startsOn;
+    if (form.type !== 'ASSESSMENT' && form.endsOn < effectiveStartsOn) {
       setError('종료일은 시작일과 같거나 뒤여야 합니다.');
       return;
     }
@@ -108,16 +131,29 @@ export function ClubSchedulesAdminPage() {
       setError('수행평가 마감 시간을 입력해주세요.');
       return;
     }
+    if (flexible && form.includeEndTime && !form.deadlineTime) {
+      setError('종료 시간을 입력해주세요.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
     setResult(null);
     try {
+      const { includeStart, includeEndTime, ...values } = form;
+      const payload = {
+        ...values,
+        startsOn: flexible && !includeStart ? values.endsOn : values.startsOn,
+        deadlineTime:
+          form.type === 'ASSESSMENT' || (flexible && includeEndTime)
+            ? values.deadlineTime
+            : undefined,
+      };
       if (editingId) {
-        await api.put(`/club-schedules/${editingId}`, form);
+        await api.put(`/club-schedules/${editingId}`, payload);
         setResult('일정을 수정했습니다.');
       } else {
-        await api.post('/club-schedules', form);
+        await api.post('/club-schedules', payload);
         setResult('일정을 제안했습니다. 관리자의 승인 후 달력에 표시됩니다.');
       }
       resetForm();
@@ -141,6 +177,8 @@ export function ClubSchedulesAdminPage() {
       deadlineTime: schedule.deadlineTime,
       startsOn: schedule.startsOn,
       endsOn: schedule.endsOn,
+      includeStart: isFlexibleType(schedule.type) && schedule.startsOn !== schedule.endsOn,
+      includeEndTime: isFlexibleType(schedule.type) && Boolean(schedule.deadlineTime),
     });
     setError(null);
     setResult(null);
@@ -176,7 +214,16 @@ export function ClubSchedulesAdminPage() {
             종류
             <select
               value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value as ScheduleType })}
+              onChange={(e) => {
+                const type = e.target.value as ScheduleType;
+                setForm({
+                  ...form,
+                  type,
+                  includeStart: false,
+                  includeEndTime: false,
+                  deadlineTime: type === 'ASSESSMENT' && !form.deadlineTime ? '23:59' : form.deadlineTime,
+                });
+              }}
               className="rounded border border-ink-500 bg-white px-3 py-2 text-sm text-fg"
             >
               <option value="ASSESSMENT">수행평가</option>
@@ -227,15 +274,46 @@ export function ClubSchedulesAdminPage() {
               className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs text-fg-muted">
-            {form.type === 'ASSESSMENT' ? '날짜' : '시작일'}
-            <input
-              type="date"
-              value={form.startsOn}
-              onChange={(e) => setForm({ ...form, startsOn: e.target.value })}
-              className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
-            />
-          </label>
+          {isFlexibleType(form.type) && (
+            <fieldset className="flex flex-col gap-1 text-xs text-fg-muted sm:col-span-2">
+              <legend>날짜 옵션</legend>
+              <div className="flex gap-5 rounded border border-ink-500 px-3 py-2 text-sm text-fg">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={form.includeStart}
+                    onChange={(e) => setForm({ ...form, includeStart: e.target.checked })}
+                  />
+                  시작일 포함
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={form.includeEndTime}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        includeEndTime: e.target.checked,
+                        deadlineTime: e.target.checked && !form.deadlineTime ? '23:59' : form.deadlineTime,
+                      })
+                    }
+                  />
+                  종료 시간 포함
+                </label>
+              </div>
+            </fieldset>
+          )}
+          {!(isFlexibleType(form.type) && !form.includeStart) && (
+            <label className="flex flex-col gap-1 text-xs text-fg-muted">
+              {form.type === 'ASSESSMENT' ? '날짜' : '시작일'}
+              <input
+                type="date"
+                value={form.startsOn}
+                onChange={(e) => setForm({ ...form, startsOn: e.target.value })}
+                className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          )}
           {form.type === 'ASSESSMENT' ? (
             <label className="flex flex-col gap-1 text-xs text-fg-muted">
               마감 시간
@@ -248,11 +326,22 @@ export function ClubSchedulesAdminPage() {
             </label>
           ) : (
             <label className="flex flex-col gap-1 text-xs text-fg-muted">
-              종료일
+              {isFlexibleType(form.type) && !form.includeStart ? '날짜' : '종료일'}
               <input
                 type="date"
                 value={form.endsOn}
                 onChange={(e) => setForm({ ...form, endsOn: e.target.value })}
+                className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
+              />
+            </label>
+          )}
+          {isFlexibleType(form.type) && form.includeEndTime && (
+            <label className="flex flex-col gap-1 text-xs text-fg-muted">
+              종료 시간
+              <input
+                type="time"
+                value={form.deadlineTime}
+                onChange={(e) => setForm({ ...form, deadlineTime: e.target.value })}
                 className="rounded border border-ink-500 px-3 py-2 text-sm text-fg"
               />
             </label>
@@ -338,9 +427,7 @@ export function ClubSchedulesAdminPage() {
                       )}
                     </td>
                     <td className="border border-ink-600 px-3 py-2 tabular-nums">
-                      {schedule.startsOn === schedule.endsOn
-                        ? `${schedule.startsOn}${schedule.deadlineTime ? ` ${schedule.deadlineTime} 마감` : ''}`
-                        : `${schedule.startsOn} ~ ${schedule.endsOn}`}
+                      {formatScheduleDate(schedule)}
                     </td>
                     <td className="max-w-xs whitespace-pre-wrap border border-ink-600 px-3 py-2 text-xs text-fg-muted">
                       {schedule.examScope || '-'}

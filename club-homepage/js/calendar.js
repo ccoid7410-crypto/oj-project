@@ -10,9 +10,15 @@ const proposalSubmit = document.getElementById("schedule-submit");
 const proposalToggle = document.getElementById("schedule-proposal-toggle");
 const editCancel = document.getElementById("schedule-edit-cancel");
 const scheduleType = document.getElementById("schedule-type");
+const scheduleDateOptions = document.getElementById("schedule-date-options");
+const scheduleIncludeStart = document.getElementById("schedule-include-start");
+const scheduleIncludeEndTime = document.getElementById("schedule-include-end-time");
+const scheduleStartField = document.getElementById("schedule-start-field");
 const scheduleStartLabel = document.getElementById("schedule-start-label");
 const scheduleEndField = document.getElementById("schedule-end-field");
+const scheduleEndLabel = document.getElementById("schedule-end-label");
 const scheduleDeadlineField = document.getElementById("schedule-deadline-field");
+const scheduleDeadlineLabel = document.getElementById("schedule-deadline-label");
 const scheduleDeadlineTime = document.getElementById("schedule-deadline-time");
 const approvalSection = document.getElementById("schedule-approval-section");
 const approvalList = document.getElementById("schedule-approval-list");
@@ -43,8 +49,13 @@ function formatDateRange(schedule) {
   if (schedule.type === "ASSESSMENT") {
     return `${schedule.startsOn}${schedule.deadlineTime ? ` ${schedule.deadlineTime} 마감` : ""}`;
   }
-  if (schedule.startsOn === schedule.endsOn) return schedule.startsOn;
-  return `${schedule.startsOn} ~ ${schedule.endsOn}`;
+  const range = schedule.startsOn === schedule.endsOn
+    ? schedule.startsOn
+    : `${schedule.startsOn} ~ ${schedule.endsOn}`;
+  if ((schedule.type === "EVENT" || schedule.type === "OTHER") && schedule.deadlineTime) {
+    return `${range} ${schedule.deadlineTime} 종료`;
+  }
+  return range;
 }
 
 function scheduleTypeLabel(type) {
@@ -254,13 +265,26 @@ function setProposalOpen(open) {
 }
 
 function updateDateFields() {
-  const isAssessment = scheduleType?.value === "ASSESSMENT";
-  if (scheduleStartLabel) scheduleStartLabel.textContent = isAssessment ? "날짜" : "시작일";
-  if (scheduleEndField) scheduleEndField.hidden = isAssessment;
-  if (scheduleDeadlineField) scheduleDeadlineField.hidden = !isAssessment;
+  const type = scheduleType?.value;
+  const isAssessment = type === "ASSESSMENT";
+  const isExam = type === "EXAM";
+  const isFlexible = type === "EVENT" || type === "OTHER";
+  const includesStart = isFlexible && scheduleIncludeStart.checked;
+  const includesEndTime = isFlexible && scheduleIncludeEndTime.checked;
+
+  scheduleDateOptions.hidden = !isFlexible;
+  scheduleStartField.hidden = isFlexible && !includesStart;
+  scheduleEndField.hidden = isAssessment;
+  scheduleDeadlineField.hidden = !(isAssessment || includesEndTime);
+  scheduleStartLabel.textContent = isAssessment ? "날짜" : "시작일";
+  scheduleEndLabel.textContent = isFlexible && !includesStart ? "날짜" : "종료일";
+  scheduleDeadlineLabel.textContent = isAssessment ? "마감 시간" : "종료 시간";
+
+  const startInput = document.getElementById("schedule-start");
   const endInput = document.getElementById("schedule-end");
-  if (endInput) endInput.required = !isAssessment;
-  if (scheduleDeadlineTime) scheduleDeadlineTime.required = isAssessment;
+  startInput.required = isAssessment || isExam || includesStart;
+  endInput.required = !isAssessment;
+  scheduleDeadlineTime.required = isAssessment || includesEndTime;
 }
 
 function resetProposalForm() {
@@ -270,6 +294,8 @@ function resetProposalForm() {
   document.getElementById("schedule-start").value = dateToday;
   document.getElementById("schedule-end").value = dateToday;
   scheduleDeadlineTime.value = "23:59";
+  scheduleIncludeStart.checked = false;
+  scheduleIncludeEndTime.checked = false;
   editingScheduleId = null;
   proposalSubmit.textContent = "승인 요청하기";
   editCancel.hidden = true;
@@ -284,6 +310,9 @@ function beginScheduleEdit(schedule) {
   document.getElementById("schedule-start").value = schedule.startsOn;
   document.getElementById("schedule-end").value = schedule.endsOn;
   scheduleDeadlineTime.value = schedule.deadlineTime || "23:59";
+  const isFlexible = schedule.type === "EVENT" || schedule.type === "OTHER";
+  scheduleIncludeStart.checked = isFlexible && schedule.startsOn !== schedule.endsOn;
+  scheduleIncludeEndTime.checked = isFlexible && Boolean(schedule.deadlineTime);
   document.getElementById("schedule-scope").value = schedule.examScope;
   document.getElementById("schedule-description").value = schedule.description;
   proposalForm.querySelectorAll('input[name="schedule-class"]').forEach((input) => {
@@ -308,9 +337,12 @@ async function submitProposal(event) {
   if (!proposalForm || !proposalSubmit) return;
 
   const startsOn = document.getElementById("schedule-start").value;
-  const isAssessment = scheduleType.value === "ASSESSMENT";
+  const type = scheduleType.value;
+  const isAssessment = type === "ASSESSMENT";
+  const isFlexible = type === "EVENT" || type === "OTHER";
   const endsOn = isAssessment ? startsOn : document.getElementById("schedule-end").value;
-  if (!isAssessment && endsOn < startsOn) {
+  const effectiveStartsOn = isFlexible && !scheduleIncludeStart.checked ? endsOn : startsOn;
+  if (!isAssessment && endsOn < effectiveStartsOn) {
     setProposalMessage("종료일은 시작일보다 빠를 수 없습니다.", "error");
     return;
   }
@@ -320,13 +352,15 @@ async function submitProposal(event) {
     (input) => input.value,
   );
   const payload = {
-    type: scheduleType.value,
+    type,
     subject: document.getElementById("schedule-subject").value,
     title: document.getElementById("schedule-title").value,
     classTags,
-    startsOn,
+    startsOn: effectiveStartsOn,
     endsOn,
-    deadlineTime: isAssessment ? scheduleDeadlineTime.value : undefined,
+    deadlineTime: isAssessment || (isFlexible && scheduleIncludeEndTime.checked)
+      ? scheduleDeadlineTime.value
+      : undefined,
     examScope: document.getElementById("schedule-scope").value,
     description: document.getElementById("schedule-description").value,
   };
@@ -507,6 +541,8 @@ if (
   document.getElementById("schedule-end").value = dateToday;
   updateDateFields();
   scheduleType?.addEventListener("change", updateDateFields);
+  scheduleIncludeStart?.addEventListener("change", updateDateFields);
+  scheduleIncludeEndTime?.addEventListener("change", updateDateFields);
   proposalToggle?.addEventListener("click", () => setProposalOpen(proposalForm.hidden));
   proposalForm?.addEventListener("submit", submitProposal);
   editCancel?.addEventListener("click", () => {

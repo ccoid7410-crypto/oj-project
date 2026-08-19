@@ -117,6 +117,38 @@ describe('ClubSchedulesService', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('stores an optional end time for events', async () => {
+    const date = new Date('2026-09-01T00:00:00.000Z');
+    create.mockResolvedValue({
+      id: 'event-1',
+      type: 'EVENT',
+      status: 'PENDING',
+      title: '학교 축제',
+      subject: '',
+      classTags: [],
+      description: '',
+      examScope: '',
+      deadlineTime: '18:30',
+      startsOn: date,
+      endsOn: date,
+      rejectionReason: '',
+      createdAt: date,
+      updatedAt: date,
+    });
+
+    await service.propose('member-1', {
+      type: 'EVENT',
+      title: '학교 축제',
+      startsOn: '2026-09-01',
+      endsOn: '2026-09-01',
+      deadlineTime: '18:30',
+    });
+
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ deadlineTime: '18:30' }),
+    });
+  });
+
   it('does not let a regular member delete schedules', async () => {
     findUser.mockResolvedValue({ username: 'someone-else' });
 
