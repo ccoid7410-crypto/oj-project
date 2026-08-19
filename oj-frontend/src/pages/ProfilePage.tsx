@@ -103,6 +103,7 @@ export function ProfilePage() {
         </div>
       </div>
 
+      {isSelf && <VideoOverlaySettingSection />}
       {isSelf && <ProfileSettingsSection profile={profile} onUpdated={load} />}
       {isSelf && <AccountInfoSection />}
       {isSelf && <NameSection />}
@@ -133,6 +134,37 @@ export function ProfilePage() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function VideoOverlaySettingSection() {
+  const [enabled, setEnabled] = useState(() => {
+    return localStorage.getItem('disableVideoOverlay') !== 'true';
+  });
+
+  function toggle() {
+    const next = !enabled;
+    setEnabled(next);
+    if (!next) localStorage.setItem('disableVideoOverlay', 'true');
+    else localStorage.removeItem('disableVideoOverlay');
+  }
+
+  return (
+    <div className="mt-4 rounded border border-ink-500 p-3 text-xs">
+      <p className="font-bold text-fg">오답 영상 오버레이</p>
+      <p className="mt-1 text-fg-muted">오답 판정을 받았을 때 우측 하단에 나오는 영상을 끄거나 켤 수 있습니다.</p>
+      <div className="mt-2">
+        <label className="inline-flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={toggle}
+            className="h-4 w-4 rounded border-ink-500 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+          />
+          <span className="text-fg">영상 기능 켜기</span>
+        </label>
+      </div>
     </div>
   );
 }
