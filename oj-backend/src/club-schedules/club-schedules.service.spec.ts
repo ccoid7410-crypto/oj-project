@@ -1,15 +1,19 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ClubSchedulesService } from './club-schedules.service';
 
 describe('ClubSchedulesService', () => {
   const findMany = jest.fn();
   const create = jest.fn();
+  const updateMany = jest.fn();
+  const findUser = jest.fn();
   const prisma = {
+    user: { findUnique: findUser },
     clubSchedule: {
       findMany,
       findUnique: jest.fn(),
       create,
       update: jest.fn(),
+      updateMany,
       delete: jest.fn(),
     },
   };
@@ -24,6 +28,7 @@ describe('ClubSchedulesService', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          status: 'APPROVED',
           startsOn: { lte: new Date('2026-08-31T00:00:00.000Z') },
           endsOn: { gte: new Date('2026-08-01T00:00:00.000Z') },
         },
@@ -46,22 +51,28 @@ describe('ClubSchedulesService', () => {
     create.mockResolvedValue({
       id: 'schedule-1',
       type: 'EXAM',
+      status: 'PENDING',
       title: '중간고사',
       subject: '정보',
+      classTags: ['1반', '3반'],
       description: '안내',
       examScope: '1~3단원',
       startsOn: new Date('2026-08-20T00:00:00.000Z'),
       endsOn: new Date('2026-08-21T00:00:00.000Z'),
       createdById: 'admin-1',
       updatedById: 'admin-1',
+      reviewedById: null,
+      reviewedAt: null,
+      rejectionReason: '',
       createdAt: now,
       updatedAt: now,
     });
 
-    const result = await service.create('admin-1', {
+    const result = await service.propose('admin-1', {
       type: 'EXAM',
       title: '  중간고사  ',
       subject: ' 정보 ',
+      classTags: ['1반', '3반'],
       description: ' 안내 ',
       examScope: ' 1~3단원 ',
       startsOn: '2026-08-20',
@@ -71,7 +82,9 @@ describe('ClubSchedulesService', () => {
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         title: '중간고사',
+        status: 'PENDING',
         subject: '정보',
+        classTags: ['1반', '3반'],
         examScope: '1~3단원',
         startsOn: new Date('2026-08-20T00:00:00.000Z'),
         endsOn: new Date('2026-08-21T00:00:00.000Z'),
@@ -79,5 +92,14 @@ describe('ClubSchedulesService', () => {
     });
     expect(result.startsOn).toBe('2026-08-20');
     expect(result.endsOn).toBe('2026-08-21');
+  });
+
+  it('only lets the hift username review pending schedules', async () => {
+    findUser.mockResolvedValue({ username: 'someone-else' });
+
+    await expect(
+      service.approve('schedule-1', 'user-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

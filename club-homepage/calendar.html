@@ -46,6 +46,69 @@
         </div>
       </div>
 
+      <section class="calendar-proposal-panel" aria-labelledby="calendar-proposal-title">
+        <div class="calendar-panel-heading">
+          <div>
+            <h3 id="calendar-proposal-title">일정 제안</h3>
+            <p>부원 누구나 일정을 제안할 수 있습니다. hift가 승인하면 달력에 공개됩니다.</p>
+          </div>
+        </div>
+        <form id="schedule-proposal-form" class="calendar-proposal-form">
+          <label class="calendar-field">
+            <span>종류</span>
+            <select id="schedule-type" class="field-select" required>
+              <option value="ASSESSMENT">수행평가</option>
+              <option value="EXAM">시험</option>
+            </select>
+          </label>
+          <label class="calendar-field">
+            <span>과목</span>
+            <input id="schedule-subject" class="field-input" type="text" maxlength="50" placeholder="예: 수학" required>
+          </label>
+          <label class="calendar-field calendar-field-wide">
+            <span>일정 제목</span>
+            <input id="schedule-title" class="field-input" type="text" maxlength="100" placeholder="예: 확률과 통계 수행평가" required>
+          </label>
+          <fieldset class="calendar-class-picker calendar-field-wide">
+            <legend>반 태그</legend>
+            <label><input type="checkbox" name="schedule-class" value="1반"> 1반</label>
+            <label><input type="checkbox" name="schedule-class" value="2반"> 2반</label>
+            <label><input type="checkbox" name="schedule-class" value="3반"> 3반</label>
+          </fieldset>
+          <label class="calendar-field">
+            <span>시작일</span>
+            <input id="schedule-start" class="field-input" type="date" required>
+          </label>
+          <label class="calendar-field">
+            <span>종료일</span>
+            <input id="schedule-end" class="field-input" type="date" required>
+          </label>
+          <label class="calendar-field calendar-field-wide">
+            <span>시험 범위</span>
+            <textarea id="schedule-scope" class="field-textarea" maxlength="1000" rows="3" placeholder="시험이나 수행평가 범위를 적어주세요."></textarea>
+          </label>
+          <label class="calendar-field calendar-field-wide">
+            <span>추가 설명</span>
+            <textarea id="schedule-description" class="field-textarea" maxlength="1000" rows="3" placeholder="준비물 등 추가 안내가 있다면 적어주세요."></textarea>
+          </label>
+          <div class="calendar-proposal-actions calendar-field-wide">
+            <button id="schedule-submit" type="submit" class="btn btn-primary">승인 요청하기</button>
+            <p id="schedule-proposal-message" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="schedule-approval-section" class="calendar-approval-panel" aria-labelledby="schedule-approval-title" hidden>
+        <div class="calendar-panel-heading">
+          <div>
+            <h3 id="schedule-approval-title">승인 대기 일정</h3>
+            <p>hift 계정에서 승인한 일정만 아래 달력에 표시됩니다.</p>
+          </div>
+          <button id="schedule-approval-refresh" type="button" class="btn btn-ghost">새로고침</button>
+        </div>
+        <div id="schedule-approval-list" aria-live="polite"></div>
+      </section>
+
       <div class="calendar-month-row">
         <h3 id="calendar-month"></h3>
         <div class="calendar-legend" aria-label="일정 종류">

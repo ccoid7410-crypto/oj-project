@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,14 +26,17 @@ function serializeSchedule(schedule: ClubSchedule) {
   return {
     id: schedule.id,
     type: schedule.type,
+    status: schedule.status,
     title: schedule.title,
     subject: schedule.subject,
+    classTags: schedule.classTags,
     description: schedule.description,
     examScope: schedule.examScope,
     startsOn: schedule.startsOn.toISOString().slice(0, 10),
     endsOn: schedule.endsOn.toISOString().slice(0, 10),
     createdAt: schedule.createdAt.toISOString(),
     updatedAt: schedule.updatedAt.toISOString(),
+    rejectionReason: schedule.rejectionReason,
   };
 }
 
@@ -48,25 +52,49 @@ export class ClubSchedulesService {
     }
 
     const schedules = await this.prisma.clubSchedule.findMany({
-      where:
-        from || to
-          ? {
-              ...(to ? { startsOn: { lte: to } } : {}),
-              ...(from ? { endsOn: { gte: from } } : {}),
-            }
-          : undefined,
+      where: {
+        status: 'APPROVED',
+        ...(to ? { startsOn: { lte: to } } : {}),
+        ...(from ? { endsOn: { gte: from } } : {}),
+      },
       orderBy: [{ startsOn: 'asc' }, { type: 'asc' }, { title: 'asc' }],
     });
     return schedules.map(serializeSchedule);
   }
 
-  async create(userId: string, dto: SaveClubScheduleDto) {
+  async listForManage() {
+    const schedules = await this.prisma.clubSchedule.findMany({
+      include: { createdBy: { select: { username: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return schedules.map((schedule) => ({
+      ...serializeSchedule(schedule),
+      proposedBy: schedule.createdBy?.username ?? null,
+    }));
+  }
+
+  async listPending(approverId: string) {
+    await this.assertHiftApprover(approverId);
+    const schedules = await this.prisma.clubSchedule.findMany({
+      where: { status: 'PENDING' },
+      include: { createdBy: { select: { username: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return schedules.map((schedule) => ({
+      ...serializeSchedule(schedule),
+      proposedBy: schedule.createdBy?.username ?? null,
+    }));
+  }
+
+  async propose(userId: string, dto: SaveClubScheduleDto) {
     const dates = this.validateDates(dto);
     const schedule = await this.prisma.clubSchedule.create({
       data: {
         type: dto.type,
+        status: 'PENDING',
         title: dto.title.trim(),
         subject: dto.subject?.trim() ?? '',
+        classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
         ...dates,
@@ -86,6 +114,7 @@ export class ClubSchedulesService {
         type: dto.type,
         title: dto.title.trim(),
         subject: dto.subject?.trim() ?? '',
+        classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
         ...dates,
@@ -93,6 +122,44 @@ export class ClubSchedulesService {
       },
     });
     return serializeSchedule(schedule);
+  }
+
+  async approve(id: string, approverId: string) {
+    await this.assertHiftApprover(approverId);
+    const result = await this.prisma.clubSchedule.updateMany({
+      where: { id, status: 'PENDING' },
+      data: {
+        status: 'APPROVED',
+        reviewedById: approverId,
+        reviewedAt: new Date(),
+        rejectionReason: '',
+      },
+    });
+    if (result.count === 0) {
+      throw new BadRequestException('승인 대기 중인 일정을 찾을 수 없습니다.');
+    }
+    const schedule = await this.prisma.clubSchedule.findUnique({
+      where: { id },
+    });
+    if (!schedule) throw new NotFoundException('일정을 찾을 수 없습니다.');
+    return serializeSchedule(schedule);
+  }
+
+  async reject(id: string, approverId: string, reason?: string) {
+    await this.assertHiftApprover(approverId);
+    const result = await this.prisma.clubSchedule.updateMany({
+      where: { id, status: 'PENDING' },
+      data: {
+        status: 'REJECTED',
+        reviewedById: approverId,
+        reviewedAt: new Date(),
+        rejectionReason: reason?.trim() ?? '',
+      },
+    });
+    if (result.count === 0) {
+      throw new BadRequestException('승인 대기 중인 일정을 찾을 수 없습니다.');
+    }
+    return { rejected: true };
   }
 
   async remove(id: string) {
@@ -118,5 +185,15 @@ export class ClubSchedulesService {
       where: { id },
     });
     if (!schedule) throw new NotFoundException('일정을 찾을 수 없습니다.');
+  }
+
+  private async assertHiftApprover(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
+    if (user?.username !== 'hift') {
+      throw new ForbiddenException('일정 승인은 hift 계정만 할 수 있습니다.');
+    }
   }
 }

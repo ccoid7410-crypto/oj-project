@@ -2,21 +2,29 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 
 type ScheduleType = 'ASSESSMENT' | 'EXAM';
+type ScheduleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type ClubSchedule = {
   id: string;
   type: ScheduleType;
+  status: ScheduleStatus;
   title: string;
   subject: string;
+  classTags: string[];
   description: string;
   examScope: string;
   startsOn: string;
   endsOn: string;
   createdAt: string;
   updatedAt: string;
+  rejectionReason: string;
+  proposedBy: string | null;
 };
 
-type ScheduleForm = Omit<ClubSchedule, 'id' | 'createdAt' | 'updatedAt'>;
+type ScheduleForm = Pick<
+  ClubSchedule,
+  'type' | 'title' | 'subject' | 'classTags' | 'description' | 'examScope' | 'startsOn' | 'endsOn'
+>;
 
 function localDateString() {
   const now = new Date();
@@ -30,6 +38,7 @@ function emptyForm(): ScheduleForm {
     type: 'ASSESSMENT',
     title: '',
     subject: '',
+    classTags: [],
     description: '',
     examScope: '',
     startsOn: today,
@@ -50,7 +59,7 @@ export function ClubSchedulesAdminPage() {
     setLoading(true);
     setError(null);
     try {
-      setSchedules(await api.get<ClubSchedule[]>('/club-schedules'));
+      setSchedules(await api.get<ClubSchedule[]>('/club-schedules/manage'));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '일정 목록을 불러오지 못했습니다.');
     } finally {
@@ -86,7 +95,7 @@ export function ClubSchedulesAdminPage() {
         setResult('일정을 수정했습니다.');
       } else {
         await api.post('/club-schedules', form);
-        setResult('일정을 등록했습니다.');
+        setResult('일정을 제안했습니다. hift 계정의 승인 후 달력에 표시됩니다.');
       }
       resetForm();
       await load();
@@ -103,6 +112,7 @@ export function ClubSchedulesAdminPage() {
       type: schedule.type,
       title: schedule.title,
       subject: schedule.subject,
+      classTags: schedule.classTags,
       description: schedule.description,
       examScope: schedule.examScope,
       startsOn: schedule.startsOn,
@@ -149,6 +159,28 @@ export function ClubSchedulesAdminPage() {
               <option value="EXAM">시험</option>
             </select>
           </label>
+          <fieldset className="flex flex-col gap-1 text-xs text-fg-muted">
+            <legend>반 태그</legend>
+            <div className="flex h-full items-center gap-4 rounded border border-ink-500 px-3 py-2 text-sm text-fg">
+              {['1반', '2반', '3반'].map((classTag) => (
+                <label key={classTag} className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={form.classTags.includes(classTag)}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        classTags: e.target.checked
+                          ? [...form.classTags, classTag]
+                          : form.classTags.filter((tag) => tag !== classTag),
+                      })
+                    }
+                  />
+                  {classTag}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="flex flex-col gap-1 text-xs text-fg-muted">
             과목
             <input
@@ -236,6 +268,7 @@ export function ClubSchedulesAdminPage() {
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead className="bg-ink-700 text-xs text-fg-muted">
                 <tr>
+                  <th className="border border-ink-600 px-3 py-2">상태</th>
                   <th className="border border-ink-600 px-3 py-2">종류</th>
                   <th className="border border-ink-600 px-3 py-2">과목 / 제목</th>
                   <th className="border border-ink-600 px-3 py-2">기간</th>
@@ -247,11 +280,24 @@ export function ClubSchedulesAdminPage() {
                 {schedules.map((schedule) => (
                   <tr key={schedule.id}>
                     <td className="border border-ink-600 px-3 py-2">
+                      {schedule.status === 'PENDING'
+                        ? '승인 대기'
+                        : schedule.status === 'APPROVED'
+                          ? '승인됨'
+                          : '반려됨'}
+                      {schedule.proposedBy && (
+                        <span className="mt-1 block text-xs text-fg-muted">제안: {schedule.proposedBy}</span>
+                      )}
+                    </td>
+                    <td className="border border-ink-600 px-3 py-2">
                       {schedule.type === 'ASSESSMENT' ? '수행평가' : '시험'}
                     </td>
                     <td className="border border-ink-600 px-3 py-2">
                       <strong>{schedule.title}</strong>
                       {schedule.subject && <span className="ml-2 text-xs text-fg-muted">{schedule.subject}</span>}
+                      {schedule.classTags.length > 0 && (
+                        <span className="ml-2 text-xs text-[var(--color-brand)]">{schedule.classTags.join(' · ')}</span>
+                      )}
                     </td>
                     <td className="border border-ink-600 px-3 py-2 tabular-nums">
                       {schedule.startsOn === schedule.endsOn

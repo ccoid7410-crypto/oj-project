@@ -1,4 +1,7 @@
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
   IsIn,
   IsOptional,
   IsString,
@@ -34,6 +37,13 @@ export class SaveClubScheduleDto {
   subject?: string;
 
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @ArrayUnique()
+  @IsIn(['1반', '2반', '3반'], { each: true })
+  classTags?: string[];
+
+  @IsOptional()
   @IsString()
   @MaxLength(5000)
   description?: string;
@@ -52,4 +62,11 @@ export class SaveClubScheduleDto {
     message: 'endsOn은 YYYY-MM-DD 형식이어야 합니다.',
   })
   endsOn: string;
+}
+
+export class RejectClubScheduleDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }

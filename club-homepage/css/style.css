@@ -329,9 +329,137 @@ body.gate-pending .site-footer {
 }
 
 .calendar-page-header p,
-.calendar-empty p {
+.calendar-empty p,
+.calendar-panel-heading p {
   color: var(--color-fg-muted);
   font-size: 0.875rem;
+}
+
+.calendar-proposal-panel,
+.calendar-approval-panel {
+  margin-top: 20px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--color-ink-700) 35%, var(--color-bg));
+}
+
+.calendar-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-panel-heading h3 {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.calendar-proposal-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.calendar-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.calendar-field-wide {
+  grid-column: 1 / -1;
+}
+
+.calendar-class-picker {
+  display: flex;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.calendar-class-picker legend {
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.calendar-class-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-fg-muted);
+}
+
+.calendar-proposal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendar-proposal-actions p {
+  color: var(--color-fg-muted);
+  font-size: 0.8rem;
+}
+
+.calendar-proposal-actions p.success {
+  color: #2fa84f;
+}
+
+.calendar-proposal-actions p.error {
+  color: #e5484d;
+}
+
+.calendar-approval-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.calendar-approval-card {
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  padding: 14px;
+  background: var(--color-bg);
+}
+
+.calendar-approval-card h4 {
+  margin: 7px 0 5px;
+  font-size: 0.95rem;
+}
+
+.calendar-approval-meta,
+.calendar-approval-detail {
+  color: var(--color-fg-muted);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.calendar-approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calendar-class-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.calendar-class-tag {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--color-ink-600);
+  color: var(--color-fg-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .calendar-controls {
@@ -615,9 +743,18 @@ body.gate-pending .site-footer {
   }
 
   .calendar-page-header,
-  .calendar-month-row {
+  .calendar-month-row,
+  .calendar-panel-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .calendar-proposal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-field-wide {
+    grid-column: auto;
   }
 
   .calendar-day {

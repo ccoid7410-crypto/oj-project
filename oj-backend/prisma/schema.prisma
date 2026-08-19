@@ -120,6 +120,7 @@ model User {
   communityCommentVotes CommunityCommentVote[]
   clubSchedulesCreated  ClubSchedule[]           @relation("ClubScheduleCreator")
   clubSchedulesUpdated  ClubSchedule[]           @relation("ClubScheduleUpdater")
+  clubSchedulesReviewed ClubSchedule[]           @relation("ClubScheduleReviewer")
 
   @@map("users")
 }
@@ -238,6 +239,12 @@ enum CommunityPostType {
 enum ClubScheduleType {
   ASSESSMENT // 수행평가
   EXAM       // 시험
+}
+
+enum ClubScheduleStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 /// 커뮤니티 게시글. 본문은 마크다운/TeX를 지원한다(프론트에서 렌더링·소독).
@@ -446,22 +453,29 @@ model SiteBanner {
 /// 동아리 홈페이지에 표시하는 수행평가/시험 일정. 시각이 아닌 날짜 단위 일정이므로
 /// startsOn/endsOn은 PostgreSQL DATE로 저장해 타임존에 따라 날짜가 밀리지 않게 한다.
 model ClubSchedule {
-  id          String           @id @default(uuid())
-  type        ClubScheduleType
-  title       String           @db.VarChar(120)
-  subject     String           @default("") @db.VarChar(80)
-  description String           @default("")
-  examScope   String           @default("")
-  startsOn    DateTime         @db.Date
-  endsOn      DateTime         @db.Date
-  createdById String?
-  createdBy   User?            @relation("ClubScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById String?
-  updatedBy   User?            @relation("ClubScheduleUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String             @id @default(uuid())
+  type            ClubScheduleType
+  status          ClubScheduleStatus @default(PENDING)
+  title           String             @db.VarChar(120)
+  subject         String             @default("") @db.VarChar(80)
+  classTags       String[]           @default([])
+  description     String             @default("")
+  examScope       String             @default("")
+  startsOn        DateTime           @db.Date
+  endsOn          DateTime           @db.Date
+  createdById     String?
+  createdBy       User?              @relation("ClubScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?              @relation("ClubScheduleUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  reviewedById    String?
+  reviewedBy      User?              @relation("ClubScheduleReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  rejectionReason String             @default("") @db.VarChar(500)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@index([startsOn, endsOn])
+  @@index([status, createdAt])
   @@map("club_schedules")
 }
 
