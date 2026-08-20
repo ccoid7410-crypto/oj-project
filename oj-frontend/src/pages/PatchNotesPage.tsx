@@ -17,6 +17,8 @@ export function PatchNotesPage() {
   const [commits, setCommits] = useState<Commit[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     fetch('/api/patch-notes')
@@ -77,8 +79,9 @@ export function PatchNotesPage() {
           {errorMsg}
         </div>
       ) : (
+        <>
         <div className="w-full relative border-l-[3px] border-[var(--color-ink-200)] ml-4 pl-8 py-4 flex flex-col gap-12 mt-4">
-        {commits.map((c) => {
+        {commits.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((c) => {
           const dateStr = new Date(c.commit.author.date).toLocaleString('ko-KR', {
             timeZone: 'Asia/Seoul',
             year: 'numeric',
@@ -126,6 +129,28 @@ export function PatchNotesPage() {
           );
         })}
       </div>
+        {Math.ceil(commits.length / pageSize) > 1 && (
+          <div className="w-full flex justify-center items-center gap-2 mt-8">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg font-bold bg-[var(--color-ink-100)] text-fg disabled:opacity-50 hover:bg-[var(--color-ink-200)] transition-colors"
+            >
+              이전
+            </button>
+            <span className="px-4 py-2 text-fg-muted font-bold">
+              {currentPage} / {Math.ceil(commits.length / pageSize)}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(commits.length / pageSize), p + 1))}
+              disabled={currentPage === Math.ceil(commits.length / pageSize)}
+              className="px-4 py-2 rounded-lg font-bold bg-[var(--color-ink-100)] text-fg disabled:opacity-50 hover:bg-[var(--color-ink-200)] transition-colors"
+            >
+              다음
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

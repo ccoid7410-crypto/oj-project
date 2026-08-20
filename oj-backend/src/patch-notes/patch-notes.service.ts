@@ -18,7 +18,7 @@ export class PatchNotesService {
 
     try {
       this.logger.log('Fetching new commits from GitHub API...');
-      const response = await fetch('https://api.github.com/repos/ccoid7410-crypto/oj-project/commits?per_page=15', {
+      const response = await fetch('https://api.github.com/repos/ccoid7410-crypto/oj-project/commits?per_page=100', {
         headers: {
           'User-Agent': 'durunuri-oj-backend',
         }
