@@ -1,33 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { SubmissionDetail } from '../api/types';
 import { VerdictBadge } from '../components/VerdictBadge';
 import { subscribeToSubmission } from '../lib/socket';
-import { WrongAnswerVideoOverlay } from '../components/WrongAnswerVideoOverlay';
 
 export function SubmissionPage() {
   const { id } = useParams<{ id: string }>();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showVideo, setShowVideo] = useState(false);
-  const prevStatusRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (submission) {
-      const currentStatus = submission.status;
-      const prevStatus = prevStatusRef.current;
-      
-      const isIncorrectStatus = ['WRONG_ANSWER', 'TIME_LIMIT_EXCEEDED', 'MEMORY_LIMIT_EXCEEDED', 'RUNTIME_ERROR'].includes(currentStatus);
-      const isVideoEnabled = localStorage.getItem('disableVideoOverlay') !== 'true';
-        
-      if ((prevStatus === 'PENDING' || prevStatus === 'JUDGING') && isIncorrectStatus && isVideoEnabled) {
-        setShowVideo(true);
-      }
-      
-      prevStatusRef.current = currentStatus;
-    }
-  }, [submission?.status]);
 
   const refetch = useCallback(() => {
     if (!id) return;
@@ -120,8 +101,6 @@ export function SubmissionPage() {
           {submission.sourceCode}
         </pre>
       </div>
-
-      <WrongAnswerVideoOverlay show={showVideo} onComplete={() => setShowVideo(false)} />
     </div>
   );
 }
