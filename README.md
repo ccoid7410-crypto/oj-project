@@ -17,7 +17,7 @@
 
 이 저지는 채점/문제 관리라는 본연의 기능에 집중합니다. 오답 시 영상 재생처럼 채점과 무관한
 장난성·부가 기능은 명시적으로 요청받기 전까지 추가하지 않습니다 (AI 에이전트 지침은
-[CLAUDE.md](./CLAUDE.md) 참고).
+[CLAUDE.md](./CLAUDE.md), [AGENTS.md](./AGENTS.md) 참고).
 
 ## License
 
