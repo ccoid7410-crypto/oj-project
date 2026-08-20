@@ -67,70 +67,70 @@ enum Difficulty {
 }
 
 enum ProblemStatus {
-  DRAFT           // 작성 중 (작성자만 봄)
-  PENDING_REVIEW  // 어드민 승인 대기(제안됨)
-  PUBLISHED       // 공개됨
-  REJECTED        // 반려됨
+  DRAFT // 작성 중 (작성자만 봄)
+  PENDING_REVIEW // 어드민 승인 대기(제안됨)
+  PUBLISHED // 공개됨
+  REJECTED // 반려됨
 }
 
 enum ProblemType {
-  STANDARD    // 고정 정답 출력 비교
-  SCORING     // 숫자 출력의 정확도/최적화 점수 계산
+  STANDARD // 고정 정답 출력 비교
+  SCORING // 숫자 출력의 정확도/최적화 점수 계산
   INTERACTIVE // 테스트케이스의 요청/응답 줄을 번갈아 주고받는 대화형 채점
 }
 
 enum ScoringMode {
-  TARGET   // 기준값과 가까울수록 높은 점수
+  TARGET // 기준값과 가까울수록 높은 점수
   MAXIMIZE // 기준값보다 클수록 높은 점수
   MINIMIZE // 기준값보다 작을수록 높은 점수
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  username     String       @unique
-  passwordHash String
-  name         String? // 실명. 가입 시 필수 입력, 없는 기존 계정은 로그인 후 등록을 강제한다(Layout 참고)
-  preferredLanguage Language? // 기본 제출 언어. 문제 페이지에서 자동 선택된다
-  role         Role         @default(USER)
-  customTitle  String?      @db.VarChar(20) // 관리자가 지정하는 닉네임 앞 공개 칭호
-  rating       Int          @default(0) // 상위 100문제(AC) 레이팅 합. RatingService가 재계산한다.
-  banned       Boolean      @default(false)
-  bannedReason String?
-  bannedAt     DateTime?
-  studentId    String?      @unique // 학번. 가입 시 자유 입력, 이후 수정은 관리자가 연 기간에만 가능. (NULL은 여러 개 허용, 값이 있으면 유일해야 함)
-  bio          String? // 프로필 자기소개 (공개, 마크다운/TeX 지원)
-  websites     String[] @default([]) // 프로필에 표시할 개인 사이트 URL 목록 (공개, http/https만 허용, 최대 5개)
-  theme        String   @default("system") // UI 테마 설정: system | light | dark (계정 귀속)
-  avatar          Bytes?    // 프로필 이미지 원본 바이트. 클라이언트에서 축소해 올리므로 작다(수십 KB). NULL이면 기본(회색) 아바타.
-  avatarMime      String?   // avatar의 Content-Type (image/png 등)
-  avatarUpdatedAt DateTime? // 아바타 캐시 무효화용(이미지 URL의 ?v= 값)
-  banner          Bytes?    // 프로필 배너 이미지 (아바타와 동일 패턴, 폭 1600px로 축소 업로드)
-  bannerMime      String?
-  bannerUpdatedAt DateTime?
-  emailVerified Boolean     @default(false) // 이메일 인증 전에는 로그인 불가(auth.service 참고)
-  mustChangePassword Boolean @default(false) // 어드민이 대량 생성한 계정은 최초 로그인 후 비밀번호 변경을 강제한다
-  authVersion  Int          @default(0) // 비밀번호 변경 등 보안 이벤트 때 증가. 이전 JWT를 즉시 무효화한다.
-  isRootAdmin  Boolean      @default(false) // username 재사용으로 탈취할 수 없는, 행 자체에 귀속된 메인 관리자 표식
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  username           String    @unique
+  passwordHash       String
+  name               String? // 실명. 가입 시 필수 입력, 없는 기존 계정은 로그인 후 등록을 강제한다(Layout 참고)
+  preferredLanguage  Language? // 기본 제출 언어. 문제 페이지에서 자동 선택된다
+  role               Role      @default(USER)
+  customTitle        String?   @db.VarChar(20) // 관리자가 지정하는 닉네임 앞 공개 칭호
+  rating             Int       @default(0) // 상위 100문제(AC) 레이팅 합. RatingService가 재계산한다.
+  banned             Boolean   @default(false)
+  bannedReason       String?
+  bannedAt           DateTime?
+  studentId          String?   @unique // 학번. 가입 시 자유 입력, 이후 수정은 관리자가 연 기간에만 가능. (NULL은 여러 개 허용, 값이 있으면 유일해야 함)
+  bio                String? // 프로필 자기소개 (공개, 마크다운/TeX 지원)
+  websites           String[]  @default([]) // 프로필에 표시할 개인 사이트 URL 목록 (공개, http/https만 허용, 최대 5개)
+  theme              String    @default("system") // UI 테마 설정: system | light | dark (계정 귀속)
+  avatar             Bytes? // 프로필 이미지 원본 바이트. 클라이언트에서 축소해 올리므로 작다(수십 KB). NULL이면 기본(회색) 아바타.
+  avatarMime         String? // avatar의 Content-Type (image/png 등)
+  avatarUpdatedAt    DateTime? // 아바타 캐시 무효화용(이미지 URL의 ?v= 값)
+  banner             Bytes? // 프로필 배너 이미지 (아바타와 동일 패턴, 폭 1600px로 축소 업로드)
+  bannerMime         String?
+  bannerUpdatedAt    DateTime?
+  emailVerified      Boolean   @default(false) // 이메일 인증 전에는 로그인 불가(auth.service 참고)
+  mustChangePassword Boolean   @default(false) // 어드민이 대량 생성한 계정은 최초 로그인 후 비밀번호 변경을 강제한다
+  authVersion        Int       @default(0) // 비밀번호 변경 등 보안 이벤트 때 증가. 이전 JWT를 즉시 무효화한다.
+  isRootAdmin        Boolean   @default(false) // username 재사용으로 탈취할 수 없는, 행 자체에 귀속된 메인 관리자 표식
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  groupId      String?
-  group        Group?       @relation(fields: [groupId], references: [id])
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id])
 
-  problems             Problem[]                 @relation("ProblemAuthor")
-  reviewedProblems     Problem[]                 @relation("ProblemReviewer")
-  submissions          Submission[]
-  apiKeys              ApiKey[]                  @relation("ApiKeyCreator")
-  contests             Contest[]                 @relation("ContestCreator")
-  contestEntries       ContestParticipant[]      @relation("ContestParticipation")
-  difficultyVotes      ProblemDifficultyVote[]
-  triggeredAlerts      AdminNotification[]       @relation("NotificationVoter")
-  emailVerifications   EmailVerificationToken[]
-  comments             ProblemComment[]
-  classesCreated       ClassRoom[]               @relation("ClassCreator")
-  classMemberships     ClassMembership[]
-  classNotices         ClassNotice[]             @relation("ClassNoticeAuthor")
+  problems              Problem[]                @relation("ProblemAuthor")
+  reviewedProblems      Problem[]                @relation("ProblemReviewer")
+  submissions           Submission[]
+  apiKeys               ApiKey[]                 @relation("ApiKeyCreator")
+  contests              Contest[]                @relation("ContestCreator")
+  contestEntries        ContestParticipant[]     @relation("ContestParticipation")
+  difficultyVotes       ProblemDifficultyVote[]
+  triggeredAlerts       AdminNotification[]      @relation("NotificationVoter")
+  emailVerifications    EmailVerificationToken[]
+  comments              ProblemComment[]
+  classesCreated        ClassRoom[]              @relation("ClassCreator")
+  classMemberships      ClassMembership[]
+  classNotices          ClassNotice[]            @relation("ClassNoticeAuthor")
   communityPosts        CommunityPost[]          @relation("CommunityPostAuthor")
   communityComments     CommunityComment[]       @relation("CommunityCommentAuthor")
   communityPostVotes    CommunityPostVote[]
@@ -138,6 +138,8 @@ model User {
   clubSchedulesCreated  ClubSchedule[]           @relation("ClubScheduleCreator")
   clubSchedulesUpdated  ClubSchedule[]           @relation("ClubScheduleUpdater")
   clubSchedulesReviewed ClubSchedule[]           @relation("ClubScheduleReviewer")
+
+  examScopesUpdated ExamScope[] @relation("ExamScopeUpdater")
 
   @@map("users")
 }
@@ -181,36 +183,36 @@ model AdminNotification {
 }
 
 model Problem {
-  id           String      @id @default(uuid())
-  displayId    Int         @unique @default(autoincrement()) // BOJ처럼 보이는 고정 문제 번호(1000번대부터)
-  title        String
-  slug         String      @unique
-  description  String
-  difficulty   Difficulty  @default(BRONZE) // level로부터 파생되는 굵은 티어(하위호환/필터용)
-  level        Int         @default(1) // 1(브론즈 V) ~ 30(루비 I). 세분화된 난이도의 기준값.
-  timeLimitMs  Int         @default(2000)
-  memoryLimitMb Int        @default(256)
-  problemType  ProblemType @default(STANDARD)
-  scoringMode  ScoringMode @default(TARGET)
-  maxScore     Float       @default(100)
-  isPractice   Boolean     @default(false) // 공개 풀이 가능하지만 레이팅에는 반영하지 않는 연습 문제
-  compileOptions Json      @default("{}") // 언어별 추가 컴파일 인자: { "CPP": ["-O0", "-std=c++20"] }
-  isPublished  Boolean     @default(false)
-  status       ProblemStatus @default(DRAFT)
-  reviewNote   String?
-  reviewedById String?
-  reviewedBy   User?       @relation("ProblemReviewer", fields: [reviewedById], references: [id])
-  reviewedAt   DateTime?
-  allowedLanguages Language[] @default([]) // 비어있으면 전체 허용
-  tags         String[]    @default([])
-  authorId     String
-  author       User        @relation("ProblemAuthor", fields: [authorId], references: [id])
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String        @id @default(uuid())
+  displayId        Int           @unique @default(autoincrement()) // BOJ처럼 보이는 고정 문제 번호(1000번대부터)
+  title            String
+  slug             String        @unique
+  description      String
+  difficulty       Difficulty    @default(BRONZE) // level로부터 파생되는 굵은 티어(하위호환/필터용)
+  level            Int           @default(1) // 1(브론즈 V) ~ 30(루비 I). 세분화된 난이도의 기준값.
+  timeLimitMs      Int           @default(2000)
+  memoryLimitMb    Int           @default(256)
+  problemType      ProblemType   @default(STANDARD)
+  scoringMode      ScoringMode   @default(TARGET)
+  maxScore         Float         @default(100)
+  isPractice       Boolean       @default(false) // 공개 풀이 가능하지만 레이팅에는 반영하지 않는 연습 문제
+  compileOptions   Json          @default("{}") // 언어별 추가 컴파일 인자: { "CPP": ["-O0", "-std=c++20"] }
+  isPublished      Boolean       @default(false)
+  status           ProblemStatus @default(DRAFT)
+  reviewNote       String?
+  reviewedById     String?
+  reviewedBy       User?         @relation("ProblemReviewer", fields: [reviewedById], references: [id])
+  reviewedAt       DateTime?
+  allowedLanguages Language[]    @default([]) // 비어있으면 전체 허용
+  tags             String[]      @default([])
+  authorId         String
+  author           User          @relation("ProblemAuthor", fields: [authorId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   // 대회 전용 문제: true면 그 문제가 달린 대회가 끝나고 problemsVisibleAfterEnd가 켜진
   // 대회가 하나라도 있기 전까지는 공개 문제 목록/상세에 노출되지 않는다(대회 참가자에게는 그대로 보임).
-  contestOnly  Boolean     @default(false)
+  contestOnly Boolean @default(false)
 
   testCases       TestCase[]
   submissions     Submission[]
@@ -225,16 +227,16 @@ model Problem {
 
 /// 문제 상세페이지의 질문/답변 게시판. 대댓글은 parentId로 표현한다.
 model ProblemComment {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   problemId String
-  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  problem   Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
   content   String
   parentId  String?
   parent    ProblemComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ProblemComment[] @relation("CommentReplies")
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
 
   @@map("problem_comments")
 }
@@ -255,9 +257,9 @@ enum CommunityPostType {
 /// 동아리 홈페이지 달력의 일정 구분.
 enum ClubScheduleType {
   ASSESSMENT // 수행평가
-  EXAM       // 시험
-  EVENT      // 행사 및 축제
-  OTHER      // 기타
+  EXAM // 시험
+  EVENT // 행사 및 축제
+  OTHER // 기타
 }
 
 enum ClubScheduleStatus {
@@ -266,21 +268,26 @@ enum ClubScheduleStatus {
   REJECTED
 }
 
+enum ExamScopeType {
+  MIDTERM
+  FINAL
+}
+
 /// 커뮤니티 게시글. 본문은 마크다운/TeX를 지원한다(프론트에서 렌더링·소독).
 model CommunityPost {
-  id        String   @id @default(uuid())
-  board     CommunityBoard   @default(OJ)
+  id        String            @id @default(uuid())
+  board     CommunityBoard    @default(OJ)
   type      CommunityPostType @default(NORMAL)
   title     String
   content   String
-  tags      String[] @default([]) // 게시글 태그(카테고리). 보드별로 태그 풀이 분리된다.
+  tags      String[]          @default([]) // 게시글 태그(카테고리). 보드별로 태그 풀이 분리된다.
   authorId  String
-  author    User     @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  author    User              @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
-  comments  CommunityComment[]
-  votes     CommunityPostVote[]
+  comments CommunityComment[]
+  votes    CommunityPostVote[]
 
   @@index([board, createdAt])
   @@map("community_posts")
@@ -299,18 +306,18 @@ model CommunityTag {
 
 /// 커뮤니티 게시글의 댓글/답글(대댓글은 parentId). 문제 Q&A 댓글과 동일 구조 + 좋아요/싫어요.
 model CommunityComment {
-  id        String   @id @default(uuid())
+  id        String             @id @default(uuid())
   postId    String
-  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      CommunityPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation("CommunityCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  user      User               @relation("CommunityCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
   content   String
   parentId  String?
   parent    CommunityComment?  @relation("CommunityCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   CommunityComment[] @relation("CommunityCommentReplies")
-  createdAt DateTime @default(now())
+  createdAt DateTime           @default(now())
 
-  votes     CommunityCommentVote[]
+  votes CommunityCommentVote[]
 
   @@map("community_comments")
 }
@@ -322,7 +329,7 @@ model CommunityPostVote {
   userId    String
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   value     Int // 1 = 좋아요, -1 = 싫어요
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
 
   @@id([postId, userId])
   @@map("community_post_votes")
@@ -335,7 +342,7 @@ model CommunityCommentVote {
   userId    String
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   value     Int // 1 = 좋아요, -1 = 싫어요
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
 
   @@id([commentId, userId])
   @@map("community_comment_votes")
@@ -355,37 +362,37 @@ model ProblemDifficultyVote {
 }
 
 model TestCase {
-  id         String   @id @default(uuid())
-  problemId  String
-  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  input      String
-  output     String
-  isSample   Boolean  @default(false)
-  order      Int      @default(0)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input     String
+  output    String
+  isSample  Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
 
-  results    SubmissionTestResult[]
+  results SubmissionTestResult[]
 
   @@map("test_cases")
 }
 
 model Submission {
-  id          String            @id @default(uuid())
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
-  problemId   String
-  problem     Problem           @relation(fields: [problemId], references: [id])
-  contestId   String?
-  contest     Contest?          @relation(fields: [contestId], references: [id])
-  language    Language
-  sourceCode  String
-  status      SubmissionStatus  @default(PENDING)
-  runtimeMs   Int?
-  memoryKb    Int?
-  score       Float?
+  id           String           @id @default(uuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id])
+  problemId    String
+  problem      Problem          @relation(fields: [problemId], references: [id])
+  contestId    String?
+  contest      Contest?         @relation(fields: [contestId], references: [id])
+  language     Language
+  sourceCode   String
+  status       SubmissionStatus @default(PENDING)
+  runtimeMs    Int?
+  memoryKb     Int?
+  score        Float?
   errorMessage String?
-  createdAt   DateTime          @default(now())
-  judgedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  judgedAt     DateTime?
 
   testResults SubmissionTestResult[]
 
@@ -396,16 +403,16 @@ model Submission {
 }
 
 model SubmissionTestResult {
-  id            String            @id @default(uuid())
-  submissionId  String
-  submission    Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  testCaseId    String
-  testCase      TestCase          @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  status        SubmissionStatus
-  runtimeMs     Int?
-  memoryKb      Int?
-  score         Float?
-  output        String?
+  id           String           @id @default(uuid())
+  submissionId String
+  submission   Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCaseId   String
+  testCase     TestCase         @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  status       SubmissionStatus
+  runtimeMs    Int?
+  memoryKb     Int?
+  score        Float?
+  output       String?
 
   @@map("submission_test_results")
 }
@@ -415,7 +422,7 @@ model ApiKey {
   id          String    @id @default(uuid())
   name        String
   keyHash     String    @unique
-  prefix      String    // 표시용 앞 8자리 (ojk_xxxx)
+  prefix      String // 표시용 앞 8자리 (ojk_xxxx)
   scopes      String[]  @default(["users:read"])
   createdById String
   createdBy   User      @relation("ApiKeyCreator", fields: [createdById], references: [id])
@@ -429,10 +436,10 @@ model ApiKey {
 /// 채점기 컴파일 옵션/방식을 UI에서 수정할 수 있도록 저장하는 단일 행 설정.
 /// config 예: { "CPP": { "compileArgs": ["-O2","-std=c++17","-fno-if-conversion"] }, ... }
 model JudgeConfig {
-  id        Int      @id @default(1)
-  config    Json
+  id          Int      @id @default(1)
+  config      Json
   updatedById String?
-  updatedAt DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
 
   @@map("judge_config")
 }
@@ -499,6 +506,25 @@ model ClubSchedule {
   @@map("club_schedules")
 }
 
+/// 학기별 중간·기말고사 과목 범위. 범위가 빈 문자열이면 아직 공개되지 않은 상태다.
+model ExamScope {
+  id           String        @id @default(uuid())
+  academicYear Int
+  semester     Int
+  examType     ExamScopeType
+  subject      String        @db.VarChar(80)
+  scope        String        @default("")
+  displayOrder Int           @default(0)
+  updatedById  String?
+  updatedBy    User?         @relation("ExamScopeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([academicYear, semester, examType, subject])
+  @@index([academicYear, semester, examType, displayOrder])
+  @@map("exam_scopes")
+}
+
 model Contest {
   id          String   @id @default(uuid())
   title       String
@@ -562,10 +588,10 @@ model StudentIdEditWindow {
 /// pass가 작을수록 먼저 처리되므로, 이 값들이 자라는 속도 비율(stride의 역수, 6:4)만큼
 /// 장기적으로 동아리:일반 제출이 10개 중 6:4 비율로 섞여서 채점된다.
 model QueuePassState {
-  id         Int      @id @default(1)
-  clubPass   Int      @default(0)
-  generalPass Int     @default(0)
-  updatedAt  DateTime @updatedAt
+  id          Int      @id @default(1)
+  clubPass    Int      @default(0)
+  generalPass Int      @default(0)
+  updatedAt   DateTime @updatedAt
 
   @@map("queue_pass_state")
 }

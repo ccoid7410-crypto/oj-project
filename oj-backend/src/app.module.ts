@@ -22,6 +22,7 @@ import { CommunityModule } from './community/community.module';
 import { InternalModule } from './internal/internal.module';
 import { SubmissionCompletionSubscriber } from './internal/submission-completion.subscriber';
 import { ClubSchedulesModule } from './club-schedules/club-schedules.module';
+import { ExamScopesModule } from './exam-scopes/exam-scopes.module';
 
 /**
  * API 서버 모듈. 채점 워커(JudgeModule)는 보안/스케일링 상 별도 프로세스로 분리해서
@@ -59,6 +60,7 @@ import { ClubSchedulesModule } from './club-schedules/club-schedules.module';
     TagsModule,
     CommunityModule,
     ClubSchedulesModule,
+    ExamScopesModule,
     InternalModule,
   ],
   controllers: [AppController],

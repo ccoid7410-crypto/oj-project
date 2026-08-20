@@ -932,7 +932,7 @@ body.gate-pending .site-footer {
 
 .exam-scope-card {
   border: 1px solid var(--color-ink-600);
-  border-left: 4px solid var(--schedule-color);
+  border-left: 4px solid var(--color-brand);
   border-radius: 4px;
   padding: 16px;
   background: var(--color-bg);
@@ -948,8 +948,62 @@ body.gate-pending .site-footer {
 }
 
 .exam-scope-card h3 {
-  margin-top: 9px;
+  margin-top: 12px;
   font-size: 1rem;
+}
+
+.exam-period-badge {
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--color-brand) 14%, transparent);
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+.exam-scope-edit-button {
+  border: 0;
+  background: transparent;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exam-scope-editor {
+  width: 100%;
+  min-height: 110px;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  padding: 10px;
+  resize: vertical;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.exam-scope-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.exam-scope-edit-actions button {
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.exam-scope-edit-actions .primary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #ffffff;
 }
 
 .exam-scope-content {
@@ -975,9 +1029,6 @@ body.gate-pending .site-footer {
   color: var(--color-fg-muted);
 }
 
-.exam-scope-past {
-  opacity: 0.7;
-}
 
 @media (max-width: 640px) {
   .header-nav {

@@ -48,26 +48,15 @@
       <div class="exam-scope-header">
         <div>
           <h2>시험범위</h2>
-          <p>수행평가와 시험 일정, 과목별 범위를 자세히 확인하세요.</p>
+          <p>2026학년도 2학기 중간·기말고사 과목별 범위를 확인하세요.</p>
         </div>
-        <a href="calendar.html" class="btn btn-ghost btn-sm">달력 보기</a>
       </div>
 
-      <div class="exam-scope-toolbar" aria-label="시험범위 필터">
-        <div class="exam-scope-type-filter" role="group" aria-label="일정 종류">
-          <button type="button" class="active" data-scope-type="ALL">전체</button>
-          <button type="button" data-scope-type="ASSESSMENT">수행평가</button>
-          <button type="button" data-scope-type="EXAM">시험</button>
+      <div class="exam-scope-toolbar" aria-label="시험 구분">
+        <div class="exam-scope-type-filter" role="group" aria-label="시험 구분">
+          <button type="button" class="active" data-exam-type="MIDTERM">중간고사</button>
+          <button type="button" data-exam-type="FINAL">기말고사</button>
         </div>
-        <label>
-          반
-          <select id="exam-scope-class" class="field-select">
-            <option value="ALL">전체</option>
-            <option value="1반">1반</option>
-            <option value="2반">2반</option>
-            <option value="3반">3반</option>
-          </select>
-        </label>
       </div>
 
       <p id="exam-scope-summary" class="exam-scope-summary" aria-live="polite"></p>
