@@ -18,6 +18,19 @@ export function PatchNotes() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const saved = localStorage.getItem('patchNotesMinimized');
+    return saved === 'true';
+  });
+
+  const toggleMinimize = () => {
+    setIsMinimized(prev => {
+      const next = !prev;
+      localStorage.setItem('patchNotesMinimized', String(next));
+      return next;
+    });
+  };
+
   useEffect(() => {
     fetch('/api/patch-notes')
       .then((res) => {
@@ -52,6 +65,25 @@ export function PatchNotes() {
     );
   }
 
+  if (isMinimized) {
+    const hasTodayCommit = commits.some(c => new Date(c.commit.author.date).toDateString() === new Date().toDateString());
+    return (
+      <button 
+        onClick={toggleMinimize}
+        className="w-14 h-14 rounded-full bg-[var(--color-white)]/80 backdrop-blur-xl border border-[var(--color-ink-200)] shadow-xl flex items-center justify-center hover:scale-110 hover:border-[var(--color-brand)] transition-all relative group dark:bg-[var(--color-ink-900)] cursor-pointer"
+        title="최근 업데이트 보기"
+      >
+        <span className="text-xl group-hover:animate-bounce">🚀</span>
+        {hasTodayCommit && (
+          <span className="absolute -top-1 -right-1 flex h-4 w-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-brand)] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-[var(--color-brand)] border-2 border-[var(--color-white)]"></span>
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return (
     <div className="w-[320px] rounded-2xl bg-[var(--color-white)]/80 backdrop-blur-xl border border-[var(--color-ink-200)] p-6 shadow-xl shadow-black/5 dark:shadow-black/40 relative overflow-hidden transition-all hover:shadow-2xl hover:border-[var(--color-ink-300)] flex flex-col gap-5">
       {/* 럭셔리한 배경 그라데이션 장식 */}
@@ -61,12 +93,23 @@ export function PatchNotes() {
         <h2 className="text-lg font-black text-fg flex items-center gap-2 tracking-tight">
           <span className="text-[var(--color-brand)]">✦</span> 최근 업데이트
         </h2>
-        <Link
-          to="/patch-notes"
-          className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-dim)] transition-colors flex items-center bg-[var(--color-brand)]/10 px-2 py-1 rounded-full"
-        >
-          전체 보기 &gt;
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/patch-notes"
+            className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-dim)] transition-colors flex items-center bg-[var(--color-brand)]/10 px-2 py-1 rounded-full"
+          >
+            전체 보기 &gt;
+          </Link>
+          <button
+            onClick={toggleMinimize}
+            className="p-1 rounded hover:bg-[var(--color-ink-100)] text-fg-muted hover:text-fg transition-colors"
+            title="숨기기"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+          </button>
+        </div>
       </div>
       
       <div className="relative border-l-2 border-[var(--color-ink-200)] ml-2 pl-6 py-2 flex flex-col gap-7 z-10">
