@@ -117,7 +117,7 @@ async function renderList(profile) {
   root.innerHTML = "";
   root.className = ""; // 목록은 넓게(OJ 목록과 동일)
   const header = el("div", { class: "c-list-header" }, [
-    el("h2", {}, "커뮤니티"),
+    el("h2", {}, "게시판"),
     el("a", { class: "btn btn-primary btn-sm", href: "community.html?new" }, "글쓰기"),
   ]);
   root.appendChild(header);
@@ -174,7 +174,7 @@ async function renderDetail(profile, postId) {
     return;
   }
 
-  root.appendChild(el("a", { class: "c-back", href: "community.html" }, "← 커뮤니티"));
+  root.appendChild(el("a", { class: "c-back", href: "community.html" }, "← 게시판"));
 
   const canManage = profile && (profile.username === post.author.username || profile.role === "ADMIN");
   const titleRow = el("h2", { class: titleClass(post.type) + " c-detail-title" }, [typeBadge(post.type), document.createTextNode(post.title)]);
