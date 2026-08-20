@@ -287,9 +287,11 @@ export function MarkdownEditor({
   }, [editor, content]);
 
   return (
-    <div className={`flex h-full min-h-[calc(100vh-64px)] flex-col bg-ink-50 ${className}`}>
-      {/* 플로팅 툴바 */}
-      <div className="sticky top-6 z-10 mx-auto mb-2 mt-4 flex w-fit items-center justify-center gap-1 rounded-2xl border border-ink-200 bg-white/85 px-3 py-2 shadow-sm backdrop-blur-md transition-all">
+    <div className={`flex min-h-[calc(100vh-64px)] w-full min-w-0 flex-col bg-transparent px-4 lg:px-8 ${className}`}>
+      {/* 에디터 캔버스 */}
+      <div className="mx-auto mt-4 mb-16 flex w-full max-w-[850px] flex-1 flex-col rounded-2xl border border-ink-600 bg-surface shadow-sm overflow-hidden">
+        {/* 상단 고정 툴바 */}
+        <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-surface/95 px-6 py-3 backdrop-blur-md">
         {editor && (
           <div className="flex flex-wrap items-center gap-1">
             <ToolbarButton
@@ -335,7 +337,7 @@ export function MarkdownEditor({
                     style={{ backgroundColor: editor.getAttributes('textStyle').color || '#000000' }}
                   />
                 </button>
-                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-[#333333] px-2 py-1 text-xs text-white opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-[#333333] group-hover:opacity-100">
+                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg group-hover:opacity-100">
                   글자 색상
                 </div>
               </div>
@@ -368,7 +370,7 @@ export function MarkdownEditor({
                     style={{ backgroundColor: editor.getAttributes('highlight').color || 'transparent' }}
                   />
                 </button>
-                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-[#333333] px-2 py-1 text-xs text-white opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-[#333333] group-hover:opacity-100">
+                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg group-hover:opacity-100">
                   배경 색상
                 </div>
               </div>
@@ -455,7 +457,7 @@ export function MarkdownEditor({
               >
                 {isUploading ? '⏳' : '🖼️'}
               </button>
-              <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-[#333333] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-[#333333]">
+              <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg">
                 이미지 첨부
               </div>
               <input
@@ -483,13 +485,12 @@ export function MarkdownEditor({
         )}
       </div>
 
-      {/* 에디터 캔버스 */}
-      <div className="mx-auto mt-4 mb-16 flex w-full max-w-[850px] flex-1 flex-col rounded-2xl border border-ink-200 bg-white px-10 py-12 shadow-sm">
+      <div className="px-10 pb-12 pt-8 flex-1 flex flex-col">
         <input
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="제목을 입력하세요"
+          placeholder="제목을 입력하세요 (업데이트 V2 적용됨!)"
           className="w-full border-none bg-transparent py-4 text-4xl font-bold outline-none placeholder:text-ink-400"
         />
 
@@ -499,6 +500,7 @@ export function MarkdownEditor({
           <EditorContent editor={editor} className="h-full w-full" />
         </div>
       </div>
+    </div>
 
       {/* 고급 이미지 에디터 모달 */}
       {editingImage && (
@@ -601,7 +603,7 @@ function ToolbarButton({
       >
         {icon}
       </button>
-      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-[#333333] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-[#333333]">
+      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg">
         {title}
       </div>
     </div>

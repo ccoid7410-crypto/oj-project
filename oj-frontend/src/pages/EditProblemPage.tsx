@@ -178,7 +178,7 @@ export function EditProblemPage() {
 
         <div className="flex min-h-0 flex-1">
           {/* 좌측 에디터 영역 */}
-          <div className="flex flex-1 flex-col overflow-y-auto border-r border-ink-300 bg-white">
+          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-page-bg">
             <MarkdownEditor
               title={title}
               onTitleChange={setTitle}
@@ -189,7 +189,7 @@ export function EditProblemPage() {
           </div>
 
           {/* 우측 설정 사이드바 */}
-          <div className="w-[450px] shrink-0 overflow-y-auto bg-ink-50 p-6 flex flex-col gap-6">
+          <div className="w-[450px] shrink-0 overflow-y-auto bg-surface border-l border-ink-500 p-6 flex flex-col gap-6 shadow-xl z-10 relative">
             <div>
               <h2 className="text-lg font-bold mb-4">기본 설정</h2>
               <div className="flex flex-col gap-4">

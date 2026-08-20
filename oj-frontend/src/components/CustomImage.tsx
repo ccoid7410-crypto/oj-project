@@ -41,7 +41,7 @@ function ImageNodeView(props: any) {
 
   return (
     <NodeViewWrapper 
-      className={`relative my-6 flex flex-col group ${
+      className={`relative my-6 flex flex-col group max-w-full ${
         node.attrs.align === 'left' ? 'items-start' : 
         node.attrs.align === 'right' ? 'items-end' : 
         'items-center'
@@ -55,7 +55,7 @@ function ImageNodeView(props: any) {
       )}
 
       {/* Image with Resize Handles */}
-      <div className="relative inline-block">
+      <div className="relative inline-block max-w-full">
         <img
           ref={imageRef}
           src={node.attrs.src}

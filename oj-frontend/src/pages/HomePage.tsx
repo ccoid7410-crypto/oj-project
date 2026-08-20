@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useBrandName } from '../lib/useBrandName';
+import { PatchNotes } from '../components/PatchNotes';
 
 interface SiteBanner {
   enabled: boolean;
@@ -28,7 +29,7 @@ export function HomePage() {
   );
 
   return (
-    <div className="flex flex-col items-start">
+    <div className="relative flex flex-col items-start">
       {bannerImg && (
         <div className="mb-8 w-full overflow-hidden rounded">
           {banner?.linkUrl ? (
@@ -66,6 +67,11 @@ export function HomePage() {
             회원가입
           </Link>
         )}
+      </div>
+
+      {/* 오른쪽 사이드바 (패치노트) - 브라우저 우측 하단에 플로팅 */}
+      <div className="hidden xl:block fixed right-4 2xl:right-6 bottom-6 z-20">
+        <PatchNotes />
       </div>
     </div>
   );

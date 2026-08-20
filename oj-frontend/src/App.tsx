@@ -10,6 +10,7 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ResendVerificationPage } from './pages/ResendVerificationPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { RegisterNamePage } from './pages/RegisterNamePage';
+import { PatchNotesPage } from './pages/PatchNotesPage';
 import { ProblemListPage } from './pages/ProblemListPage';
 import { ProblemDetailPage } from './pages/ProblemDetailPage';
 import { SubmitPage } from './pages/SubmitPage';
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
+            <Route path="/patch-notes" element={<PatchNotesPage />} />
             <Route path="/problems" element={<ProblemListPage />} />
             <Route path="/contests" element={<ContestListPage />} />
             <Route path="/contests/:slug" element={<ContestDetailPage />} />
