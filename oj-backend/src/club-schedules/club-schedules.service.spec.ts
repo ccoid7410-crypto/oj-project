@@ -153,6 +153,45 @@ describe('ClubSchedulesService', () => {
     });
   });
 
+  it('stores vacations without a subject or deadline time', async () => {
+    const startsOn = new Date('2026-07-22T00:00:00.000Z');
+    const endsOn = new Date('2026-08-11T00:00:00.000Z');
+    create.mockResolvedValue({
+      id: 'vacation-1',
+      type: 'VACATION',
+      status: 'PENDING',
+      title: '여름방학',
+      subject: '',
+      classTags: [],
+      description: '',
+      examScope: '',
+      deadlineTime: '',
+      startsOn,
+      endsOn,
+      rejectionReason: '',
+      createdAt: startsOn,
+      updatedAt: startsOn,
+    });
+
+    await service.propose('member-1', {
+      type: 'VACATION',
+      title: '여름방학',
+      subject: '입력돼도 무시',
+      startsOn: '2026-07-22',
+      endsOn: '2026-08-11',
+      deadlineTime: '18:30',
+    });
+
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        subject: '',
+        deadlineTime: '',
+        startsOn,
+        endsOn,
+      }),
+    });
+  });
+
   it('does not let a regular member delete schedules', async () => {
     findUser.mockResolvedValue({ username: 'someone-else' });
 

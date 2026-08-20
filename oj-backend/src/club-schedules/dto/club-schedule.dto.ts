@@ -25,8 +25,8 @@ export class ScheduleRangeDto {
 }
 
 export class SaveClubScheduleDto {
-  @IsIn(['ASSESSMENT', 'EXAM', 'EVENT', 'OTHER'])
-  type: 'ASSESSMENT' | 'EXAM' | 'EVENT' | 'OTHER';
+  @IsIn(['ASSESSMENT', 'EXAM', 'EVENT', 'OTHER', 'VACATION'])
+  type: 'ASSESSMENT' | 'EXAM' | 'EVENT' | 'OTHER' | 'VACATION';
 
   @IsString()
   @MaxLength(120)

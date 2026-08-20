@@ -101,7 +101,12 @@ export class ClubSchedulesService {
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
-        deadlineTime: dto.type === 'EXAM' ? '' : (dto.deadlineTime ?? ''),
+        deadlineTime:
+          dto.type === 'ASSESSMENT' ||
+          dto.type === 'EVENT' ||
+          dto.type === 'OTHER'
+            ? (dto.deadlineTime ?? '')
+            : '',
         ...dates,
         createdById: userId,
         updatedById: userId,
@@ -131,7 +136,12 @@ export class ClubSchedulesService {
         classTags: dto.classTags ?? [],
         description: dto.description?.trim() ?? '',
         examScope: dto.examScope?.trim() ?? '',
-        deadlineTime: dto.type === 'EXAM' ? '' : (dto.deadlineTime ?? ''),
+        deadlineTime:
+          dto.type === 'ASSESSMENT' ||
+          dto.type === 'EVENT' ||
+          dto.type === 'OTHER'
+            ? (dto.deadlineTime ?? '')
+            : '',
         ...dates,
         updatedById: userId,
       },

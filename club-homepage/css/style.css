@@ -734,10 +734,15 @@ body.gate-pending .site-footer {
   --schedule-color: #7b61c9;
 }
 
+.schedule-vacation {
+  --schedule-color: #c6538c;
+}
+
 .calendar-schedule-chip.schedule-assessment,
 .calendar-schedule-chip.schedule-exam,
 .calendar-schedule-chip.schedule-event,
-.calendar-schedule-chip.schedule-other {
+.calendar-schedule-chip.schedule-other,
+.calendar-schedule-chip.schedule-vacation {
   background: var(--schedule-color);
 }
 

@@ -66,6 +66,7 @@ function scheduleTypeLabel(type) {
     EXAM: "시험",
     EVENT: "행사 및 축제",
     OTHER: "기타",
+    VACATION: "방학",
   }[type] || "기타";
 }
 
@@ -274,12 +275,13 @@ function updateDateFields() {
   const isAssessment = type === "ASSESSMENT";
   const isExam = type === "EXAM";
   const isFlexible = type === "EVENT" || type === "OTHER";
+  const usesSubject = isAssessment || isExam;
   const includesStart = isFlexible && scheduleIncludeStart.checked;
   const includesEndTime = isFlexible && scheduleIncludeEndTime.checked;
 
   scheduleDateOptions.hidden = !isFlexible;
-  scheduleSubjectField.hidden = isFlexible;
-  scheduleSubject.required = !isFlexible;
+  scheduleSubjectField.hidden = !usesSubject;
+  scheduleSubject.required = usesSubject;
   scheduleStartField.hidden = isFlexible && !includesStart;
   scheduleEndField.hidden = isAssessment;
   scheduleDeadlineField.hidden = !(isAssessment || includesEndTime);
@@ -346,7 +348,9 @@ async function submitProposal(event) {
   const startsOn = document.getElementById("schedule-start").value;
   const type = scheduleType.value;
   const isAssessment = type === "ASSESSMENT";
+  const isExam = type === "EXAM";
   const isFlexible = type === "EVENT" || type === "OTHER";
+  const usesSubject = isAssessment || isExam;
   const endsOn = isAssessment ? startsOn : document.getElementById("schedule-end").value;
   const effectiveStartsOn = isFlexible && !scheduleIncludeStart.checked ? endsOn : startsOn;
   if (!isAssessment && endsOn < effectiveStartsOn) {
@@ -360,7 +364,7 @@ async function submitProposal(event) {
   );
   const payload = {
     type,
-    subject: isFlexible ? "" : scheduleSubject.value,
+    subject: usesSubject ? scheduleSubject.value : "",
     title: document.getElementById("schedule-title").value,
     classTags,
     startsOn: effectiveStartsOn,

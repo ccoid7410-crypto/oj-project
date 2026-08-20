@@ -260,6 +260,7 @@ enum ClubScheduleType {
   EXAM // 시험
   EVENT // 행사 및 축제
   OTHER // 기타
+  VACATION // 방학
 }
 
 enum ClubScheduleStatus {
