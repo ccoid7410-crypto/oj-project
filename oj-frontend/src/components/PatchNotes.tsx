@@ -14,34 +14,25 @@ interface Commit {
 }
 
 export function PatchNotes() {
-  // GitHub API Rate Limit(시간당 60회) 문제를 우회하기 위해 우선 아름다운 UI 확인용 Mock 데이터를 사용합니다.
-  // 추후 백엔드에 GitHub Token을 등록하여 /api/patch-notes API를 만드는 방식을 추천합니다.
-  const [commits] = useState<Commit[]>([
-    {
-      sha: '1',
-      commit: { author: { name: 'jihun', date: new Date(Date.now() - 1000 * 60 * 25).toISOString() }, message: 'feat(editor): improve toolbar UI and styling features\n\n- Add rainbow easter egg\n- Improve color palette' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '2',
-      commit: { author: { name: 'HENRY KIM', date: new Date(Date.now() - 86400000 - 1000 * 60 * 60 * 4).toISOString() }, message: 'feat: add editable exam scope cards' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '3',
-      commit: { author: { name: 'HENRY KIM', date: new Date(Date.now() - 86400000 * 2 - 1000 * 60 * 60 * 11 - 1000 * 60 * 15).toISOString() }, message: 'feat: add community exam scope page' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    }
-  ]);
-  const [loading] = useState(false);
-  const [errorMsg] = useState<string | null>(null);
+  const [commits, setCommits] = useState<Commit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // 임시로 API 호출은 주석 처리합니다 (Rate Limit 방지)
-    /*
-    fetch('https://api.github.com/repos/ccoid7410-crypto/oj-project/commits?per_page=3')
-    ...
-    */
+    fetch('/api/patch-notes')
+      .then((res) => {
+        if (!res.ok) throw new Error('불러오기 실패');
+        return res.json();
+      })
+      .then((data) => {
+        // 사이드바에는 최신 3개만 표시
+        setCommits(data.slice(0, 3));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setErrorMsg(err.message);
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
@@ -81,10 +72,13 @@ export function PatchNotes() {
       <div className="relative border-l-2 border-[var(--color-ink-200)] ml-2 pl-6 py-2 flex flex-col gap-7 z-10">
         {commits.map((c) => {
           const dateStr = new Date(c.commit.author.date).toLocaleDateString('ko-KR', {
+            timeZone: 'Asia/Seoul',
             month: 'short',
             day: 'numeric',
           });
           const title = c.commit.message.split('\n')[0];
+          
+          const isToday = new Date(c.commit.author.date).toDateString() === new Date().toDateString();
 
           return (
             <div key={c.sha} className="relative group">
@@ -92,7 +86,14 @@ export function PatchNotes() {
               <div className="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-[var(--color-white)] border-[3px] border-[var(--color-ink-300)] group-hover:border-[var(--color-brand)] group-hover:bg-[var(--color-brand)]/20 transition-all duration-300 shadow-sm" />
               
               <div className="flex flex-col gap-1.5 transform transition-transform duration-300 group-hover:translate-x-1">
-                <span className="text-[11px] font-bold text-[var(--color-brand)] tracking-wide uppercase">{dateStr}</span>
+                <span className="text-[11px] font-bold text-[var(--color-brand)] tracking-wide uppercase flex items-center gap-1.5">
+                  {dateStr}
+                  {isToday && (
+                    <span className="bg-brand/10 text-brand px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                      NEW
+                    </span>
+                  )}
+                </span>
                 <span className="text-[14px] font-semibold text-fg leading-tight break-keep group-hover:text-[var(--color-brand)] transition-colors">
                   {title}
                 </span>

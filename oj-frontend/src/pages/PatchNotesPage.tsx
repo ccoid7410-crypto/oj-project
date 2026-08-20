@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 interface Commit {
@@ -14,33 +14,25 @@ interface Commit {
 }
 
 export function PatchNotesPage() {
-  const [commits] = useState<Commit[]>([
-    {
-      sha: '1',
-      commit: { author: { name: '최온유', date: new Date(Date.now() - 1000 * 60 * 25).toISOString() }, message: 'feat(editor): improve toolbar UI and styling features\n\n- Add rainbow easter egg\n- Improve color palette\n- Align text and formatting options' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '2',
-      commit: { author: { name: 'HENRY KIM', date: new Date(Date.now() - 86400000 - 1000 * 60 * 60 * 4).toISOString() }, message: 'feat: add editable exam scope cards\n\n- Create ExamScopesModule\n- Frontend dynamic inputs' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '3',
-      commit: { author: { name: 'HENRY KIM', date: new Date(Date.now() - 86400000 * 2 - 1000 * 60 * 60 * 11 - 1000 * 60 * 15).toISOString() }, message: 'feat: add community exam scope page' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '4',
-      commit: { author: { name: 'HENRY KIM', date: new Date(Date.now() - 86400000 * 3 - 1000 * 60 * 60 * 2).toISOString() }, message: 'fix: hide saturday school holidays' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    },
-    {
-      sha: '5',
-      commit: { author: { name: 'jihun', date: new Date(Date.now() - 86400000 * 4 - 1000 * 60 * 60 * 8 - 1000 * 60 * 42).toISOString() }, message: 'docs: update AGENTS.md instructions for AI' },
-      html_url: 'https://github.com/ccoid7410-crypto/oj-project/commits/main'
-    }
-  ]);
+  const [commits, setCommits] = useState<Commit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/patch-notes')
+      .then((res) => {
+        if (!res.ok) throw new Error('패치노트를 불러오지 못했습니다.');
+        return res.json();
+      })
+      .then((data) => {
+        setCommits(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setErrorMsg(err.message);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-3xl flex flex-col items-start gap-8 px-4 py-8">
@@ -64,7 +56,28 @@ export function PatchNotesPage() {
         </p>
       </div>
 
-      <div className="w-full relative border-l-[3px] border-[var(--color-ink-200)] ml-4 pl-8 py-4 flex flex-col gap-12 mt-4">
+      {loading ? (
+        <div className="w-full flex justify-center py-12">
+          <div className="animate-pulse flex space-x-4">
+            <div className="rounded-full bg-ink-200 h-10 w-10"></div>
+            <div className="flex-1 space-y-6 py-1">
+              <div className="h-2 bg-ink-200 rounded"></div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-2 bg-ink-200 rounded col-span-2"></div>
+                  <div className="h-2 bg-ink-200 rounded col-span-1"></div>
+                </div>
+                <div className="h-2 bg-ink-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : errorMsg ? (
+        <div className="w-full bg-red-500/10 text-red-500 p-6 rounded-2xl text-center font-bold">
+          {errorMsg}
+        </div>
+      ) : (
+        <div className="w-full relative border-l-[3px] border-[var(--color-ink-200)] ml-4 pl-8 py-4 flex flex-col gap-12 mt-4">
         {commits.map((c) => {
           const dateStr = new Date(c.commit.author.date).toLocaleString('ko-KR', {
             timeZone: 'Asia/Seoul',
@@ -78,6 +91,8 @@ export function PatchNotesPage() {
           const parts = c.commit.message.split('\n\n');
           const title = parts[0];
           const description = parts.length > 1 ? parts.slice(1).join('\n\n') : null;
+          
+          const isToday = new Date(c.commit.author.date).toDateString() === new Date().toDateString();
 
           return (
             <div key={c.sha} className="relative group">
@@ -85,7 +100,14 @@ export function PatchNotesPage() {
               <div className="absolute -left-[43.5px] top-1.5 h-[20px] w-[20px] rounded-full bg-[var(--color-white)] border-[4px] border-[var(--color-ink-300)] group-hover:border-[var(--color-brand)] transition-colors shadow-sm" />
               
               <div className="flex flex-col gap-2 bg-[var(--color-white)] p-6 rounded-2xl border border-[var(--color-ink-200)] shadow-sm group-hover:shadow-md transition-shadow dark:bg-[var(--color-ink-900)]">
-                <span className="text-sm font-bold text-[var(--color-brand)] tracking-wide">{dateStr}</span>
+                <span className="text-sm font-bold text-[var(--color-brand)] tracking-wide flex items-center gap-2">
+                  {dateStr}
+                  {isToday && (
+                    <span className="bg-brand/10 text-brand px-2 py-0.5 rounded text-xs font-black uppercase tracking-wider">
+                      NEW
+                    </span>
+                  )}
+                </span>
                 <h3 className="text-xl font-bold text-fg leading-tight mt-1">{title}</h3>
                 
                 {description && (
@@ -104,6 +126,7 @@ export function PatchNotesPage() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
