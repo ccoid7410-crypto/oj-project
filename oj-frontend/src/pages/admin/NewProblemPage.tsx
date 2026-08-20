@@ -16,6 +16,8 @@ import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCase
 import { TagPicker } from '../../components/TagPicker';
 import { ProblemAdvancedSettings } from '../../components/ProblemAdvancedSettings';
 
+import { MarkdownEditor } from '../../components/MarkdownEditor';
+
 // Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
 const CodeEditor = lazy(() =>
   import('../../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
@@ -295,216 +297,221 @@ export function NewProblemPage() {
     'rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]';
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold">{resumeSlug ? '문제 이어서 작성' : '문제 추가'}</h1>
-      {loadingDraft && (
-        <p className="mt-2 text-sm text-fg-muted">초안을 불러오는 중...</p>
-      )}
-      {resumeSlug && !loadingDraft && (
-        <p className="mt-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
-          임시 저장한 초안을 불러왔습니다. 이어서 작성하고 '임시 저장'으로 다시 저장하거나 '문제 생성'으로 등록하세요.
-        </p>
-      )}
-      {draftNotice && (
-        <p className="mt-2 flex items-center gap-2 rounded border border-ink-500 bg-ink-700 p-2 text-xs text-fg-muted">
-          작성 중이던 임시 저장본을 불러왔습니다.
-          <button type="button" onClick={discardDraft} className="underline hover:text-[var(--color-wa)]">
-            버리고 새로 쓰기
-          </button>
-          <button type="button" onClick={() => setDraftNotice(false)} className="underline hover:text-[var(--color-brand)]">
-            닫기
-          </button>
-        </p>
-      )}
-
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          제목
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          slug (URL에 쓰일 식별자, 영문/숫자/하이픈)
-          <input
-            required
-            pattern="^[a-z0-9-]+$"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          설명
-          <textarea
-            required
-            rows={5}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={`${inputClass} resize-y leading-relaxed`}
-          />
-        </label>
-
-        <div className="grid grid-cols-4 gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            티어
-            <select value={tier} onChange={(e) => setTier(e.target.value as Difficulty)} className={inputClass}>
-              {TIER_OPTIONS.map((t) => (
-                <option key={t.difficulty} value={t.difficulty}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            세부 등급
-            <select value={subRank} onChange={(e) => setSubRank(Number(e.target.value))} className={inputClass}>
-              {[5, 4, 3, 2, 1].map((r) => (
-                <option key={r} value={r}>
-                  {['', 'I', 'II', 'III', 'IV', 'V'][6 - r]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            시간 제한(ms)
-            <input
-              type="number"
-              min={100}
-              required
-              value={timeLimitMs}
-              onChange={(e) => setTimeLimitMs(Number(e.target.value))}
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            메모리 제한(MB)
-            <input
-              type="number"
-              min={16}
-              required
-              value={memoryLimitMb}
-              onChange={(e) => setMemoryLimitMb(Number(e.target.value))}
-              className={inputClass}
-            />
-          </label>
-        </div>
-        <p className="-mt-2 text-xs text-fg-muted">
-          선택된 난이도: <span className="font-bold text-fg">{labelOfLevel(level)}</span> (레벨 {level})
-        </p>
-
-        <ProblemAdvancedSettings
-          problemType={problemType}
-          onProblemTypeChange={setProblemType}
-          scoringMode={scoringMode}
-          onScoringModeChange={setScoringMode}
-          maxScore={maxScore}
-          onMaxScoreChange={setMaxScore}
-          isPractice={isPractice}
-          onPracticeChange={setIsPractice}
-          allowedLanguages={allowedLanguages}
-          onAllowedLanguagesChange={setAllowedLanguages}
-          compileOptions={compileOptions}
-          onCompileOptionsChange={setCompileOptions}
-          inputClass={inputClass}
-        />
-
-        <TagPicker value={tags} onChange={setTags} />
-
-        <div>
-          <h2 className="text-sm font-bold text-fg-muted">테스트케이스</h2>
-          <p className="mt-1 text-xs text-fg-muted">
-            직접 입력하거나, zip을 올리면 각 케이스가 아래 칸에 채워집니다. 채워진 뒤에도 수정할 수 있어요.
-          </p>
-          <div className="mt-3">
-            <TestCaseDraftList value={testCases} onChange={setTestCases} inputClass={inputClass} />
+    <div className="flex h-[calc(100vh-64px)] w-full flex-col bg-ink-50 -mx-4 -my-6 sm:-mx-6 sm:-my-8" style={{ width: '100vw', maxWidth: 'none', marginLeft: 'calc(-50vw + 50%)' }}>
+      <form onSubmit={onSubmit} className="flex h-full flex-col">
+        {/* 상단 네비게이션바 */}
+        <div className="flex shrink-0 items-center justify-between border-b border-ink-300 bg-white px-6 py-3">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold">{resumeSlug ? '문제 이어서 작성' : '새 문제 작성'}</h1>
+            {loadingDraft && <span className="text-sm text-fg-muted">초안을 불러오는 중...</span>}
+            {draftNotice && (
+              <div className="flex items-center gap-2 text-xs text-fg-muted bg-ink-200 px-3 py-1 rounded-full">
+                임시 저장본을 불러왔습니다.
+                <button type="button" onClick={discardDraft} className="underline hover:text-[var(--color-wa)] ml-2">
+                  새로 쓰기
+                </button>
+                <button type="button" onClick={() => setDraftNotice(false)} className="underline hover:text-[var(--color-brand)] ml-2">
+                  닫기
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {error && <span className="text-sm text-[var(--color-wa)]">{error}</span>}
+            {draftSavedNotice && <span className="text-sm text-[var(--color-ac)]">{draftSavedNotice}</span>}
+            
+            <button
+              type="button"
+              onClick={onSaveDraft}
+              disabled={savingDraft || submitting}
+              className="rounded border border-ink-500 bg-white px-4 py-2 text-sm font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+            >
+              {savingDraft ? '저장 중...' : '임시 저장'}
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || savingDraft}
+              className="rounded bg-[var(--color-brand)] px-6 py-2 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
+            >
+              {submitting ? (isAdmin ? '생성 중...' : '코드 검증 중...') : '문제 생성'}
+            </button>
           </div>
         </div>
 
-        {isAdmin ? (
-          <>
-            <label className="flex items-center gap-2 text-xs text-fg-muted">
-              <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
-              생성 후 바로 공개
-            </label>
-            <label className="flex items-center gap-2 text-xs text-fg-muted">
-              <input type="checkbox" checked={contestOnly} onChange={(e) => setContestOnly(e.target.checked)} />
-              대회 전용 문제로 만들기 (대회 종료 전까지 일반 문제 목록에 안 보임, "대회전용" 태그 자동 부여)
-            </label>
-          </>
-        ) : (
-          <div>
-            <p className="text-xs text-fg-muted">
-              일반 계정으로 만든 문제는 자동으로 "검토 대기" 상태가 되고, 관리자가 승인해야 공개됩니다. 진행 상황은{' '}
-              <span className="font-medium">내 문제</span> 메뉴에서 확인할 수 있어요.
-            </p>
-            <div className="mt-3 rounded border border-ink-500 bg-ink-700 p-3">
-              <p className="text-sm font-bold">검증용 정답 코드 (필수)</p>
-              <p className="mt-1 text-xs text-fg-muted">
-                위에 넣은 테스트케이스를 실제로 통과하는 코드를 제출해야 문제가 등록됩니다. 통과하지 못하면
-                등록이 취소돼요.
-              </p>
-              <select
-                value={verificationLanguage}
-                onChange={(e) => {
-                  const lang = e.target.value as Language;
-                  setVerificationLanguage(lang);
-                  setVerificationCode(DEFAULT_TEMPLATE[lang]);
-                }}
-                className="mt-2 rounded border border-ink-500 bg-white px-2 py-1 text-xs"
-              >
-                {LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-2">
-                <Suspense
-                  fallback={
-                    <textarea
-                      required
-                      rows={10}
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      spellCheck={false}
-                      className="w-full resize-y rounded border border-ink-500 bg-white p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
-                    />
-                  }
-                >
-                  <CodeEditor
-                    value={verificationCode}
-                    onChange={setVerificationCode}
-                    mode={verificationLanguage}
-                    autoGrow
-                    minLines={10}
+        <div className="flex min-h-0 flex-1">
+          {/* 좌측 에디터 영역 */}
+          <div className="flex flex-1 flex-col overflow-y-auto border-r border-ink-300 bg-white">
+            <MarkdownEditor
+              title={title}
+              onTitleChange={setTitle}
+              content={description}
+              onContentChange={setDescription}
+              placeholder="문제 설명을 마크다운으로 작성하세요..."
+            />
+          </div>
+
+          {/* 우측 설정 사이드바 */}
+          <div className="w-[450px] shrink-0 overflow-y-auto bg-ink-50 p-6 flex flex-col gap-6">
+            <div>
+              <h2 className="text-lg font-bold mb-4">기본 설정</h2>
+              <div className="flex flex-col gap-4">
+                <label className="flex flex-col gap-1 text-sm">
+                  slug (URL 식별자)
+                  <input
+                    required
+                    pattern="^[a-z0-9-]+$"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className={inputClass}
                   />
-                </Suspense>
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1 text-sm">
+                    티어
+                    <select value={tier} onChange={(e) => setTier(e.target.value as Difficulty)} className={inputClass}>
+                      {TIER_OPTIONS.map((t) => (
+                        <option key={t.difficulty} value={t.difficulty}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm">
+                    등급
+                    <select value={subRank} onChange={(e) => setSubRank(Number(e.target.value))} className={inputClass}>
+                      {[5, 4, 3, 2, 1].map((r) => (
+                        <option key={r} value={r}>
+                          {['', 'I', 'II', 'III', 'IV', 'V'][6 - r]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <p className="-mt-2 text-xs text-fg-muted">
+                  선택된 난이도: <span className="font-bold text-fg">{labelOfLevel(level)}</span>
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1 text-sm">
+                    시간 제한 (ms)
+                    <input
+                      type="number"
+                      min={100}
+                      required
+                      value={timeLimitMs}
+                      onChange={(e) => setTimeLimitMs(Number(e.target.value))}
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm">
+                    메모리 제한 (MB)
+                    <input
+                      type="number"
+                      min={16}
+                      required
+                      value={memoryLimitMb}
+                      onChange={(e) => setMemoryLimitMb(Number(e.target.value))}
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
+
+            <div className="border-t border-ink-300 pt-6">
+              <h2 className="mb-4 text-lg font-bold">문제 유형 설정</h2>
+              <ProblemAdvancedSettings
+                problemType={problemType}
+                onProblemTypeChange={setProblemType}
+                scoringMode={scoringMode}
+                onScoringModeChange={setScoringMode}
+                maxScore={maxScore}
+                onMaxScoreChange={setMaxScore}
+                isPractice={isPractice}
+                onPracticeChange={setIsPractice}
+                allowedLanguages={allowedLanguages}
+                onAllowedLanguagesChange={setAllowedLanguages}
+                compileOptions={compileOptions}
+                onCompileOptionsChange={setCompileOptions}
+                inputClass={inputClass}
+              />
+            </div>
+
+            <div className="border-t border-ink-300 pt-6">
+              <h2 className="mb-4 text-lg font-bold">태그</h2>
+              <TagPicker value={tags} onChange={setTags} />
+            </div>
+
+            <div className="border-t border-ink-300 pt-6">
+              <h2 className="text-lg font-bold mb-1">테스트케이스</h2>
+              <p className="text-xs text-fg-muted mb-4">
+                직접 입력하거나, zip을 올려 추가합니다.
+              </p>
+              <TestCaseDraftList value={testCases} onChange={setTestCases} inputClass={inputClass} />
+            </div>
+
+            {isAdmin ? (
+              <div className="border-t border-ink-300 pt-6 flex flex-col gap-3">
+                <label className="flex items-center gap-2 text-sm text-fg-muted">
+                  <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
+                  생성 후 바로 공개
+                </label>
+                <label className="flex gap-2 text-sm text-fg-muted items-start">
+                  <input type="checkbox" checked={contestOnly} onChange={(e) => setContestOnly(e.target.checked)} className="mt-1" />
+                  <span className="leading-tight">대회 전용 문제로 만들기<br/><span className="text-xs">일반 문제 목록에는 노출되지 않습니다</span></span>
+                </label>
+              </div>
+            ) : (
+              <div className="border-t border-ink-300 pt-6">
+                <p className="text-xs text-fg-muted mb-4">
+                  일반 사용자는 생성 후 <strong>검토 대기</strong> 상태가 됩니다.
+                </p>
+                <div className="rounded border border-ink-300 bg-white p-4 shadow-sm">
+                  <p className="text-sm font-bold mb-1">검증용 정답 코드 (필수)</p>
+                  <p className="text-xs text-fg-muted mb-3">
+                    위 테스트케이스를 모두 통과하는 코드를 작성하세요.
+                  </p>
+                  <select
+                    value={verificationLanguage}
+                    onChange={(e) => {
+                      const lang = e.target.value as Language;
+                      setVerificationLanguage(lang);
+                      setVerificationCode(DEFAULT_TEMPLATE[lang]);
+                    }}
+                    className="w-full rounded border border-ink-300 bg-white px-2 py-1.5 text-xs mb-3"
+                  >
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <Suspense
+                    fallback={
+                      <textarea
+                        required
+                        rows={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        spellCheck={false}
+                        className="w-full resize-y rounded border border-ink-300 p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
+                      />
+                    }
+                  >
+                    <CodeEditor
+                      value={verificationCode}
+                      onChange={setVerificationCode}
+                      mode={verificationLanguage}
+                      autoGrow
+                      minLines={8}
+                    />
+                  </Suspense>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
-        {draftSavedNotice && <p className="text-xs text-[var(--color-ac)]">{draftSavedNotice}</p>}
-
-        {/* 임시 저장: 검토에 넣지 않고 내용만 서버에 저장한다. '내 문제'에서 이어서 작성 가능. */}
-        <button
-          type="button"
-          onClick={onSaveDraft}
-          disabled={savingDraft || submitting}
-          className="rounded border border-ink-500 py-2 text-sm font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
-        >
-          {savingDraft ? '임시 저장 중...' : '임시 저장'}
-        </button>
-
-        <button
-          type="submit"
-          disabled={submitting || savingDraft}
-          className="rounded bg-[var(--color-brand)] py-2 font-bold text-white hover:bg-[var(--color-brand-dim)] disabled:opacity-60"
-        >
-          {submitting ? (isAdmin ? '생성 중...' : '코드 검증 중... (최대 30초)') : '문제 생성'}
-        </button>
+        </div>
       </form>
     </div>
   );

@@ -23,6 +23,7 @@ import { InternalModule } from './internal/internal.module';
 import { SubmissionCompletionSubscriber } from './internal/submission-completion.subscriber';
 import { ClubSchedulesModule } from './club-schedules/club-schedules.module';
 import { ExamScopesModule } from './exam-scopes/exam-scopes.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 /**
  * API 서버 모듈. 채점 워커(JudgeModule)는 보안/스케일링 상 별도 프로세스로 분리해서
@@ -62,6 +63,7 @@ import { ExamScopesModule } from './exam-scopes/exam-scopes.module';
     ClubSchedulesModule,
     ExamScopesModule,
     InternalModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   // 완료 신호 구독은 API 프로세스에만 둔다. 채점 워커는 4단계에서 Redis 자격증명을 잃고,
