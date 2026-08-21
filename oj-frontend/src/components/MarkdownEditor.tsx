@@ -490,7 +490,7 @@ export function MarkdownEditor({
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="제목을 입력하세요 (업데이트 V2 적용됨!)"
+          placeholder="제목을 입력하세요"
           className="w-full border-none bg-transparent py-4 text-4xl font-bold outline-none placeholder:text-ink-400"
         />
 
