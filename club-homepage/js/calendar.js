@@ -12,9 +12,6 @@ const editCancel = document.getElementById("schedule-edit-cancel");
 const scheduleType = document.getElementById("schedule-type");
 const scheduleSubjectField = document.getElementById("schedule-subject-field");
 const scheduleSubject = document.getElementById("schedule-subject");
-const scheduleDateOptions = document.getElementById("schedule-date-options");
-const scheduleIncludeStart = document.getElementById("schedule-include-start");
-const scheduleIncludeEndTime = document.getElementById("schedule-include-end-time");
 const scheduleStartField = document.getElementById("schedule-start-field");
 const scheduleStartLabel = document.getElementById("schedule-start-label");
 const scheduleEndField = document.getElementById("schedule-end-field");
@@ -107,27 +104,40 @@ function renderCalendar() {
   calendarMonth.textContent = `${year}년 ${month + 1}월`;
   calendarGrid.innerHTML = "";
 
-  for (let index = 0; index < 42; index += 1) {
-    const date = new Date(gridStart);
-    date.setDate(gridStart.getDate() + index);
+  // 6주 × 7일. 주 단위로 묶어야 여러 날에 걸친 일정을 하나의 연속 바로 그릴 수 있다.
+  for (let week = 0; week < 6; week += 1) {
+    const weekRow = document.createElement("div");
+    weekRow.className = "calendar-week";
+    const daysRow = document.createElement("div");
+    daysRow.className = "calendar-week-days";
+    const barsLayer = document.createElement("div");
+    barsLayer.className = "calendar-week-bars";
 
-    const day = document.createElement("div");
-    day.className = "calendar-day";
-    day.dataset.date = toDateString(date);
-    if (date.getMonth() !== month) day.classList.add("calendar-day-outside");
-    if (date.getDay() === 0) day.classList.add("calendar-day-sunday");
-    if (date.getDay() === 6) day.classList.add("calendar-day-saturday");
+    for (let col = 0; col < 7; col += 1) {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + week * 7 + col);
 
-    const number = document.createElement("span");
-    number.className = "calendar-day-number";
-    number.textContent = String(date.getDate());
-    if (isSameDate(date, today)) {
-      number.classList.add("calendar-day-today");
-      day.setAttribute("aria-current", "date");
+      const day = document.createElement("div");
+      day.className = "calendar-day";
+      day.dataset.date = toDateString(date);
+      if (date.getMonth() !== month) day.classList.add("calendar-day-outside");
+      if (date.getDay() === 0) day.classList.add("calendar-day-sunday");
+      if (date.getDay() === 6) day.classList.add("calendar-day-saturday");
+
+      const number = document.createElement("span");
+      number.className = "calendar-day-number";
+      number.textContent = String(date.getDate());
+      if (isSameDate(date, today)) {
+        number.classList.add("calendar-day-today");
+        day.setAttribute("aria-current", "date");
+      }
+
+      day.appendChild(number);
+      daysRow.appendChild(day);
     }
 
-    day.appendChild(number);
-    calendarGrid.appendChild(day);
+    weekRow.append(daysRow, barsLayer);
+    calendarGrid.appendChild(weekRow);
   }
 }
 
@@ -208,31 +218,81 @@ function renderScheduleList(schedules) {
   calendarScheduleList.appendChild(list);
 }
 
-function renderScheduleChips(schedules) {
-  document.querySelectorAll(".calendar-day[data-date]").forEach((day) => {
-    const date = day.dataset.date;
-    const matches = schedules.filter(
-      (schedule) => schedule.startsOn <= date && schedule.endsOn >= date,
-    );
-    for (const schedule of matches) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = `calendar-schedule-chip schedule-${schedule.type.toLowerCase()}`;
-      const classLabel = Array.isArray(schedule.classTags) && schedule.classTags.length
-        ? `[${schedule.classTags.join(", ")}] `
-        : "";
-      chip.textContent = classLabel + scheduleTitle(schedule);
-      chip.title = `${formatDateRange(schedule)} ${chip.textContent}`;
-      chip.addEventListener("click", () => {
-        const card = document.getElementById(`schedule-${schedule.id}`);
-        if (!card) return;
-        card.scrollIntoView({ behavior: "smooth", block: "center" });
-        card.classList.add("calendar-schedule-active");
-        window.setTimeout(() => card.classList.remove("calendar-schedule-active"), 1400);
+function focusScheduleCard(id) {
+  const card = document.getElementById(`schedule-${id}`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.add("calendar-schedule-active");
+  window.setTimeout(() => card.classList.remove("calendar-schedule-active"), 1400);
+}
+
+// 여러 날에 걸친 일정을 갤럭시 캘린더처럼 주 단위로 이어진 하나의 바로 그린다.
+// 주 경계를 넘어가면 다음 주 행에 이어서 표시하고, 잘린 쪽 끝은 각지게 처리한다.
+function renderScheduleBars(schedules) {
+  const weeks = calendarGrid.querySelectorAll(".calendar-week");
+  weeks.forEach((weekRow) => {
+    const barsLayer = weekRow.querySelector(".calendar-week-bars");
+    const days = weekRow.querySelectorAll(".calendar-day[data-date]");
+    barsLayer.innerHTML = "";
+    if (days.length < 7) {
+      weekRow.style.setProperty("--lanes", "0");
+      return;
+    }
+    const weekStart = days[0].dataset.date;
+    const weekEnd = days[6].dataset.date;
+
+    const segments = [];
+    for (const schedule of schedules) {
+      if (schedule.endsOn < weekStart || schedule.startsOn > weekEnd) continue;
+      segments.push({
+        schedule,
+        startCol: schedule.startsOn <= weekStart ? 0 : dayColumnIndex(days, schedule.startsOn),
+        endCol: schedule.endsOn >= weekEnd ? 6 : dayColumnIndex(days, schedule.endsOn),
+        continuesLeft: schedule.startsOn < weekStart,
+        continuesRight: schedule.endsOn > weekEnd,
       });
-      day.appendChild(chip);
+    }
+    // 시작 칸이 빠른 순, 같으면 더 긴 일정 먼저 → 레인(줄) 배치가 안정적이다.
+    segments.sort((a, b) => a.startCol - b.startCol || b.endCol - a.endCol);
+
+    const laneEnds = [];
+    let maxLane = -1;
+    for (const seg of segments) {
+      let lane = 0;
+      while (lane < laneEnds.length && laneEnds[lane] >= seg.startCol) lane += 1;
+      laneEnds[lane] = seg.endCol;
+      seg.lane = lane;
+      if (lane > maxLane) maxLane = lane;
+    }
+    weekRow.style.setProperty("--lanes", String(maxLane + 1));
+
+    for (const seg of segments) {
+      const span = seg.endCol - seg.startCol + 1;
+      const bar = document.createElement("button");
+      bar.type = "button";
+      bar.className = `calendar-bar schedule-${seg.schedule.type.toLowerCase()}`;
+      if (seg.continuesLeft) bar.classList.add("bar-continues-left");
+      if (seg.continuesRight) bar.classList.add("bar-continues-right");
+      bar.style.left = `calc(${seg.startCol} / 7 * 100% + 2px)`;
+      bar.style.width = `calc(${span} / 7 * 100% - 4px)`;
+      bar.style.top = `calc(${seg.lane} * 22px)`;
+      const classLabel = Array.isArray(seg.schedule.classTags) && seg.schedule.classTags.length
+        ? `[${seg.schedule.classTags.join(", ")}] `
+        : "";
+      const label = classLabel + scheduleTitle(seg.schedule);
+      bar.textContent = label;
+      bar.title = `${formatDateRange(seg.schedule)} ${label}`;
+      bar.addEventListener("click", () => focusScheduleCard(seg.schedule.id));
+      barsLayer.appendChild(bar);
     }
   });
+}
+
+function dayColumnIndex(days, dateStr) {
+  for (let index = 0; index < days.length; index += 1) {
+    if (days[index].dataset.date === dateStr) return index;
+  }
+  return 0;
 }
 
 async function loadSchedules() {
@@ -249,7 +309,7 @@ async function loadSchedules() {
     if (!response.ok) throw new Error(`API 응답 오류: ${response.status}`);
     const schedules = await response.json();
     if (currentRequest !== requestNumber) return;
-    renderScheduleChips(schedules);
+    renderScheduleBars(schedules);
     renderScheduleList(schedules);
   } catch {
     if (currentRequest !== requestNumber) return;
@@ -274,26 +334,20 @@ function updateDateFields() {
   const type = scheduleType?.value;
   const isAssessment = type === "ASSESSMENT";
   const isExam = type === "EXAM";
-  const isFlexible = type === "EVENT" || type === "OTHER";
   const usesSubject = isAssessment || isExam;
-  const includesStart = isFlexible && scheduleIncludeStart.checked;
-  const includesEndTime = isFlexible && scheduleIncludeEndTime.checked;
 
-  scheduleDateOptions.hidden = !isFlexible;
+  // 수행평가는 단일 날짜 + 마감 시간, 나머지(시험/행사/기타/방학)는 시작일~종료일 범위.
   scheduleSubjectField.hidden = !usesSubject;
   scheduleSubject.required = usesSubject;
-  scheduleStartField.hidden = isFlexible && !includesStart;
-  scheduleEndField.hidden = isAssessment;
-  scheduleDeadlineField.hidden = !(isAssessment || includesEndTime);
   scheduleStartLabel.textContent = isAssessment ? "날짜" : "시작일";
-  scheduleEndLabel.textContent = isFlexible && !includesStart ? "날짜" : "종료일";
-  scheduleDeadlineLabel.textContent = isAssessment ? "마감 시간" : "종료 시간";
+  scheduleEndField.hidden = isAssessment;
+  scheduleDeadlineField.hidden = !isAssessment;
 
   const startInput = document.getElementById("schedule-start");
   const endInput = document.getElementById("schedule-end");
-  startInput.required = isAssessment || isExam || includesStart;
+  startInput.required = true;
   endInput.required = !isAssessment;
-  scheduleDeadlineTime.required = isAssessment || includesEndTime;
+  scheduleDeadlineTime.required = isAssessment;
 }
 
 function resetProposalForm() {
@@ -303,8 +357,6 @@ function resetProposalForm() {
   document.getElementById("schedule-start").value = dateToday;
   document.getElementById("schedule-end").value = dateToday;
   scheduleDeadlineTime.value = "23:59";
-  scheduleIncludeStart.checked = false;
-  scheduleIncludeEndTime.checked = false;
   editingScheduleId = null;
   proposalSubmit.textContent = "승인 요청하기";
   editCancel.hidden = true;
@@ -319,9 +371,6 @@ function beginScheduleEdit(schedule) {
   document.getElementById("schedule-start").value = schedule.startsOn;
   document.getElementById("schedule-end").value = schedule.endsOn;
   scheduleDeadlineTime.value = schedule.deadlineTime || "23:59";
-  const isFlexible = schedule.type === "EVENT" || schedule.type === "OTHER";
-  scheduleIncludeStart.checked = isFlexible && schedule.startsOn !== schedule.endsOn;
-  scheduleIncludeEndTime.checked = isFlexible && Boolean(schedule.deadlineTime);
   document.getElementById("schedule-scope").value = schedule.examScope;
   document.getElementById("schedule-description").value = schedule.description;
   proposalForm.querySelectorAll('input[name="schedule-class"]').forEach((input) => {
@@ -349,11 +398,9 @@ async function submitProposal(event) {
   const type = scheduleType.value;
   const isAssessment = type === "ASSESSMENT";
   const isExam = type === "EXAM";
-  const isFlexible = type === "EVENT" || type === "OTHER";
   const usesSubject = isAssessment || isExam;
   const endsOn = isAssessment ? startsOn : document.getElementById("schedule-end").value;
-  const effectiveStartsOn = isFlexible && !scheduleIncludeStart.checked ? endsOn : startsOn;
-  if (!isAssessment && endsOn < effectiveStartsOn) {
+  if (!isAssessment && endsOn < startsOn) {
     setProposalMessage("종료일은 시작일보다 빠를 수 없습니다.", "error");
     return;
   }
@@ -367,11 +414,9 @@ async function submitProposal(event) {
     subject: usesSubject ? scheduleSubject.value : "",
     title: document.getElementById("schedule-title").value,
     classTags,
-    startsOn: effectiveStartsOn,
+    startsOn,
     endsOn,
-    deadlineTime: isAssessment || (isFlexible && scheduleIncludeEndTime.checked)
-      ? scheduleDeadlineTime.value
-      : undefined,
+    deadlineTime: isAssessment ? scheduleDeadlineTime.value : undefined,
     examScope: document.getElementById("schedule-scope").value,
     description: document.getElementById("schedule-description").value,
   };
@@ -552,8 +597,6 @@ if (
   document.getElementById("schedule-end").value = dateToday;
   updateDateFields();
   scheduleType?.addEventListener("change", updateDateFields);
-  scheduleIncludeStart?.addEventListener("change", updateDateFields);
-  scheduleIncludeEndTime?.addEventListener("change", updateDateFields);
   proposalToggle?.addEventListener("click", () => setProposalOpen(proposalForm.hidden));
   proposalForm?.addEventListener("submit", submitProposal);
   editCancel?.addEventListener("click", () => {

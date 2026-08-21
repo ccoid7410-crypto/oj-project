@@ -617,6 +617,10 @@ body.gate-pending .site-footer {
   background: #7b61c9;
 }
 
+.legend-vacation {
+  background: #c6538c;
+}
+
 .calendar-scroll {
   margin-top: 12px;
   overflow-x: auto;
@@ -629,14 +633,63 @@ body.gate-pending .site-footer {
   border-radius: 4px;
 }
 
-.calendar-weekdays,
-.calendar-grid {
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--color-ink-700);
+}
+
+/* 달력 본체는 주(week) 단위 행을 세로로 쌓는다. 각 주 행 위에 여러 날에 걸친
+   일정 바를 겹쳐 그리기 위해 position: relative 컨테이너로 둔다. */
+.calendar-week {
+  position: relative;
+}
+
+.calendar-week-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
 }
 
-.calendar-weekdays {
-  background: var(--color-ink-700);
+/* 일정 바가 놓이는 오버레이. 날짜 숫자(위) 아래에서 시작한다. */
+.calendar-week-bars {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34px;
+  height: 0;
+}
+
+.calendar-bar {
+  position: absolute;
+  height: 19px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 6px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 19px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background: var(--schedule-color);
+}
+
+.calendar-bar:hover {
+  filter: brightness(0.9);
+}
+
+/* 주 경계를 넘어 이어지는 쪽 끝은 각지게 해서 "계속됨"을 표현한다. */
+.calendar-bar.bar-continues-left {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.calendar-bar.bar-continues-right {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .calendar-weekdays span {
@@ -663,12 +716,16 @@ body.gate-pending .site-footer {
 }
 
 .calendar-day {
-  min-height: 96px;
+  /* 그 주에 놓인 일정 바 개수(--lanes)만큼 아래 공간을 확보한다. */
+  min-height: calc(64px + var(--lanes, 0) * 22px);
   padding: 8px;
   border-top: 1px solid var(--color-ink-600);
   border-right: 1px solid var(--color-ink-600);
   background: var(--color-bg);
-  overflow: hidden;
+}
+
+.calendar-week-days .calendar-day:nth-child(7n) {
+  border-right: 0;
 }
 
 .calendar-day:nth-child(7n) {

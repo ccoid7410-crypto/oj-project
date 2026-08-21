@@ -90,20 +90,15 @@
             <label><input type="checkbox" name="schedule-class" value="2반"> 2반</label>
             <label><input type="checkbox" name="schedule-class" value="3반"> 3반</label>
           </fieldset>
-          <fieldset id="schedule-date-options" class="calendar-class-picker calendar-field-wide" hidden>
-            <legend>날짜 옵션</legend>
-            <label><input id="schedule-include-start" type="checkbox"> 시작일 포함</label>
-            <label><input id="schedule-include-end-time" type="checkbox"> 종료 시간 포함</label>
-          </fieldset>
           <label id="schedule-start-field" class="calendar-field">
-            <span id="schedule-start-label">날짜</span>
+            <span id="schedule-start-label">시작일</span>
             <input id="schedule-start" class="field-input" type="date" required>
           </label>
-          <label id="schedule-end-field" class="calendar-field" hidden>
+          <label id="schedule-end-field" class="calendar-field">
             <span id="schedule-end-label">종료일</span>
             <input id="schedule-end" class="field-input" type="date" required>
           </label>
-          <label id="schedule-deadline-field" class="calendar-field">
+          <label id="schedule-deadline-field" class="calendar-field" hidden>
             <span id="schedule-deadline-label">마감 시간</span>
             <input id="schedule-deadline-time" class="field-input" type="time" value="23:59" required>
           </label>
@@ -141,6 +136,7 @@
           <span><i class="legend-dot legend-exam"></i>시험</span>
           <span><i class="legend-dot legend-event"></i>행사 및 축제</span>
           <span><i class="legend-dot legend-other"></i>기타</span>
+          <span><i class="legend-dot legend-vacation"></i>방학</span>
         </div>
       </div>
 

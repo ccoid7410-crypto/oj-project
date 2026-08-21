@@ -51,6 +51,9 @@ window.clubProfileReady = (async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.status === 401) {
+      // 공개 페이지(GATE_REQUIRE_LOGIN=false)는 토큰이 남아있지만 만료된 상태여도
+      // 게이트로 막지 않고 비로그인처럼 그대로 열람하게 한다.
+      if (!requireLogin) return null;
       renderGateScreen(
         "다시 로그인해주세요",
         "로그인 정보가 만료되었습니다.",
