@@ -8,23 +8,30 @@ export interface MegaMenuItem {
 export interface MegaMenu {
   key: string;
   label: string;
-  /** 1개면 트리거 자체가 그 링크로 동작하는 평범한 메뉴, 2개 이상이면 메가패널이 열린다. */
+  /** 1개면 트리거 자체가 그 링크로 동작하는 평범한 메뉴, 2개 이상이면 드롭다운이 열린다. */
   items: MegaMenuItem[];
 }
 
 /**
  * 상단바 메뉴 트리거. 하위 항목이 1개뿐이면 그냥 링크, 2개 이상이면 hover 시
- * `MegaMenuPanel`을 여는 트리거로 동작한다(패널 자체는 헤더 레벨에서 한 번만 렌더링됨 -
- * `Layout.tsx` 참고. 항목이 적은 메뉴마다 패널을 새로 만들면 열림 상태 경합이 생긴다).
+ * 상위 탭 버튼 바로 아래로 세로 드롭다운을 연다.
  */
 export function MegaMenuTrigger({
   menu,
   className,
+  isOpen,
   onOpen,
+  onClose,
+  onCancelClose,
+  onScheduleClose,
 }: {
   menu: MegaMenu;
   className?: string;
+  isOpen: boolean;
   onOpen: (key: string) => void;
+  onClose: () => void;
+  onCancelClose: () => void;
+  onScheduleClose: () => void;
 }) {
   if (menu.items.length <= 1) {
     return (
@@ -34,42 +41,33 @@ export function MegaMenuTrigger({
     );
   }
   return (
-    <Link to={menu.items[0].to} className={className} onMouseEnter={() => onOpen(menu.key)}>
-      {menu.label}
-      <span className="ml-1 inline-block text-[9px] align-[1px]">▾</span>
-    </Link>
-  );
-}
-
-/**
- * 백준의 "문제" 메뉴처럼 상단바 전체 폭으로 펼쳐지는 메가 패널.
- * 왼쪽에 메뉴 이름, 오른쪽에 하위 항목을 그리드로 배치한다.
- */
-export function MegaMenuPanel({
-  menu,
-  onClose,
-  onMouseEnter,
-  onMouseLeave,
-}: {
-  menu: MegaMenu;
-  onClose: () => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}) {
-  return (
     <div
-      className="absolute inset-x-0 top-full z-20 border-b border-[var(--color-header-line)] bg-[var(--color-surface)] shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      className="relative flex items-center self-stretch"
+      onMouseEnter={() => {
+        onCancelClose();
+        onOpen(menu.key);
+      }}
+      onMouseLeave={onScheduleClose}
     >
-      <div className="mx-auto grid max-w-5xl grid-cols-[120px_1fr] gap-4 px-6 py-4">
-        <div className="text-xs font-bold text-fg-muted">{menu.label}</div>
-        <div className="grid grid-cols-4 gap-x-4 gap-y-2 border-l border-ink-600 pl-4">
+      <Link to={menu.items[0].to} className={className}>
+        {menu.label}
+        <span className="ml-1 inline-block text-[9px] align-[1px]">▾</span>
+      </Link>
+      {/* 헤더 하단에서 클리핑하는 뷰포트. 안쪽 패널이 헤더 뒤에 숨어 있다가(위로
+          밀려 클리핑됨) 호버 시 헤더 아래로 슬라이드되어 내려온다. */}
+      <div className="pointer-events-none absolute -left-3 top-full z-30 overflow-hidden pb-3">
+        <div
+          className={`min-w-[150px] rounded-b-md border border-t-0 border-[var(--color-header-line)] bg-[var(--color-surface)] py-1 transition-transform duration-200 ease-out ${
+            isOpen
+              ? 'pointer-events-auto translate-y-0 shadow-[0_8px_16px_rgba(0,0,0,0.15)]'
+              : '-translate-y-full'
+          }`}
+        >
           {menu.items.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="text-[13px] text-fg hover:text-[var(--color-brand)]"
+              className="block whitespace-nowrap px-3 py-1.5 text-[13px] text-fg hover:bg-[var(--color-header-line)] hover:text-[var(--color-brand)]"
               onClick={onClose}
             >
               {item.label}

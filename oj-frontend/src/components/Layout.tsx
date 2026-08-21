@@ -5,7 +5,7 @@ import { useBrandName } from '../lib/useBrandName';
 import { api } from '../api/client';
 import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
-import { MegaMenuTrigger, MegaMenuPanel, type MegaMenu } from './HeaderDropdown';
+import { MegaMenuTrigger, type MegaMenu } from './HeaderDropdown';
 import { HeaderThemeToggle } from './HeaderThemeToggle';
 
 // 마우스가 트리거에서 패널로 넘어가는 짧은 순간 깜빡이며 닫히는 걸 막기 위한 유예 시간.
@@ -86,8 +86,6 @@ export function Layout() {
     ...(user ? [{ key: 'classes', label: '수업', items: [{ to: '/classes', label: '수업' }] }] : []),
     { key: 'community', label: '커뮤니티', items: [{ to: '/community', label: '커뮤니티' }] },
   ];
-  const openMenuData = megaMenus.find((m) => m.key === openMenu) ?? null;
-
   const cancelClose = () => {
     if (closeTimer.current) {
       clearTimeout(closeTimer.current);
@@ -105,14 +103,23 @@ export function Layout() {
         className="relative bg-[var(--color-header-bg)] border-b border-[var(--color-header-line)]"
         onMouseLeave={scheduleClose}
       >
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-7 gap-y-1 px-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-stretch gap-x-7 gap-y-1 px-6">
           <Link to="/" className="flex items-baseline gap-1 py-3 leading-none">
             <span className="text-base font-black tracking-tight text-fg">{brandName}</span>
             <span className="text-[var(--color-brand)]">&gt;</span>
           </Link>
           <nav className="flex flex-wrap items-center gap-x-5">
             {megaMenus.map((menu) => (
-              <MegaMenuTrigger key={menu.key} menu={menu} className={navLinkClass} onOpen={setOpenMenu} />
+              <MegaMenuTrigger
+                key={menu.key}
+                menu={menu}
+                className={navLinkClass}
+                isOpen={openMenu === menu.key}
+                onOpen={setOpenMenu}
+                onClose={() => setOpenMenu(null)}
+                onCancelClose={cancelClose}
+                onScheduleClose={scheduleClose}
+              />
             ))}
             {user?.role === 'ADMIN' && (
               <Link to="/admin" className={navLinkClass}>
@@ -172,14 +179,6 @@ export function Layout() {
             )}
           </div>
         </div>
-        {openMenuData && (
-          <MegaMenuPanel
-            menu={openMenuData}
-            onClose={() => setOpenMenu(null)}
-            onMouseEnter={cancelClose}
-            onMouseLeave={scheduleClose}
-          />
-        )}
       </header>
       <main className="mx-auto max-w-5xl border-x border-ink-600 bg-[var(--color-surface)] px-6 py-6">
         <Outlet />
