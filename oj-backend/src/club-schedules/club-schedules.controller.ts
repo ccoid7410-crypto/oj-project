@@ -26,7 +26,7 @@ export class ClubSchedulesController {
   constructor(private readonly schedules: ClubSchedulesService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Get()
   list(@Query() range: ScheduleRangeDto) {
     return this.schedules.list(range);
@@ -40,28 +40,28 @@ export class ClubSchedulesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Get('pending')
   listPending(@CurrentUser() user: RequestUser) {
     return this.schedules.listPending(user.userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Post()
   propose(@CurrentUser() user: RequestUser, @Body() dto: SaveClubScheduleDto) {
     return this.schedules.propose(user.userId, dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Post(':id/approve')
   approve(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.schedules.approve(id, user.userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Post(':id/reject')
   reject(
     @Param('id') id: string,
@@ -72,7 +72,7 @@ export class ClubSchedulesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -83,7 +83,7 @@ export class ClubSchedulesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.schedules.remove(id, user.userId, user.role);

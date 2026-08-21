@@ -57,7 +57,10 @@ window.clubProfileReady = (async () => {
     if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
 
     const profile = await res.json();
-    if (profile.role !== "MEMBER" && profile.role !== "ADMIN") {
+    // 캘린더 페이지(calendar.html)는 window.GATE_REQUIRE_MEMBER = false 를 먼저 선언해서
+    // 동아리 부원이 아니어도(로그인만 했으면) 볼 수 있게 한다. 나머지 페이지는 기존대로 부원 전용.
+    const requireMember = window.GATE_REQUIRE_MEMBER !== false;
+    if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
       renderGateScreen(
         "동아리 부원만 접속할 수 있습니다",
         "관리자에게 부원 등록을 요청해주세요. 부원으로 등록되면 홈페이지를 이용할 수 있습니다.",
