@@ -29,9 +29,13 @@ window.clubProfileReady = (async () => {
   const loginUrl =
     "/login?redirect=" +
     encodeURIComponent(window.location.pathname + window.location.search);
+  // 캘린더 페이지(calendar.html)는 window.GATE_REQUIRE_LOGIN = false 를 먼저 선언해서
+  // 로그인 없이(비로그인 방문자도) 볼 수 있게 한다. 나머지 페이지는 기존대로 로그인 필요.
+  const requireLogin = window.GATE_REQUIRE_LOGIN !== false;
   try {
     const token = localStorage.getItem("oj_token");
     if (!token) {
+      if (!requireLogin) return null;
       renderGateScreen(
         "동아리 회원 전용 공간입니다",
         "두루누리 홈페이지는 로그인한 동아리 회원만 이용할 수 있습니다.",

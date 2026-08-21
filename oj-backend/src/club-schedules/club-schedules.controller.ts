@@ -25,8 +25,8 @@ import {
 export class ClubSchedulesController {
   constructor(private readonly schedules: ClubSchedulesService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('USER', 'MEMBER', 'TEACHER', 'ADMIN')
+  // 캘린더 열람은 완전 공개: club-homepage/calendar.html이 비로그인 방문자에게도
+  // 이 엔드포인트를 직접 호출하므로 인증 가드를 걸지 않는다.
   @Get()
   list(@Query() range: ScheduleRangeDto) {
     return this.schedules.list(range);
