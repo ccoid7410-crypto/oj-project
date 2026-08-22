@@ -30,9 +30,9 @@ window.clubProfileReady = (async () => {
   const loginUrl =
     "/login?redirect=" +
     encodeURIComponent(window.location.pathname + window.location.search);
-  // 캘린더 페이지(calendar.html)는 js/calendar-gate-config.js에서
-  // GATE_REQUIRE_LOGIN = false 를 미리 선언해서 로그인 없이도 볼 수 있게 한다.
-  // (calendar.html은 CSP script-src 'self' 때문에 인라인 <script>로는 값을 못 넣는다.)
+  // 공개 페이지(메인·일정·커뮤니티)는 js/public-gate-config.js에서
+  // GATE_REQUIRE_LOGIN/MEMBER = false 를 미리 선언해서 로그인 없이도 볼 수 있게 한다.
+  // (CSP script-src 'self' 때문에 HTML 인라인 <script>로는 값을 못 넣는다.)
   // 나머지 페이지는 기존대로 로그인한 동아리 부원만 이용 가능.
   const requireLogin = window.GATE_REQUIRE_LOGIN !== false;
   const requireMember = window.GATE_REQUIRE_MEMBER !== false;
