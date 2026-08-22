@@ -1,10 +1,16 @@
-// 두루누리 홈페이지 커뮤니티 (board=HOME). OJ 커뮤니티와 같은 백엔드를 쓰되 board로
-// 분리되어 글/태그를 공유하지 않는다. 한 페이지(community.html)에서 URL 쿼리로 화면을 전환한다:
+// 두루누리 홈페이지 커뮤니티. OJ 커뮤니티와 같은 백엔드를 쓰되 board로 분리되어
+// 글/태그를 공유하지 않는다. 한 페이지에서 URL 쿼리로 화면을 전환한다:
 //   (없음)      → 게시글 목록
 //   ?post=<id>  → 게시글 상세
 //   ?new        → 글쓰기
-
-const BOARD = "HOME";
+//
+// 이 스크립트를 공개 게시판(community.html, board=HOME)과 동아리 게시판
+// (club-board.html, board=CLUB)이 함께 쓴다. CSP(script-src 'self') 때문에 HTML에서
+// 인라인 <script>로 값을 넘길 수 없어 파일명으로 어느 게시판인지 판별한다.
+const IS_CLUB_BOARD = window.location.pathname.includes("club-board");
+const BOARD = IS_CLUB_BOARD ? "CLUB" : "HOME";
+const BOARD_PAGE = IS_CLUB_BOARD ? "club-board.html" : "community.html";
+const BOARD_TITLE = IS_CLUB_BOARD ? "동아리 게시판" : "공개 게시판";
 const token = localStorage.getItem("oj_token");
 
 function authFetch(path, options = {}) {
@@ -96,7 +102,7 @@ function voteButtons(summary, onVote, size) {
 }
 
 function go(query) {
-  window.location.href = "community.html" + query;
+  window.location.href = BOARD_PAGE + query;
 }
 
 // ===== 라우팅 =====
@@ -126,8 +132,8 @@ async function renderList(profile) {
   root.innerHTML = "";
   root.className = ""; // 목록은 넓게(OJ 목록과 동일)
   const header = el("div", { class: "c-list-header" }, [
-    el("h2", {}, "게시판"),
-    profile ? el("a", { class: "btn btn-primary btn-sm", href: "community.html?new" }, "글쓰기") : null,
+    el("h2", {}, BOARD_TITLE),
+    profile ? el("a", { class: "btn btn-primary btn-sm", href: BOARD_PAGE + "?new" }, "글쓰기") : null,
   ]);
   root.appendChild(header);
 
@@ -183,7 +189,7 @@ async function renderDetail(profile, postId) {
     return;
   }
 
-  root.appendChild(el("a", { class: "c-back", href: "community.html" }, "← 게시판"));
+  root.appendChild(el("a", { class: "c-back", href: BOARD_PAGE }, "← " + BOARD_TITLE));
 
   const canManage = profile && (profile.username === post.author.username || profile.role === "ADMIN");
   const titleRow = el("h2", { class: titleClass(post.type) + " c-detail-title" }, [typeBadge(post.type), document.createTextNode(post.title)]);
@@ -502,7 +508,7 @@ async function renderNew(profile) {
       errorP,
       el("div", { class: "c-form-actions" }, [
         submitBtn,
-        el("a", { class: "btn btn-ghost btn-sm", href: "community.html" }, "취소"),
+        el("a", { class: "btn btn-ghost btn-sm", href: BOARD_PAGE }, "취소"),
       ]),
     ]),
   );

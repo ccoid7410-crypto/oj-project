@@ -8,7 +8,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export const BOARDS = ['OJ', 'HOME'] as const;
+export const BOARDS = ['OJ', 'HOME', 'CLUB'] as const;
 export type Board = (typeof BOARDS)[number];
 
 export const POST_TYPES = ['NORMAL', 'UPDATE_LOG', 'NOTICE'] as const;

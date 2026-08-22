@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Board, PostType } from './dto/community.dto';
@@ -47,10 +48,21 @@ export class CommunityService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * 동아리 게시판(CLUB)은 로그인해야 볼 수 있다. 홈페이지 게이트(gate.js)는 화면만
+   * 가리므로, API를 직접 호출하는 경우까지 여기서 막는다. OJ/HOME은 공개.
+   */
+  private assertBoardReadable(board: Board, requesterId?: string) {
+    if (board === 'CLUB' && !requesterId) {
+      throw new UnauthorizedException('동아리 게시판은 로그인해야 볼 수 있습니다.');
+    }
+  }
+
+  /**
    * 게시글 목록. 공지(NOTICE)를 최상단에 고정하고, 그 안/밖 모두 최신순으로 정렬한다.
-   * OJ/HOME 보드는 같은 백엔드를 쓰지만 board로 분리되어 서로 글을 공유하지 않는다.
+   * OJ/HOME/CLUB 보드는 같은 백엔드를 쓰지만 board로 분리되어 서로 글을 공유하지 않는다.
    */
   async listPosts(board: Board, requesterId?: string) {
+    this.assertBoardReadable(board, requesterId);
     const posts = await this.prisma.communityPost.findMany({
       where: { board },
       orderBy: { createdAt: 'desc' },
@@ -93,6 +105,7 @@ export class CommunityService {
       },
     });
     if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    this.assertBoardReadable(post.board, requesterId);
 
     return {
       id: post.id,
@@ -262,7 +275,8 @@ export class CommunityService {
 
   // ---- 태그(보드별 태그 풀) ----
 
-  listTags(board: Board) {
+  listTags(board: Board, requesterId?: string) {
+    this.assertBoardReadable(board, requesterId);
     return this.prisma.communityTag.findMany({
       where: { board },
       orderBy: { name: 'asc' },

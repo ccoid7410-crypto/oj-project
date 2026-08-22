@@ -48,9 +48,13 @@ export class CommunityController {
   }
 
   // ---- 태그(보드별). 정적 경로라 :id 라우트보다 먼저 선언한다. ----
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('tags')
-  listTags(@Query('board') board: string | undefined) {
-    return this.community.listTags(parseBoard(board));
+  listTags(
+    @Query('board') board: string | undefined,
+    @Req() req: OptionalAuthRequest,
+  ) {
+    return this.community.listTags(parseBoard(board), req.user?.userId);
   }
 
   // 게시글에 태그를 붙일 수 있는 사람이면(=로그인 사용자) 새 태그를 만들 수 있다.

@@ -304,6 +304,12 @@ body.gate-pending .site-footer {
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
+  /* <button>에도 쓰이므로 브라우저 기본 배경/폰트를 덮어써야 한다.
+     (안 그러면 다크 모드에서 회색 기본 배경 위에 밝은 글씨가 얹혀 안 보인다.) */
+  background-color: transparent;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
 }
 
 .btn-primary {
