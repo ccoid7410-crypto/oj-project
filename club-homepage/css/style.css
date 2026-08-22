@@ -46,6 +46,11 @@ body {
   color: #ffffff;
 }
 
+body.gate-pending main,
+body.gate-pending .site-footer {
+  visibility: hidden;
+}
+
 .container {
   max-width: 1024px;
   margin: 0 auto;
