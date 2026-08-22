@@ -54,7 +54,9 @@ function renderLoggedIn(user) {
   logoutBtn.textContent = "로그아웃";
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("oj_token");
-    renderLoggedOut();
+    // 화면을 새로 그려야 게이트가 다시 걸린다. 그냥 헤더만 바꾸면 로그인 전용
+    // 페이지(동아리 게시판 등)의 내용이 로그아웃 후에도 그대로 남아 보인다.
+    window.location.reload();
   });
   authArea.append(profile, logoutBtn);
 }

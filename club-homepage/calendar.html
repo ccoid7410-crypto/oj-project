@@ -66,13 +66,12 @@
         <form id="schedule-proposal-form" class="calendar-proposal-form" hidden>
           <label class="calendar-field">
             <span>종류</span>
-            <select id="schedule-type" class="field-select" required>
-              <option value="ASSESSMENT">수행평가</option>
-              <option value="EXAM">시험</option>
-              <option value="EVENT">행사 및 축제</option>
-              <option value="OTHER">기타</option>
-              <option value="VACATION">방학</option>
-            </select>
+            <!-- 사용자 정의 종류가 뒤에 붙으므로 항목은 calendar.js가 채운다. -->
+            <select id="schedule-type" class="field-select" required></select>
+          </label>
+          <label id="schedule-custom-type-field" class="calendar-field" hidden>
+            <span>새 종류 이름</span>
+            <input id="schedule-custom-type" class="field-input" type="text" maxlength="20" placeholder="예: 봉사활동">
           </label>
           <label id="schedule-subject-field" class="calendar-field">
             <span>과목</span>
@@ -129,13 +128,8 @@
 
       <div class="calendar-month-row">
         <h3 id="calendar-month"></h3>
-        <div class="calendar-legend" aria-label="일정 종류">
-          <span><i class="legend-dot legend-assessment"></i>수행평가</span>
-          <span><i class="legend-dot legend-exam"></i>시험</span>
-          <span><i class="legend-dot legend-event"></i>행사 및 축제</span>
-          <span><i class="legend-dot legend-other"></i>기타</span>
-          <span><i class="legend-dot legend-vacation"></i>방학</span>
-        </div>
+        <!-- 범례는 승인된 사용자 정의 종류까지 포함해야 해서 calendar.js가 그린다. -->
+        <div id="calendar-legend" class="calendar-legend" aria-label="일정 종류"></div>
       </div>
 
       <div class="calendar-scroll">

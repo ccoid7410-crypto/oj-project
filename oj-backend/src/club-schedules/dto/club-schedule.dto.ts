@@ -25,8 +25,14 @@ export class ScheduleRangeDto {
 }
 
 export class SaveClubScheduleDto {
-  @IsIn(['ASSESSMENT', 'EXAM', 'EVENT', 'OTHER', 'VACATION'])
-  type: 'ASSESSMENT' | 'EXAM' | 'EVENT' | 'OTHER' | 'VACATION';
+  @IsIn(['ASSESSMENT', 'EXAM', 'EVENT', 'OTHER', 'VACATION', 'CUSTOM'])
+  type: 'ASSESSMENT' | 'EXAM' | 'EVENT' | 'OTHER' | 'VACATION' | 'CUSTOM';
+
+  /** type=CUSTOM일 때 쓸 종류 이름(부원이 직접 입력). 그 외 종류에서는 무시된다. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20, { message: '종류 이름은 20자 이하여야 합니다.' })
+  customType?: string;
 
   @IsString()
   @MaxLength(120)

@@ -32,6 +32,12 @@ export class ClubSchedulesController {
     return this.schedules.list(range);
   }
 
+  // 승인된 사용자 정의 종류 목록. 달력 범례·제안 폼이 쓰므로 목록과 같이 공개한다.
+  @Get('custom-types')
+  listCustomTypes() {
+    return this.schedules.listCustomTypes();
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Get('manage')

@@ -128,13 +128,12 @@ if (scopeList && scopeSummary) {
       void loadExamScopes();
     });
   });
+  // 시험범위는 로그인 없이도 볼 수 있다. 프로필은 수정 권한 판별에만 쓰고,
+  // 목록은 프로필 조회 결과와 상관없이 처음부터 불러온다.
+  void loadExamScopes();
   window.clubProfileReady?.then((profile) => {
-    if (!profile) {
-      scopeSummary.textContent = "";
-      scopeList.innerHTML = '<p class="empty">시험범위는 동아리 부원만 볼 수 있습니다. 부원 계정으로 로그인해주세요.</p>';
-      return;
-    }
+    if (!profile) return;
     canEdit = profile.username === "hift";
-    void loadExamScopes();
+    if (canEdit) renderExamScopes(); // 수정 버튼을 뒤늦게 붙인다
   });
 }

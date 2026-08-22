@@ -801,6 +801,11 @@ body.gate-pending .site-footer {
   --schedule-color: #c6538c;
 }
 
+/* 사용자 정의 종류. 실제 색은 calendar.js가 이름 해시로 정해 인라인으로 덮어쓴다. */
+.schedule-custom {
+  --schedule-color: #607d8b;
+}
+
 .calendar-schedule-chip.schedule-assessment,
 .calendar-schedule-chip.schedule-exam,
 .calendar-schedule-chip.schedule-event,

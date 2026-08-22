@@ -42,7 +42,7 @@ window.clubProfileReady = (async () => {
       if (!requireLogin) return null;
       renderGateScreen(
         "동아리 회원 전용 공간입니다",
-        "두루누리 홈페이지는 로그인한 동아리 회원만 이용할 수 있습니다.",
+        "두루누리 홈페이지의 일부는 로그인한 동아리 회원만 이용할 수 있습니다.",
         [
           { href: loginUrl, label: "로그인", primary: true },
           { href: "/signup", label: "회원가입" },

@@ -263,6 +263,7 @@ enum ClubScheduleType {
   EVENT // 행사 및 축제
   OTHER // 기타
   VACATION // 방학
+  CUSTOM // 부원이 직접 만든 종류. 실제 이름은 customType에 저장한다.
 }
 
 enum ClubScheduleStatus {
@@ -484,6 +485,8 @@ model SiteBanner {
 model ClubSchedule {
   id              String             @id @default(uuid())
   type            ClubScheduleType
+  /// type=CUSTOM일 때 부원이 직접 지은 종류 이름. 승인된 일정의 값만 종류 목록/범례에 노출된다.
+  customType      String             @default("") @db.VarChar(20)
   status          ClubScheduleStatus @default(PENDING)
   title           String             @db.VarChar(120)
   subject         String             @default("") @db.VarChar(80)
