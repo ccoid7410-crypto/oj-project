@@ -1914,7 +1914,8 @@ body.gate-pending .site-footer {
   text-decoration: underline;
 }
 
-/* ===== 게시글 작성 마크다운 툴바 ===== */
+/* ===== 마크다운 툴바 =====
+   OJ 편집기 툴바와 같은 규격: 32px 정사각 버튼 + 18px 단색 아이콘. */
 .c-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1923,41 +1924,117 @@ body.gate-pending .site-footer {
   border: 1px solid var(--color-ink-500);
   border-bottom: 0;
   border-radius: 4px 4px 0 0;
-  padding: 4px 6px;
-  background: var(--color-ink-700);
+  padding: 6px 8px;
+  background: var(--color-bg);
 }
 
 .c-tool {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 0;
   border-radius: 4px;
   background: transparent;
   color: var(--color-fg-muted);
   font: inherit;
-  font-weight: 700;
   cursor: pointer;
 }
 
 .c-tool:hover:not(:disabled) {
-  background: var(--color-ink-600);
+  background: var(--color-ink-700);
   color: var(--color-fg);
 }
 
 .c-tool:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: default;
+}
+
+/* 색 버튼: 아이콘 아래에 지금 고른 색을 얇게 표시한다(OJ와 동일). */
+.c-tool-color-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.c-tool-bar {
+  margin-top: 2px;
+  width: 16px;
+  height: 3px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 999px;
+}
+
+.c-color-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(7, 24px);
+  gap: 4px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  background: var(--color-bg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.c-color-pop[hidden] {
+  display: none;
+}
+
+.c-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.c-swatch:hover {
+  transform: scale(1.1);
+}
+
+/* 기본(색 없음)은 빗금으로 표시한다. */
+.c-swatch-none {
+  position: relative;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.c-swatch-none::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 140%;
+  background: #e0393e;
+  transform: rotate(45deg);
+}
+
+.c-tool-select {
+  height: 32px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-fg);
+  font: inherit;
+  padding: 0 6px;
+  cursor: pointer;
 }
 
 .c-tool-sep {
   width: 1px;
-  height: 16px;
+  height: 20px;
   margin: 0 4px;
-  background: var(--color-ink-500);
+  background: var(--color-ink-600);
 }
 
 .c-tool-file {

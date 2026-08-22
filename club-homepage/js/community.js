@@ -172,55 +172,201 @@ function mentionChip(username, avatarVersion) {
 }
 
 // ===== 마크다운 툴바 =====
+// ===== 마크다운 툴바 =====
+// OJ 편집기(oj-frontend/src/components/MarkdownEditor.tsx)와 도구 구성·아이콘·순서를 맞춘다.
+// 이쪽은 마크다운 원문을 직접 편집하는 textarea라, 마크다운에 문법이 없는 밑줄·색·정렬은
+// OJ가 저장할 때 쓰는 것과 같은 HTML 조각으로 넣는다(그래야 양쪽이 서로 읽는다).
+
+/** 입력칸에 글자를 넣는다. execCommand를 거쳐야 브라우저의 실행취소 기록이 끊기지 않는다. */
+function typeInto(textarea, text) {
+  textarea.focus();
+  let inserted = false;
+  try {
+    inserted = document.execCommand("insertText", false, text);
+  } catch {
+    inserted = false;
+  }
+  if (inserted) return;
+  // 폴백: 실행취소 기록은 끊기지만 입력은 되게 한다.
+  const start = textarea.selectionStart;
+  textarea.value =
+    textarea.value.slice(0, start) + text + textarea.value.slice(textarea.selectionEnd);
+  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
 
 /** 선택 영역을 prefix/suffix로 감싼다. 선택이 없으면 placeholder를 넣고 그 부분을 선택해둔다. */
 function wrapSelection(textarea, prefix, suffix, placeholder) {
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selected = textarea.value.slice(start, end) || placeholder || "";
-  const before = textarea.value.slice(0, start);
-  const after = textarea.value.slice(end);
-  textarea.value = before + prefix + selected + suffix + after;
   textarea.focus();
+  textarea.setSelectionRange(start, end);
+  typeInto(textarea, prefix + selected + suffix);
   textarea.selectionStart = start + prefix.length;
   textarea.selectionEnd = start + prefix.length + selected.length;
 }
 
-/** 커서가 있는 줄 앞에 prefix를 붙인다(제목·인용구·목록용). */
+/** 커서가 놓인 줄의 시작/끝 위치. */
+function lineRange(textarea) {
+  const pos = textarea.selectionStart;
+  const start = textarea.value.lastIndexOf("\n", pos - 1) + 1;
+  const lineEnd = textarea.value.indexOf("\n", pos);
+  return { start, end: lineEnd === -1 ? textarea.value.length : lineEnd };
+}
+
+/** 지정한 구간을 새 문자열로 바꾼다. */
+function replaceRange(textarea, start, end, text) {
+  textarea.focus();
+  textarea.setSelectionRange(start, end);
+  typeInto(textarea, text);
+}
+
+/** 커서가 있는 줄 앞에 prefix를 붙인다(인용구·목록용). 이미 붙어 있으면 뗀다. */
 function prefixLine(textarea, prefix) {
-  const start = textarea.selectionStart;
-  const lineStart = textarea.value.lastIndexOf("\n", start - 1) + 1;
-  textarea.value =
-    textarea.value.slice(0, lineStart) + prefix + textarea.value.slice(lineStart);
-  textarea.focus();
-  textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+  const { start, end } = lineRange(textarea);
+  const line = textarea.value.slice(start, end);
+  const next = line.startsWith(prefix) ? line.slice(prefix.length) : prefix + line;
+  replaceRange(textarea, start, end, next);
 }
 
-function insertAtCursor(textarea, text) {
-  const start = textarea.selectionStart;
-  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(textarea.selectionEnd);
-  textarea.focus();
-  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+/** 제목 단계 지정(0이면 본문). 이미 붙어 있던 #은 지우고 다시 붙인다. */
+function setHeading(textarea, level) {
+  const { start, end } = lineRange(textarea);
+  const body = textarea.value.slice(start, end).replace(/^#{1,6}\s*/, "");
+  replaceRange(textarea, start, end, level === 0 ? body : `${"#".repeat(level)} ${body}`);
 }
 
+const ALIGN_WRAP = /^<p style="text-align: (?:center|right|justify)">([\s\S]*)<\/p>$/;
+
+/** 문단 정렬. 마크다운에 문법이 없어 OJ와 같은 HTML로 남긴다. */
+function setAlign(textarea, align) {
+  const { start, end } = lineRange(textarea);
+  const line = textarea.value.slice(start, end);
+  const unwrapped = ALIGN_WRAP.exec(line.trim());
+  const body = unwrapped ? unwrapped[1] : line;
+  replaceRange(
+    textarea,
+    start,
+    end,
+    align === "left" ? body : `<p style="text-align: ${align}">${body}</p>`,
+  );
+}
+
+/** 선택 영역에 이미 같은 종류의 HTML 껍데기가 있으면 벗기고, 없으면 씌운다. */
+function toggleWrap(textarea, open, close, pattern, placeholder) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end);
+  const found = pattern.exec(selected);
+  if (found) {
+    replaceRange(textarea, start, end, found[1]);
+    return;
+  }
+  wrapSelection(textarea, open, close, placeholder);
+}
+
+const ICON_ATTRS =
+  'width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+  ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+
+function icon(paths) {
+  return `<svg ${ICON_ATTRS}>${paths}</svg>`;
+}
+
+// OJ 툴바와 같은 아이콘(같은 path). 한쪽만 고치면 어긋나므로 모양을 맞춰 둔다.
 const TOOLBAR_ICONS = {
-  bold: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 0 8H6z"/><path d="M6 12h9a4 4 0 0 1 0 8H6z"/></svg>',
-  italic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>',
-  strike: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>',
-  code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-  quote: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="9" y1="8" x2="20" y2="8"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="16" x2="16" y2="16"/></svg>',
-  list: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>',
-  link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-  image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  bold: icon('<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z"/><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z"/>'),
+  italic: icon('<path d="M18 5h-6M12 19H6M15 5l-4 14"/>'),
+  underline: icon('<path d="M7 4v6a5 5 0 0 0 10 0V4"/><path d="M5 20h14"/>'),
+  strike: icon(
+    '<path d="M4 12h16"/><path d="M16.5 7.5A4 4 0 0 0 13 6h-1.5C9.6 6 8 7.1 8 8.8c0 1.2.8 2.1 2.2 2.7"/>' +
+      '<path d="M7.5 16.5A4 4 0 0 0 11 18h1.5c1.9 0 3.5-1.1 3.5-2.8 0-.7-.3-1.3-.8-1.8"/>',
+  ),
+  textColor: icon('<path d="M5 18L11 5l6 13"/><path d="M7.5 14h7"/>'),
+  highlight: icon('<path d="M4 20h16"/><path d="M14 4l6 6-8 7H7v-5z"/>'),
+  alignLeft: icon('<path d="M4 6h16M4 12h10M4 18h16"/>'),
+  alignCenter: icon('<path d="M4 6h16M7 12h10M4 18h16"/>'),
+  alignRight: icon('<path d="M4 6h16M10 12h10M4 18h16"/>'),
+  alignJustify: icon('<path d="M4 6h16M4 12h16M4 18h16"/>'),
+  list: icon('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>'),
+  quote: icon('<path d="M4 5v14"/><path d="M9 7h11M9 12h11M9 17h6"/>'),
+  link: icon(
+    '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>' +
+      '<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  ),
+  code: icon('<path d="M16 18l5-6-5-6"/><path d="M8 6l-5 6 5 6"/>'),
+  image: icon(
+    '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5L5 20"/>',
+  ),
+  undo: icon('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>'),
+  redo: icon('<path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h4"/>'),
 };
 
 function toolbarButton(html, title, onClick) {
-  const b = el("button", { type: "button", class: "c-tool", title, onclick: onClick });
+  const b = el("button", {
+    type: "button",
+    class: "c-tool",
+    title,
+    "aria-label": title,
+    onclick: onClick,
+  });
   b.innerHTML = html;
   return b;
 }
 
-/** 글 본문 textarea 위에 붙는 마크다운 툴바(이미지 첨부 포함). */
+// OJ 색상 팔레트와 같은 목록.
+const COLOR_PALETTE = [
+  "transparent", "#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#FFFFFF",
+  "#FF0000", "#FF9900", "#FFCC00", "#009966", "#0066CC", "#9933CC", "#7986CB",
+  "#FFCDD2", "#FFCC99", "#FFF59D", "#A5D6A7", "#90CAF9", "#CE93D8", "#B0BEC5",
+  "#F06292", "#FF8A65", "#C0CA33", "#43A047", "#039BE5", "#5E35B1", "#81C784",
+  "#880E4F", "#BF360C", "#827717", "#1B5E20", "#01579B", "#311B92", "#37474F",
+];
+
+/** 색 버튼(아이콘 + 지금 색 막대) + 팔레트 팝업. */
+function colorTool(iconHtml, title, onPick) {
+  const wrap = el("span", { class: "c-tool-color-wrap" });
+  const button = el("button", {
+    type: "button",
+    class: "c-tool c-tool-color",
+    title,
+    "aria-label": title,
+  });
+  button.innerHTML = `${iconHtml}<span class="c-tool-bar"></span>`;
+  const bar = button.querySelector(".c-tool-bar");
+
+  const pop = el("div", { class: "c-color-pop", hidden: true });
+  for (const color of COLOR_PALETTE) {
+    const swatch = el("button", {
+      type: "button",
+      class: "c-swatch" + (color === "transparent" ? " c-swatch-none" : ""),
+      title: color === "transparent" ? "기본" : color,
+      onclick: () => {
+        bar.style.background = color === "transparent" ? "" : color;
+        pop.hidden = true;
+        onPick(color);
+      },
+    });
+    if (color !== "transparent") swatch.style.background = color;
+    pop.appendChild(swatch);
+  }
+
+  button.addEventListener("click", () => {
+    // 열려 있는 다른 팔레트는 닫는다.
+    for (const other of document.querySelectorAll(".c-color-pop")) {
+      if (other !== pop) other.hidden = true;
+    }
+    pop.hidden = !pop.hidden;
+  });
+  document.addEventListener("mousedown", (e) => {
+    if (!wrap.contains(e.target)) pop.hidden = true;
+  });
+
+  wrap.append(button, pop);
+  return wrap;
+}
+
 const IMAGE_UPLOAD_ERROR = "이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)";
 
 /**
@@ -229,7 +375,7 @@ const IMAGE_UPLOAD_ERROR = "이미지 업로드에 실패했습니다. (png, jpe
  */
 async function insertUploadedImage(textarea, file) {
   const placeholder = `![업로드 중...${Math.random().toString(36).slice(2, 8)}]()`;
-  insertAtCursor(textarea, placeholder);
+  typeInto(textarea, placeholder);
   try {
     const form = new FormData();
     form.append("image", file);
@@ -241,11 +387,18 @@ async function insertUploadedImage(textarea, file) {
     if (!res.ok) throw new Error();
     const data = await res.json();
     const url = data.url || data.path || data.location;
-    textarea.value = textarea.value.replace(placeholder, `![](${url})`);
+    replacePlaceholder(textarea, placeholder, `![](${url})`);
   } catch {
-    textarea.value = textarea.value.replace(placeholder, "");
+    replacePlaceholder(textarea, placeholder, "");
     alert(IMAGE_UPLOAD_ERROR);
   }
+}
+
+/** 자리표시자를 결과로 바꾼다. 그 사이 사용자가 다른 곳을 고쳤어도 위치를 다시 찾는다. */
+function replacePlaceholder(textarea, placeholder, text) {
+  const at = textarea.value.indexOf(placeholder);
+  if (at === -1) return;
+  replaceRange(textarea, at, at + placeholder.length, text);
 }
 
 /** 클립보드/드롭 데이터에서 이미지 파일만 골라낸다. */
@@ -274,6 +427,10 @@ function enableImageDrop(textarea) {
   });
 }
 
+function separator() {
+  return el("span", { class: "c-tool-sep" });
+}
+
 function buildToolbar(textarea) {
   const fileInput = el("input", {
     type: "file",
@@ -297,21 +454,80 @@ function buildToolbar(textarea) {
 
   enableImageDrop(textarea);
 
+  const headingSelect = el("select", {
+    class: "c-tool-select",
+    title: "글머리",
+    "aria-label": "글머리",
+    onchange: (e) => {
+      setHeading(textarea, Number(e.target.value));
+      e.target.value = "0";
+    },
+  });
+  for (const [value, label] of [
+    [0, "본문"], [1, "제목 1"], [2, "제목 2"], [3, "제목 3"],
+    [4, "제목 4"], [5, "제목 5"], [6, "제목 6"],
+  ]) {
+    headingSelect.appendChild(el("option", { value: String(value) }, label));
+  }
+
+  function insertLink() {
+    const url = window.prompt("링크 주소를 입력하세요", "https://");
+    if (url === null) return;
+    const href = url.trim();
+    if (!href) return;
+    wrapSelection(textarea, "[", `](${href})`, "링크 글자");
+  }
+
   return el("div", { class: "c-toolbar" }, [
     toolbarButton(TOOLBAR_ICONS.bold, "굵게", () => wrapSelection(textarea, "**", "**", "굵게")),
     toolbarButton(TOOLBAR_ICONS.italic, "기울임", () => wrapSelection(textarea, "*", "*", "기울임")),
+    toolbarButton(TOOLBAR_ICONS.underline, "밑줄", () =>
+      toggleWrap(textarea, "<u>", "</u>", /^<u>([\s\S]*)<\/u>$/, "밑줄"),
+    ),
     toolbarButton(TOOLBAR_ICONS.strike, "취소선", () => wrapSelection(textarea, "~~", "~~", "취소선")),
-    el("span", { class: "c-tool-sep" }),
-    toolbarButton("H", "제목", () => prefixLine(textarea, "## ")),
-    toolbarButton(TOOLBAR_ICONS.quote, "인용구", () => prefixLine(textarea, "> ")),
+    separator(),
+    colorTool(TOOLBAR_ICONS.textColor, "글자 색", (color) => {
+      if (color === "transparent") {
+        toggleWrap(textarea, "", "", /^<span style="color: [^"]*">([\s\S]*)<\/span>$/, "");
+        return;
+      }
+      wrapSelection(textarea, `<span style="color: ${color}">`, "</span>", "글자");
+    }),
+    colorTool(TOOLBAR_ICONS.highlight, "배경 색", (color) => {
+      if (color === "transparent") {
+        toggleWrap(textarea, "", "", /^<mark style="background-color: [^"]*">([\s\S]*)<\/mark>$/, "");
+        return;
+      }
+      wrapSelection(textarea, `<mark style="background-color: ${color}">`, "</mark>", "글자");
+    }),
+    separator(),
+    headingSelect,
+    separator(),
+    toolbarButton(TOOLBAR_ICONS.alignLeft, "왼쪽 정렬", () => setAlign(textarea, "left")),
+    toolbarButton(TOOLBAR_ICONS.alignCenter, "가운데 정렬", () => setAlign(textarea, "center")),
+    toolbarButton(TOOLBAR_ICONS.alignRight, "오른쪽 정렬", () => setAlign(textarea, "right")),
+    toolbarButton(TOOLBAR_ICONS.alignJustify, "양쪽 정렬", () => setAlign(textarea, "justify")),
+    separator(),
     toolbarButton(TOOLBAR_ICONS.list, "목록", () => prefixLine(textarea, "- ")),
-    toolbarButton(TOOLBAR_ICONS.code, "코드", () => wrapSelection(textarea, "`", "`", "코드")),
-    el("span", { class: "c-tool-sep" }),
-    toolbarButton(TOOLBAR_ICONS.link, "링크", () => wrapSelection(textarea, "[", "](https://)", "링크 글자")),
+    toolbarButton(TOOLBAR_ICONS.quote, "인용구", () => prefixLine(textarea, "> ")),
+    toolbarButton(TOOLBAR_ICONS.link, "링크", insertLink),
+    toolbarButton(TOOLBAR_ICONS.code, "코드 블록", () =>
+      wrapSelection(textarea, "```\n", "\n```", "코드"),
+    ),
     imageBtn,
     fileInput,
+    separator(),
+    toolbarButton(TOOLBAR_ICONS.undo, "실행 취소", () => {
+      textarea.focus();
+      document.execCommand("undo");
+    }),
+    toolbarButton(TOOLBAR_ICONS.redo, "다시 실행", () => {
+      textarea.focus();
+      document.execCommand("redo");
+    }),
   ]);
 }
+
 
 // ===== 신고 =====
 
@@ -403,6 +619,9 @@ function renderLoginRequired() {
 }
 
 function main() {
+  // 게이트에 막히면 gate.js가 <main>을 안내 화면으로 갈아끼우므로 이 자리가 사라진다.
+  // 그때는 그릴 곳이 없으니 조용히 물러난다(예전엔 여기서 콘솔 오류가 났다).
+  if (!root) return;
   // 목록/상세는 백엔드가 비로그인 조회를 허용하므로(OptionalJwtAuthGuard) 항상 렌더링한다.
   // 글쓰기만 로그인이 필요하다.
   window.clubProfileReady.then((profile) => {

@@ -7,11 +7,12 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
-import Underline from '@tiptap/extension-underline';
-import { Extension } from '@tiptap/core';
+import { Extension, type Editor } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import { CustomImage } from './CustomImage';
+import Paragraph from '@tiptap/extension-paragraph';
+import Heading from '@tiptap/extension-heading';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { lowlight } from 'lowlight';
 import 'highlight.js/styles/github.css';
@@ -63,6 +64,62 @@ const EasterEggExtension = Extension.create({
   },
 });
 
+/**
+ * 마크다운에는 가운데/오른쪽 정렬 문법이 없다. 그냥 두면 정렬한 문단이 저장할 때
+ * 조용히 왼쪽으로 돌아가버려서, 정렬이 걸린 문단·제목만 HTML로 남긴다.
+ * (홈페이지 편집기도 같은 형태를 써서 두 곳이 서로 읽을 수 있다.)
+ */
+function alignedSerializer(
+  tagOf: (node: any) => string,
+  plain: (state: any, node: any) => void,
+) {
+  return function (state: any, node: any) {
+    const align = node.attrs.textAlign;
+    if (!align || align === 'left') {
+      plain(state, node);
+      return;
+    }
+    const tag = tagOf(node);
+    state.write(`<${tag} style="text-align: ${align}">`);
+    state.renderInline(node);
+    state.write(`</${tag}>`);
+    state.closeBlock(node);
+  };
+}
+
+const AlignedParagraph = Paragraph.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize: alignedSerializer(
+          () => 'p',
+          (state, node) => {
+            state.renderInline(node);
+            state.closeBlock(node);
+          },
+        ),
+      },
+    };
+  },
+});
+
+const AlignedHeading = Heading.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize: alignedSerializer(
+          (node) => `h${node.attrs.level}`,
+          (state, node) => {
+            state.write(`${state.repeat('#', node.attrs.level)} `);
+            state.renderInline(node);
+            state.closeBlock(node);
+          },
+        ),
+      },
+    };
+  },
+});
+
 const COLOR_PALETTE = [
   'transparent', '#000000', '#333333', '#666666', '#999999', '#CCCCCC', '#FFFFFF',
   '#FF0000', '#FF9900', '#FFCC00', '#009966', '#0066CC', '#9933CC', '#7986CB',
@@ -84,7 +141,7 @@ function ColorPickerPopup({
 
   return (
     <div
-      className="absolute left-0 top-full z-50 mt-2 flex w-[230px] cursor-default flex-col rounded border border-ink-500 bg-[var(--color-surface)] p-3 shadow-lg"
+      className="absolute left-0 top-full z-50 mt-2 flex w-[230px] cursor-default flex-col rounded border border-ink-500 bg-[var(--color-surface)] p-3 shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="grid grid-cols-7 gap-1">
@@ -154,6 +211,7 @@ const ICONS = {
   bold: <Icon><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z" /><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z" /></Icon>,
   italic: <Icon><path d="M18 5h-6M12 19H6M15 5l-4 14" /></Icon>,
   underline: <Icon><path d="M7 4v6a5 5 0 0 0 10 0V4" /><path d="M5 20h14" /></Icon>,
+  link: <Icon><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></Icon>,
   strike: <Icon><path d="M4 12h16" /><path d="M16.5 7.5A4 4 0 0 0 13 6h-1.5C9.6 6 8 7.1 8 8.8c0 1.2.8 2.1 2.2 2.7" /><path d="M7.5 16.5A4 4 0 0 0 11 18h1.5c1.9 0 3.5-1.1 3.5-2.8 0-.7-.3-1.3-.8-1.8" /></Icon>,
   textColor: <Icon><path d="M5 18L11 5l6 13" /><path d="M7.5 14h7" /></Icon>,
   highlight: <Icon><path d="M4 20h16" /><path d="M14 4l6 6-8 7H7v-5z" /></Icon>,
@@ -288,7 +346,12 @@ export function MarkdownEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        // 정렬을 저장하려면 문단/제목의 마크다운 변환을 우리가 맡아야 한다.
+        paragraph: false,
+        heading: false,
       }),
+      AlignedParagraph,
+      AlignedHeading,
       CodeBlockLowlight.configure({
         lowlight,
       }),
@@ -297,7 +360,6 @@ export function MarkdownEditor({
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Underline,
       EasterEggExtension,
       CustomImage,
       Markdown,
@@ -353,7 +415,7 @@ export function MarkdownEditor({
     /* 페이지 가운데 폭(main) 안에 들어가는 카드. 예전에는 화면 전체를 쓰는
        전용 레이아웃이었지만, 지금은 다른 페이지들과 같은 폭을 쓴다. */
     <div className={`flex w-full min-w-0 flex-col bg-transparent ${className}`}>
-      <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border border-ink-600 bg-[var(--color-surface)] shadow-sm">
+      <div className="flex w-full flex-1 flex-col overflow-hidden rounded border border-ink-600 bg-[var(--color-surface)]">
         {/* 상단 고정 툴바. 모든 버튼이 같은 크기(32px)와 같은 아이콘 규격을 쓴다. */}
         <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-[var(--color-surface)] px-2 py-1.5">
           {editor && (
@@ -490,6 +552,12 @@ export function MarkdownEditor({
                 isActive={editor.isActive('blockquote')}
               />
               <ToolbarButton
+                icon={ICONS.link}
+                title="링크"
+                onClick={() => setLink(editor)}
+                isActive={editor.isActive('link')}
+              />
+              <ToolbarButton
                 icon={ICONS.code}
                 title="코드 블록"
                 onClick={() => setIsCodeblockModalOpen(true)}
@@ -550,7 +618,7 @@ export function MarkdownEditor({
       {/* 코드블럭 모달 */}
       {isCodeblockModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-          <div className="flex h-[500px] w-[800px] max-w-full flex-col overflow-hidden rounded border border-ink-500 bg-[var(--color-surface)] shadow-xl">
+          <div className="flex h-[500px] w-[800px] max-w-full flex-col overflow-hidden rounded border border-ink-500 bg-[var(--color-surface)] shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between border-b border-ink-600 p-4 font-bold">
               <span>코드 블록 삽입</span>
               <button
@@ -579,7 +647,7 @@ export function MarkdownEditor({
                 ))}
               </div>
               <textarea
-                className="flex-1 resize-none bg-[#0d1117] p-4 font-mono text-sm leading-relaxed text-[#c9d1d9] outline-none"
+                className="flex-1 resize-none bg-ink-700 p-4 font-mono text-sm leading-relaxed text-fg outline-none"
                 placeholder="여기에 코드를 입력하세요..."
                 value={codeblockCode}
                 onChange={(e) => setCodeblockCode(e.target.value)}
@@ -614,6 +682,22 @@ export function MarkdownEditor({
       )}
     </div>
   );
+}
+
+/**
+ * 링크 걸기/바꾸기. 이미 링크면 지금 주소를 채워 보여주고, 비우면 링크를 푼다.
+ * (홈페이지 툴바에만 있던 기능이라 양쪽 도구를 맞추려고 옮겨왔다.)
+ */
+function setLink(editor: Editor) {
+  const current = editor.getAttributes('link').href ?? '';
+  const url = window.prompt('링크 주소를 입력하세요', current || 'https://');
+  if (url === null) return;
+  const trimmed = url.trim();
+  if (!trimmed) {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    return;
+  }
+  editor.chain().focus().extendMarkRange('link').setLink({ href: trimmed }).run();
 }
 
 function ToolbarDivider() {
