@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AccessGate } from './components/AccessGate';
 import { AdminRoute } from './components/AdminRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -71,25 +72,26 @@ export default function App() {
             <Route path="/contests" element={<ContestListPage />} />
             <Route path="/contests/:slug" element={<ContestDetailPage />} />
             <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboardPage />} />
+            {/* 로그인이 필요한 화면은 리다이렉트 대신 안내 화면을 보여준다.
+                (헤더 탭은 그대로 두고, 들어가면 왜 못 보는지 알려준다.) */}
+            <Route path="/community" element={<AccessGate level="login"><CommunityListPage /></AccessGate>} />
+            <Route path="/community/:id" element={<AccessGate level="login"><CommunityPostPage /></AccessGate>} />
+            <Route path="/problems/mine" element={<AccessGate level="login"><MyProblemsPage /></AccessGate>} />
+            <Route path="/classes" element={<AccessGate level="login"><ClassListPage /></AccessGate>} />
+            <Route path="/classes/:slug" element={<AccessGate level="login"><ClassDetailPage /></AccessGate>} />
             <Route element={<ProtectedRoute />}>
-              {/* 커뮤니티는 로그인해야 볼 수 있다(일반 회원도 가능). */}
-              <Route path="/community" element={<CommunityListPage />} />
-              <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />
               <Route path="/register-name" element={<RegisterNamePage />} />
               <Route path="/community/new" element={<NewCommunityPostPage />} />
-              <Route path="/problems/mine" element={<MyProblemsPage />} />
               <Route path="/problems/new" element={<NewProblemPage />} />
               <Route path="/problems/:slug/edit" element={<EditProblemPage />} />
-              <Route path="/classes" element={<ClassListPage />} />
-              <Route path="/classes/:slug" element={<ClassDetailPage />} />
               <Route path="/problems/:slug/submit" element={<SubmitPage />} />
             </Route>
             <Route path="/problems/:slug" element={<ProblemDetailPage />} />
+            <Route path="/submissions" element={<AccessGate level="login"><SubmissionFeedPage /></AccessGate>} />
+            {/* ':id'보다 먼저 둬서 'me'가 제출 ID로 해석되지 않게 한다. */}
+            <Route path="/submissions/me" element={<AccessGate level="login"><MySubmissionsPage /></AccessGate>} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/submissions" element={<SubmissionFeedPage />} />
-              {/* ':id'보다 먼저 둬서 'me'가 제출 ID로 해석되지 않게 한다. */}
-              <Route path="/submissions/me" element={<MySubmissionsPage />} />
               <Route path="/submissions/:id" element={<SubmissionPage />} />
             </Route>
             <Route element={<AdminRoute />}>

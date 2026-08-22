@@ -20,6 +20,7 @@ import {
   CreateCommentDto,
   CreatePostDto,
   CreateTagDto,
+  ResolveMentionsDto,
   VoteDto,
   type Board,
 } from './dto/community.dto';
@@ -55,6 +56,16 @@ export class CommunityController {
     @Req() req: OptionalAuthRequest,
   ) {
     return this.community.listTags(parseBoard(board), req.user?.userId, req.user?.role);
+  }
+
+  /**
+   * 작성 중인 본문에서 실제로 존재하는 멘션 대상을 알려준다(미리보기용).
+   * 저장 전에는 서버가 본문을 모르므로 프론트가 초안을 보내 확인한다.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('mentions/resolve')
+  resolveMentions(@Body() dto: ResolveMentionsDto) {
+    return this.community.resolveMentions(dto.content ?? '');
   }
 
   // 게시글에 태그를 붙일 수 있는 사람이면(=로그인 사용자) 새 태그를 만들 수 있다.

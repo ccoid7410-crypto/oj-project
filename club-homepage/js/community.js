@@ -221,6 +221,59 @@ function toolbarButton(html, title, onClick) {
 }
 
 /** 글 본문 textarea 위에 붙는 마크다운 툴바(이미지 첨부 포함). */
+const IMAGE_UPLOAD_ERROR = "이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)";
+
+/**
+ * 이미지 하나를 올리고, 올리는 동안 커서 자리에 자리표시자를 뒀다가 결과로 바꾼다.
+ * 툴바 버튼·붙여넣기·드래그앤드롭이 모두 이 함수를 쓴다.
+ */
+async function insertUploadedImage(textarea, file) {
+  const placeholder = `![업로드 중...${Math.random().toString(36).slice(2, 8)}]()`;
+  insertAtCursor(textarea, placeholder);
+  try {
+    const form = new FormData();
+    form.append("image", file);
+    const res = await fetch("/api/uploads/image", {
+      method: "POST",
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const url = data.url || data.path || data.location;
+    textarea.value = textarea.value.replace(placeholder, `![](${url})`);
+  } catch {
+    textarea.value = textarea.value.replace(placeholder, "");
+    alert(IMAGE_UPLOAD_ERROR);
+  }
+}
+
+/** 클립보드/드롭 데이터에서 이미지 파일만 골라낸다. */
+function imageFilesOf(data) {
+  if (!data) return [];
+  return Array.from(data.files || []).filter((f) => f.type.startsWith("image/"));
+}
+
+/** 버튼을 거치지 않고 붙여넣기·드래그앤드롭으로도 이미지를 넣을 수 있게 한다. */
+function enableImageDrop(textarea) {
+  textarea.addEventListener("paste", (event) => {
+    const files = imageFilesOf(event.clipboardData);
+    if (files.length === 0) return;
+    event.preventDefault();
+    for (const file of files) insertUploadedImage(textarea, file);
+  });
+  // dragover에서 기본 동작을 막아야 drop 이벤트가 온다.
+  textarea.addEventListener("dragover", (event) => {
+    if (imageFilesOf(event.dataTransfer).length > 0) event.preventDefault();
+  });
+  textarea.addEventListener("drop", (event) => {
+    const files = imageFilesOf(event.dataTransfer);
+    if (files.length === 0) return;
+    event.preventDefault();
+    for (const file of files) insertUploadedImage(textarea, file);
+  });
+}
+
 function buildToolbar(textarea) {
   const fileInput = el("input", {
     type: "file",
@@ -234,29 +287,15 @@ function buildToolbar(textarea) {
     const file = fileInput.files?.[0];
     if (!file) return;
     imageBtn.disabled = true;
-    // 업로드가 끝나면 커서 위치에 마크다운 이미지 문법을 끼워 넣는다.
-    const placeholder = "![업로드 중...]()";
-    insertAtCursor(textarea, placeholder);
     try {
-      const form = new FormData();
-      form.append("image", file);
-      const res = await fetch("/api/uploads/image", {
-        method: "POST",
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: form,
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const url = data.url || data.path || data.location;
-      textarea.value = textarea.value.replace(placeholder, `![](${url})`);
-    } catch {
-      textarea.value = textarea.value.replace(placeholder, "");
-      alert("이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)");
+      await insertUploadedImage(textarea, file);
     } finally {
       imageBtn.disabled = false;
       fileInput.value = "";
     }
   });
+
+  enableImageDrop(textarea);
 
   return el("div", { class: "c-toolbar" }, [
     toolbarButton(TOOLBAR_ICONS.bold, "굵게", () => wrapSelection(textarea, "**", "**", "굵게")),
@@ -578,9 +617,13 @@ function renderComments(profile, post) {
         el("span", { class: "c-comment-date" }, fmtDateTime(c.createdAt)),
       ]),
       (() => {
-        const p = el("p", { class: "c-comment-body" }, c.content);
-        applyMentions(p);
-        return p;
+        // 댓글·답글도 글쓰기와 같은 마크다운으로 그린다(이미지 포함).
+        const body = window.renderMarkdown
+          ? window.renderMarkdown(c.content)
+          : el("p", { class: "c-comment-body" }, c.content);
+        body.classList.add("c-comment-body");
+        applyMentions(body);
+        return body;
       })(),
       actions,
     ]);
@@ -623,6 +666,8 @@ function renderComments(profile, post) {
 
   const form = profile
     ? el("div", { class: "c-comment-form" }, [
+        // 글쓰기와 같은 마크다운 툴바(이미지 첨부·붙여넣기·드래그앤드롭 포함).
+        buildToolbar(textarea),
         textarea,
         noticeP,
         el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: submitComment }, "등록"),
@@ -713,12 +758,23 @@ async function renderNew(profile) {
   const contentArea = el("textarea", { class: "field-textarea c-content", rows: "12" });
   const preview = el("div", { class: "c-body markdown-body", style: "display:none" });
   let previewing = false;
-  const previewBtn = el("button", { type: "button", class: "link-btn", onclick: () => {
+  const previewBtn = el("button", { type: "button", class: "link-btn", onclick: async () => {
     previewing = !previewing;
     if (previewing) {
       preview.innerHTML = "";
       const rendered = window.renderMarkdown ? window.renderMarkdown(contentArea.value || "내용이 없습니다.") : el("div", {}, contentArea.value);
       preview.appendChild(rendered);
+      // 저장 전이라 서버가 본문을 모르므로, 초안을 보내 실제 존재하는 멘션 대상을 받아 칩으로 그린다.
+      try {
+        const found = await authJson("/community/mentions/resolve", {
+          method: "POST",
+          body: JSON.stringify({ content: contentArea.value }),
+        });
+        mentionUsers = new Map(found.map((m) => [m.username, m.avatarVersion]));
+        applyMentions(rendered);
+      } catch {
+        // 확인에 실패하면 멘션은 원문 그대로 둔다.
+      }
       preview.style.display = "";
       contentArea.style.display = "none";
       previewBtn.textContent = "편집";

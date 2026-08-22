@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
-import type { CommunityComment, VoteSummary } from '../api/types';
+import type { CommunityComment, MentionUser, VoteSummary } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './Avatar';
+import { MentionScope } from './MentionText';
+import { CommentBody, CommentEditor } from './CommentEditor';
 import { UserTitleBadge } from './UserTitleBadge';
 import { VoteButtons } from './VoteButtons';
 
@@ -14,10 +16,13 @@ import { VoteButtons } from './VoteButtons';
 export function CommunityComments({
   postId,
   comments,
+  mentions,
   onReload,
 }: {
   postId: string;
   comments: CommunityComment[];
+  /** 게시글 API가 내려준 실제 계정 목록. 댓글의 @사용자명을 칩으로 바꿀 때 쓴다. */
+  mentions?: MentionUser[];
   onReload: () => void;
 }) {
   const { user } = useAuth();
@@ -25,6 +30,8 @@ export function CommunityComments({
   const [content, setContent] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 등록 후 입력칸을 비우기 위한 값(바뀌면 편집기를 새로 그린다).
+  const [editorKey, setEditorKey] = useState(0);
   // 댓글 정렬: 인기순(좋아요-싫어요, 기본) / 날짜순(오래된 순) / 최신순
   const [sort, setSort] = useState<'popular' | 'old' | 'new'>('popular');
 
@@ -40,6 +47,7 @@ export function CommunityComments({
         parentId: replyTo ?? undefined,
       });
       setContent('');
+      setEditorKey((k) => k + 1);
       setReplyTo(null);
       onReload();
     } catch (err) {
@@ -111,36 +119,39 @@ export function CommunityComments({
         )}
       </div>
 
-      <ul className="mt-4 flex flex-col gap-3">
-        {topLevel.map((c) => (
-          <li key={c.id} className="rounded border border-ink-500 p-3 text-sm">
-            <CommentRow
-              comment={c}
-              canVote={!!user}
-              canManage={canManage(c)}
-              onVote={(v) => onVote(c.id, v)}
-              onDelete={() => onDelete(c.id)}
-              onReply={() => setReplyTo(c.id)}
-            />
-            {repliesOf(c.id).length > 0 && (
-              <ul className="mt-2 flex flex-col gap-2 border-l-2 border-ink-500 pl-3">
-                {repliesOf(c.id).map((r) => (
-                  <li key={r.id}>
-                    <CommentRow
-                      comment={r}
-                      canVote={!!user}
-                      canManage={canManage(r)}
-                      onVote={(v) => onVote(r.id, v)}
-                      onDelete={() => onDelete(r.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-        {topLevel.length === 0 && <p className="text-sm text-fg-muted">아직 댓글이 없습니다.</p>}
-      </ul>
+      {/* 댓글·답글 본문의 @사용자명도 게시글 본문과 같은 프로필 칩으로 보여준다. */}
+      <MentionScope mentions={mentions} deps={[list]}>
+        <ul className="mt-4 flex flex-col gap-3">
+          {topLevel.map((c) => (
+            <li key={c.id} className="rounded border border-ink-500 p-3 text-sm">
+              <CommentRow
+                comment={c}
+                canVote={!!user}
+                canManage={canManage(c)}
+                onVote={(v) => onVote(c.id, v)}
+                onDelete={() => onDelete(c.id)}
+                onReply={() => setReplyTo(c.id)}
+              />
+              {repliesOf(c.id).length > 0 && (
+                <ul className="mt-2 flex flex-col gap-2 border-l-2 border-ink-500 pl-3">
+                  {repliesOf(c.id).map((r) => (
+                    <li key={r.id}>
+                      <CommentRow
+                        comment={r}
+                        canVote={!!user}
+                        canManage={canManage(r)}
+                        onVote={(v) => onVote(r.id, v)}
+                        onDelete={() => onDelete(r.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+          {topLevel.length === 0 && <p className="text-sm text-fg-muted">아직 댓글이 없습니다.</p>}
+        </ul>
+      </MentionScope>
 
       {user ? (
         <div className="mt-4">
@@ -152,12 +163,11 @@ export function CommunityComments({
               </button>
             </p>
           )}
-          <textarea
+          <CommentEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
+            onChange={setContent}
+            resetKey={editorKey}
             placeholder={replyTo ? '답글 내용' : '댓글을 남겨보세요'}
-            className="w-full resize-y rounded border border-ink-500 bg-white p-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
           {error && <p className="mt-1 text-xs text-[var(--color-wa)]">{error}</p>}
           <button
@@ -200,7 +210,7 @@ function CommentRow({
         </span>
         <span className="text-xs text-fg-muted">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-sm">{comment.content}</p>
+      <CommentBody content={comment.content} />
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-fg-muted">
         <VoteButtons summary={comment} onVote={onVote} disabled={!canVote} />
         {onReply && (

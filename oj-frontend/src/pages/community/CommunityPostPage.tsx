@@ -8,6 +8,7 @@ import { UserTitleBadge } from '../../components/UserTitleBadge';
 import { VoteButtons } from '../../components/VoteButtons';
 import { CommunityComments } from '../../components/CommunityComments';
 import { PostTypeBadge, postTitleColorClass } from '../../components/CommunityPostType';
+import { MentionScope } from '../../components/MentionText';
 
 // KaTeX(수식) 번들이 커서 이 페이지에서만 lazy load 한다.
 const MarkdownView = lazy(() =>
@@ -88,9 +89,12 @@ export function CommunityPostPage() {
       </div>
 
       <div className="mt-4 border-t border-ink-500 pt-4">
-        <Suspense fallback={<p className="whitespace-pre-wrap text-sm text-fg">{post.content}</p>}>
-          <MarkdownView content={post.content} className="text-fg" />
-        </Suspense>
+        {/* 본문의 @사용자명은 실제 계정일 때만 프로필 칩으로 바꿔서 보여준다. */}
+        <MentionScope mentions={post.mentions} deps={[post.content]}>
+          <Suspense fallback={<p className="whitespace-pre-wrap text-sm text-fg">{post.content}</p>}>
+            <MarkdownView content={post.content} className="text-fg" />
+          </Suspense>
+        </MentionScope>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -98,7 +102,12 @@ export function CommunityPostPage() {
         {!user && <span className="text-xs text-fg-muted">로그인하면 좋아요를 누를 수 있어요.</span>}
       </div>
 
-      <CommunityComments postId={post.id} comments={post.comments} onReload={load} />
+      <CommunityComments
+        postId={post.id}
+        comments={post.comments}
+        mentions={post.mentions}
+        onReload={load}
+      />
     </div>
   );
 }

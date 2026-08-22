@@ -7,7 +7,7 @@ import {
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { generationFromEmail } from './generation';
+import { generationFromStudentId } from './generation';
 
 export interface BulkUserSpec {
   username: string;
@@ -70,7 +70,7 @@ export class UsersService {
     const { avatarUpdatedAt, bannerUpdatedAt, ...rest } = user;
     return {
       ...rest,
-      generation: generationFromEmail(user.email),
+      generation: generationFromStudentId(user.studentId),
       avatarVersion: avatarUpdatedAt ? avatarUpdatedAt.getTime() : null,
       bannerVersion: bannerUpdatedAt ? bannerUpdatedAt.getTime() : null,
     };
@@ -545,7 +545,6 @@ export class UsersService {
       where: { id: userId },
       select: {
         username: true,
-        email: true,
         name: true,
         studentId: true,
         rating: true,
@@ -562,7 +561,7 @@ export class UsersService {
       rating: user.rating,
       role: user.role,
       createdAt: user.createdAt,
-      generation: generationFromEmail(user.email),
+      generation: generationFromStudentId(user.studentId),
     };
   }
 
@@ -694,13 +693,13 @@ export class UsersService {
   }
 
   /**
-   * 명예의 전당: 동아리 부원(MEMBER 이상)만, 이메일 아이디에서 처음 나오는 두 자리
-   * 숫자를 기수로 삼아 기수별로 묶는다 (예: cbsh38018@... -> 38기). 이메일 자체는 노출하지 않는다.
+   * 명예의 전당: 동아리 부원(MEMBER 이상)만, 학번에서 계산한 기수로 묶는다.
+   * 학번이 없어 기수를 알 수 없는 계정은 '기타'로 모아 맨 뒤에 둔다.
    */
   async hallOfFame() {
     const users = await this.prisma.user.findMany({
       where: { banned: false, role: { in: ['MEMBER', 'ADMIN'] } },
-      select: { username: true, name: true, email: true },
+      select: { username: true, name: true, studentId: true },
       orderBy: [{ name: 'asc' }, { username: 'asc' }],
     });
     const byGeneration = new Map<
@@ -708,11 +707,11 @@ export class UsersService {
       { username: string; name: string | null }[]
     >();
     for (const u of users) {
-      const key = generationFromEmail(u.email) ?? '기타';
+      const key = generationFromStudentId(u.studentId) ?? '기타';
       if (!byGeneration.has(key)) byGeneration.set(key, []);
       byGeneration.get(key)!.push({ username: u.username, name: u.name });
     }
-    // 기수 오름차순 정렬, 숫자가 없는 이메일(기타)은 맨 뒤로
+    // 기수 오름차순 정렬, 학번이 없어 기수를 모르는 계정(기타)은 맨 뒤로
     return [...byGeneration.entries()]
       .sort(([a], [b]) => {
         if (a === '기타') return 1;

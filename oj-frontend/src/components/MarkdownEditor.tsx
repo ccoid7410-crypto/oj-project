@@ -10,7 +10,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import FilerobotImageEditor, { TABS, TOOLS } from 'react-filerobot-image-editor';
 import { CustomImage } from './CustomImage';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -126,6 +126,33 @@ function ColorPickerPopup({
   );
 }
 
+const IMAGE_UPLOAD_ERROR = '이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)';
+
+/** 이미지 파일 하나를 올리고 접근 URL을 돌려준다. */
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const token = localStorage.getItem('oj_token');
+  const res = await fetch('/api/uploads/image', {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Upload failed');
+
+  const data = await res.json();
+  return data.url as string;
+}
+
+/** 클립보드/드롭 데이터에서 이미지 파일만 골라낸다. */
+function imageFilesOf(data: DataTransfer | null): File[] {
+  if (!data) return [];
+  return Array.from(data.files).filter((f) => f.type.startsWith('image/'));
+}
+
 interface MarkdownEditorProps {
   /** 제목 입력을 이 에디터 안에 둘 때만 넘긴다. 생략하면 본문만 그린다(게시글 작성 등). */
   title?: string;
@@ -134,6 +161,8 @@ interface MarkdownEditorProps {
   onContentChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  /** 댓글처럼 짧은 입력에 쓰는 낮은 형태. 입력칸 높이와 여백을 줄인다. */
+  compact?: boolean;
 }
 
 export function MarkdownEditor({
@@ -143,6 +172,7 @@ export function MarkdownEditor({
   onContentChange,
   placeholder = '문제 설명을 입력하세요... (슬래시(/)나 # 등의 마크다운 단축키를 사용할 수 있습니다)',
   className = '',
+  compact = false,
 }: MarkdownEditorProps) {
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const bgColorPickerRef = useRef<HTMLDivElement>(null);
@@ -182,35 +212,41 @@ export function MarkdownEditor({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     try {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const token = localStorage.getItem('oj_token');
-      const res = await fetch('/api/uploads/image', {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      });
-      
-      if (!res.ok) {
-        throw new Error('Upload failed');
-      }
-      
-      const data = await res.json();
+      const url = await uploadImage(file);
       editor?.chain().focus().insertContent({
         type: 'image',
-        attrs: { src: data.url }
+        attrs: { src: url }
       }).run();
     } catch (error) {
-      alert('이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)');
+      alert(IMAGE_UPLOAD_ERROR);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  /**
+   * 붙여넣기/드래그앤드롭으로 들어온 이미지를 올리고 그 자리에 끼워 넣는다.
+   * 여기서는 editor 대신 ProseMirror view를 직접 쓴다 - 이 콜백들은 에디터가
+   * 만들어질 때 한 번만 등록되므로, 그때의 editor 변수(아직 null)를 붙잡으면 안 된다.
+   */
+  const insertUploadedImages = async (view: EditorView, files: File[], pos?: number) => {
+    setIsUploading(true);
+    try {
+      let at = pos ?? view.state.selection.from;
+      for (const file of files) {
+        const url = await uploadImage(file);
+        const node = view.state.schema.nodes.image.create({ src: url });
+        view.dispatch(view.state.tr.insert(at, node));
+        at += node.nodeSize;
+      }
+    } catch {
+      alert(IMAGE_UPLOAD_ERROR);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -275,7 +311,25 @@ export function MarkdownEditor({
     editorProps: {
       attributes: {
         // 커스텀 CSS(.ProseMirror)를 통해 스타일링됩니다.
-        class: 'min-h-[400px] outline-none',
+        class: `${compact ? 'min-h-[110px]' : 'min-h-[400px]'} outline-none`,
+      },
+      // 툴바의 이미지 첨부 버튼 말고도, 그냥 붙여넣거나 끌어다 놓아도 올라간다.
+      handlePaste(view, event) {
+        const files = imageFilesOf(event.clipboardData);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        void insertUploadedImages(view, files);
+        return true;
+      },
+      handleDrop(view, event, _slice, moved) {
+        // 에디터 안에서 이미지를 옮기는 중이면 기본 동작(이동)을 그대로 둔다.
+        if (moved) return false;
+        const files = imageFilesOf(event.dataTransfer);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        const dropped = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        void insertUploadedImages(view, files, dropped?.pos);
+        return true;
       },
     },
   });
@@ -288,11 +342,13 @@ export function MarkdownEditor({
   }, [editor, content]);
 
   return (
-    <div className={`flex min-h-[calc(100vh-64px)] w-full min-w-0 flex-col bg-transparent px-4 lg:px-8 ${className}`}>
+    /* 페이지 가운데 폭(main) 안에 들어가는 카드. 예전에는 화면 전체를 쓰는
+       전용 레이아웃이었지만, 지금은 다른 페이지들과 같은 폭을 쓴다. */
+    <div className={`flex w-full min-w-0 flex-col bg-transparent ${className}`}>
       {/* 에디터 캔버스 */}
-      <div className="mx-auto mt-4 mb-16 flex w-full max-w-[850px] flex-1 flex-col rounded-2xl border border-ink-600 bg-surface shadow-sm overflow-hidden">
+      <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border border-ink-600 bg-surface shadow-sm">
         {/* 상단 고정 툴바 */}
-        <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-surface/95 px-6 py-3 backdrop-blur-md">
+        <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-surface/95 px-3 py-2 backdrop-blur-md">
         {editor && (
           <div className="flex flex-wrap items-center gap-1">
             <ToolbarButton
@@ -497,7 +553,7 @@ export function MarkdownEditor({
         )}
       </div>
 
-      <div className="px-10 pb-12 pt-8 flex-1 flex flex-col">
+      <div className={`flex flex-1 flex-col ${compact ? 'px-3 pb-3 pt-2' : 'px-5 pb-8 pt-5'}`}>
         {onTitleChange && (
           <>
             <input
@@ -505,10 +561,10 @@ export function MarkdownEditor({
               value={title ?? ''}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="제목을 입력하세요"
-              className="w-full border-none bg-transparent py-4 text-4xl font-bold outline-none placeholder:text-ink-400"
+              className="w-full border-none bg-transparent py-2 text-2xl font-bold outline-none placeholder:text-ink-400"
             />
 
-            <div className="my-6 h-px w-full bg-ink-200" />
+            <div className="my-4 h-px w-full bg-ink-200" />
           </>
         )}
 

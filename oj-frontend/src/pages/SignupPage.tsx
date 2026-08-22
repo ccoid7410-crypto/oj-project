@@ -85,9 +85,12 @@ export function SignupPage() {
           <input
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            placeholder="예: 20240001"
+            placeholder="예: 20260001"
             className="rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
+          <span className="text-xs text-fg-muted">
+            앞 4자리(입학년도)로 기수를 계산합니다. 없으면 명예의 전당에서 '기타'로 표시됩니다.
+          </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           비밀번호 (8자 이상)

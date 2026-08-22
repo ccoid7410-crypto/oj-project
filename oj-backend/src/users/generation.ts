@@ -1,14 +1,18 @@
 /**
- * 학교 계정(cbsh#####@cbsh.hs.kr)에서만 기수를 뽑는다.
- * 학번 5자리의 앞 2자리가 기수다. (예: cbsh38001@cbsh.hs.kr → "38")
+ * 기수 계산. 학번 8자리 중 앞 4자리가 입학년도이고, 2026년 입학이 38기다.
+ * (예: 20260001 → 38기, 20250012 → 37기)
  *
- * 개인 이메일(gmail 등)은 기수를 알 수 없으므로 null이다. 예전에는 이메일 아이디에서
- * 처음 나오는 두 자리 숫자를 썼는데, 그러면 kim2005@gmail.com 같은 주소가 "20기"로
- * 잘못 잡혀서 형식 검사로 바꿨다.
+ * 학번이 없거나 형식이 다르면 null이고, 명예의 전당에서는 '기타'로 묶인다.
+ * 예전에는 이메일에서 기수를 뽑았는데, 개인 이메일은 알 수 없는 데다
+ * 학번에 이미 입학년도가 들어 있어서 학번 기준으로 바꿨다.
  */
-const SCHOOL_EMAIL = /^cbsh(\d{5})@cbsh\.hs\.kr$/i;
+const BASE_YEAR = 2026;
+const BASE_GENERATION = 38;
 
-export function generationFromEmail(email: string): string | null {
-  const match = SCHOOL_EMAIL.exec(email.trim());
-  return match ? match[1].slice(0, 2) : null;
+export function generationFromStudentId(studentId: string | null): string | null {
+  if (!studentId) return null;
+  const match = /^(\d{4})\d{4}$/.exec(studentId.trim());
+  if (!match) return null;
+  const generation = BASE_GENERATION + (Number(match[1]) - BASE_YEAR);
+  return generation > 0 ? String(generation) : null;
 }

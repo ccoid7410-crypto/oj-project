@@ -159,6 +159,11 @@ export class CommunityService {
     };
   }
 
+  /** 본문에 등장한 @사용자명 중 실제 계정만 돌려준다(미리보기·상세 렌더링용). */
+  resolveMentions(content: string) {
+    return this.notifications.resolveMentions(content);
+  }
+
   async createPost(
     authorId: string,
     authorRole: string,

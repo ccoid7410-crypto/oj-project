@@ -26,6 +26,25 @@ function renderGateScreen(title, message, buttons) {
   gateMain.appendChild(section);
 }
 
+// 페이지를 통째로 막을 때 쓰는 문구. OJ(components/AccessGate.tsx)와 동일하게 맞춘다.
+// 제목뿐 아니라 아래 설명도 상황(등급 + 로그인 여부)마다 다르게 안내한다.
+const GATE_TEXT = {
+  login: {
+    title: "일반 회원 전용 공간입니다",
+    message: "로그인한 회원만 이용할 수 있는 페이지입니다. 로그인 후 다시 시도해주세요.",
+  },
+  // 부원 전용인데 아직 로그인조차 안 한 경우
+  memberAnon: {
+    title: "동아리 회원 전용 공간입니다",
+    message: "동아리 부원만 볼 수 있는 페이지입니다. 부원 계정으로 로그인해주세요.",
+  },
+  // 부원 전용인데 로그인은 했지만 부원이 아닌 경우
+  member: {
+    title: "동아리 회원 전용 공간입니다",
+    message: "동아리 부원만 볼 수 있는 페이지입니다. 관리자에게 부원 등록을 요청해주세요.",
+  },
+};
+
 window.clubProfileReady = (async () => {
   const loginUrl =
     "/login?redirect=" +
@@ -41,9 +60,10 @@ window.clubProfileReady = (async () => {
     const token = localStorage.getItem("oj_token");
     if (!token) {
       if (!requireLogin) return null;
+      const anonText = requireMember ? GATE_TEXT.memberAnon : GATE_TEXT.login;
       renderGateScreen(
-        "동아리 회원 전용 공간입니다",
-        "두루누리 홈페이지의 일부는 로그인한 동아리 회원만 이용할 수 있습니다.",
+        anonText.title,
+        anonText.message,
         [
           { href: loginUrl, label: "로그인", primary: true },
           { href: "/signup", label: "회원가입" },
@@ -71,8 +91,8 @@ window.clubProfileReady = (async () => {
     const profile = await res.json();
     if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
       renderGateScreen(
-        "동아리 부원만 접속할 수 있습니다",
-        "이 페이지는 동아리 부원만 볼 수 있습니다. 관리자에게 부원 등록을 요청해주세요.",
+        GATE_TEXT.member.title,
+        GATE_TEXT.member.message,
         [{ href: "index.html", label: "홈으로", primary: true }],
       );
       return null;

@@ -76,7 +76,8 @@ body.gate-pending .site-footer {
   /* 세로 패딩 대신 min-height로 높이를 준다. 그래야 탭(트리거)이 헤더 하단
      경계까지 닿아 드롭다운이 정확히 헤더 밑에서 시작한다(외곽선 침범 방지). */
   padding: 0 24px;
-  min-height: 52px;
+  /* OJ 헤더(py-3 + 13px 링크 = 48px)와 같은 높이. */
+  min-height: 48px;
 }
 
 .logo {
@@ -142,6 +143,25 @@ body.gate-pending .site-footer {
 
 .auth-area a:hover,
 .auth-area button:hover {
+  color: var(--color-brand);
+}
+
+/* 헤더 오른쪽의 아이콘 버튼(테마 전환). 알림 종(.notif-bell)과 같은 규격이라
+   아이콘 크기와 세로 위치가 옆 항목들과 어긋나지 않는다. */
+.header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.header-icon-btn:hover {
   color: var(--color-brand);
 }
 
@@ -761,6 +781,13 @@ body.gate-pending .site-footer {
   background: var(--color-brand);
   color: #ffffff;
   font-weight: 700;
+}
+
+/* 오늘이 토요일이면 날짜 글자색(파랑)과 오늘 하이라이트 배경(파랑)이 같아져서 숫자가 안 보인다.
+   요일 색 규칙이 더 구체적이라 위 흰색이 밀리므로, 오늘 표시에는 요일 색보다 우선하게 다시 준다.
+   (일요일은 빨강 + 파랑이라 그대로 둬도 잘 보인다.) */
+.calendar-day-saturday:not(.calendar-day-outside) .calendar-day-number.calendar-day-today {
+  color: #ffffff;
 }
 
 .calendar-schedule-chip {
@@ -1743,7 +1770,9 @@ body.gate-pending .site-footer {
 .c-comment-top { display: flex; align-items: center; justify-content: space-between; }
 .c-comment-author { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; }
 .c-comment-date { font-size: 0.72rem; color: var(--color-fg-muted); }
-.c-comment-body { margin: 6px 0 8px; font-size: 0.9rem; white-space: pre-wrap; }
+.c-comment-body { margin: 6px 0 8px; font-size: 0.9rem; }
+/* 댓글도 마크다운으로 그리므로 본문 안의 이미지는 폭에 맞춰 줄인다. */
+.c-comment-body img { max-width: 100%; }
 .c-comment-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; }
 .c-comment-actions .link-btn { font-size: 0.75rem; }
 .c-del:hover { color: #e5484d; }
@@ -1936,7 +1965,8 @@ body.gate-pending .site-footer {
 }
 
 /* 툴바가 위에 붙으므로 본문 입력칸의 위쪽 모서리는 각지게 */
-.c-toolbar + .c-content {
+.c-toolbar + .c-content,
+.c-toolbar + .field-textarea {
   border-radius: 0 0 4px 4px;
 }
 

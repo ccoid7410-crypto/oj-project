@@ -1,9 +1,10 @@
-import { lazy, Suspense, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import type { CommunityPostType } from '../../api/types';
+import type { CommunityPostType, MentionUser } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { CommunityTagPicker } from '../../components/CommunityTagPicker';
+import { MentionScope } from '../../components/MentionText';
 
 // KaTeX(수식) 번들이 커서 미리보기를 켤 때만 lazy load 한다.
 const MarkdownView = lazy(() =>
@@ -26,6 +27,24 @@ export function NewCommunityPostPage() {
   const [preview, setPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 미리보기에서도 @사용자명을 칩으로 보여주려면 초안에 실제 계정이 있는지 물어봐야 한다.
+  const [mentions, setMentions] = useState<MentionUser[]>([]);
+
+  useEffect(() => {
+    if (!preview || !content.trim()) return;
+    let alive = true;
+    api
+      .post<MentionUser[]>('/community/mentions/resolve', { content })
+      .then((found) => {
+        if (alive) setMentions(found);
+      })
+      .catch(() => {
+        /* 확인에 실패하면 멘션 없이 원문 그대로 보여준다 */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [preview, content]);
 
   // 유형은 하나만 고를 수 있다. 체크를 풀면 일반(NORMAL)로 돌아간다.
   function toggleType(t: Exclude<CommunityPostType, 'NORMAL'>) {
@@ -110,13 +129,15 @@ export function NewCommunityPostPage() {
           </div>
           {preview ? (
             <div className="min-h-[240px] rounded border border-ink-500 bg-white p-3">
-              <Suspense fallback={<p className="text-sm text-fg-muted">미리보기 불러오는 중...</p>}>
-                {content.trim() ? (
-                  <MarkdownView content={content} />
-                ) : (
-                  <p className="text-sm text-fg-muted">내용이 없습니다.</p>
-                )}
-              </Suspense>
+              <MentionScope mentions={mentions} deps={[content]}>
+                <Suspense fallback={<p className="text-sm text-fg-muted">미리보기 불러오는 중...</p>}>
+                  {content.trim() ? (
+                    <MarkdownView content={content} />
+                  ) : (
+                    <p className="text-sm text-fg-muted">내용이 없습니다.</p>
+                  )}
+                </Suspense>
+              </MentionScope>
             </div>
           ) : (
             /* 문제 설명과 같은 마크다운 툴바(글자 서식·이미지 첨부 등)를 그대로 쓴다.

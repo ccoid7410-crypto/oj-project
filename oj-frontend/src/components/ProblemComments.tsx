@@ -4,6 +4,7 @@ import type { ProblemComment } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
+import { CommentBody, CommentEditor } from './CommentEditor';
 
 export function ProblemComments({ problemId, contestId }: { problemId: string; contestId?: string | null }) {
   const { user } = useAuth();
@@ -11,6 +12,8 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
   const [content, setContent] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 등록 후 입력칸을 비우기 위한 값(바뀌면 편집기를 새로 그린다).
+  const [editorKey, setEditorKey] = useState(0);
 
   function load() {
     api
@@ -29,6 +32,7 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
         parentId: replyTo ?? undefined,
       });
       setContent('');
+      setEditorKey((k) => k + 1);
       setReplyTo(null);
       load();
     } catch (err) {
@@ -77,12 +81,11 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
               </button>
             </p>
           )}
-          <textarea
+          <CommentEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
+            onChange={setContent}
+            resetKey={editorKey}
             placeholder={replyTo ? '답글 내용' : '질문을 남겨보세요'}
-            className="w-full resize-y rounded border border-ink-500 bg-white p-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
           {error && <p className="mt-1 text-xs text-[var(--color-wa)]">{error}</p>}
           <button
@@ -125,7 +128,7 @@ function CommentRow({
         </span>
         <span className="text-xs text-fg-muted">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-sm">{comment.content}</p>
+      <CommentBody content={comment.content} />
       <div className="mt-1 flex gap-3 text-xs text-fg-muted">
         {onReply && (
           <button type="button" onClick={onReply} className="hover:text-[var(--color-brand)]">

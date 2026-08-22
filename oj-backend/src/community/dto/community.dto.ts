@@ -66,3 +66,11 @@ export class CreateTagDto {
   @MaxLength(20, { message: '태그는 20자 이하여야 합니다.' })
   name: string;
 }
+
+/** 미리보기에서 초안 본문의 멘션 대상을 확인할 때 쓴다. */
+export class ResolveMentionsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  content?: string;
+}
