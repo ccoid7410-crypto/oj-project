@@ -205,3 +205,19 @@ body {
   height: 100%;
   object-fit: cover;
 }
+
+/* 에디터 안의 이미지 노드. tiptap이 노드 뷰를 감싸는 바깥 div가 기본적으로 한 줄을
+   다 차지해서, 이미지 옆 빈 곳을 눌러도 선택이 안 풀렸다. 폭을 이미지에 맞춘다. */
+.ProseMirror .oj-image-node {
+  width: fit-content;
+  max-width: 100%;
+  margin: 1rem auto;
+}
+
+.ProseMirror .oj-image-node:has([data-align='left']) {
+  margin-left: 0;
+}
+
+.ProseMirror .oj-image-node:has([data-align='right']) {
+  margin-right: 0;
+}

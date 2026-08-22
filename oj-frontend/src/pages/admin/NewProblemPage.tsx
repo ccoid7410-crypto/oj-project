@@ -16,9 +16,13 @@ import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCase
 import { TagPicker } from '../../components/TagPicker';
 import { ProblemAdvancedSettings } from '../../components/ProblemAdvancedSettings';
 
-import { MarkdownEditor } from '../../components/MarkdownEditor';
 
 // Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
+// 편집기(tiptap)가 무거워서 이 화면에 들어올 때 불러온다.
+const MarkdownEditor = lazy(() =>
+  import('../../components/MarkdownEditor').then((m) => ({ default: m.MarkdownEditor })),
+);
+
 const CodeEditor = lazy(() =>
   import('../../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
 );
@@ -380,13 +384,15 @@ export function NewProblemPage() {
 
         {/* 탭을 바꿔도 입력한 내용이 날아가지 않도록 숨기기만 한다(제출은 폼 전체가 함께 간다). */}
         <div ref={contentRef} className={tab === 'content' ? 'mt-6' : 'hidden'}>
-          <MarkdownEditor
-            title={title}
-            onTitleChange={setTitle}
-            content={description}
-            onContentChange={setDescription}
-            placeholder="문제 설명을 마크다운으로 작성하세요..."
-          />
+          <Suspense fallback={<p className="text-sm text-fg-muted">편집기 불러오는 중...</p>}>
+            <MarkdownEditor
+              title={title}
+              onTitleChange={setTitle}
+              content={description}
+              onContentChange={setDescription}
+              placeholder="문제 설명을 입력하세요"
+            />
+          </Suspense>
         </div>
 
         <div className={tab === 'settings' ? 'mt-6 flex flex-col gap-6' : 'hidden'}>
@@ -457,7 +463,7 @@ export function NewProblemPage() {
               </div>
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">문제 유형 설정</h2>
               <ProblemAdvancedSettings
                 problemType={problemType}
@@ -476,12 +482,12 @@ export function NewProblemPage() {
               />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">태그</h2>
               <TagPicker value={tags} onChange={setTags} />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="text-lg font-bold mb-1">테스트케이스</h2>
               <p className="text-xs text-fg-muted mb-4">
                 직접 입력하거나, zip을 올려 추가합니다.
@@ -490,7 +496,7 @@ export function NewProblemPage() {
             </div>
 
             {isAdmin ? (
-              <div className="border-t border-ink-300 pt-6 flex flex-col gap-3">
+              <div className="border-t border-ink-600 pt-6 flex flex-col gap-3">
                 <label className="flex items-center gap-2 text-sm text-fg-muted">
                   <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
                   생성 후 바로 공개
@@ -501,11 +507,11 @@ export function NewProblemPage() {
                 </label>
               </div>
             ) : (
-              <div className="border-t border-ink-300 pt-6">
+              <div className="border-t border-ink-600 pt-6">
                 <p className="text-xs text-fg-muted mb-4">
                   일반 사용자는 생성 후 <strong>검토 대기</strong> 상태가 됩니다.
                 </p>
-                <div className="rounded border border-ink-300 bg-white p-4 shadow-sm">
+                <div className="rounded border border-ink-600 bg-[var(--color-surface)] p-4 shadow-sm">
                   <p className="text-sm font-bold mb-1">검증용 정답 코드 (필수)</p>
                   <p className="text-xs text-fg-muted mb-3">
                     위 테스트케이스를 모두 통과하는 코드를 작성하세요.
@@ -517,7 +523,7 @@ export function NewProblemPage() {
                       setVerificationLanguage(lang);
                       setVerificationCode(DEFAULT_TEMPLATE[lang]);
                     }}
-                    className="w-full rounded border border-ink-300 bg-white px-2 py-1.5 text-xs mb-3"
+                    className="w-full rounded border border-ink-600 bg-[var(--color-surface)] px-2 py-1.5 text-xs mb-3"
                   >
                     {LANGUAGE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -533,7 +539,7 @@ export function NewProblemPage() {
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value)}
                         spellCheck={false}
-                        className="w-full resize-y rounded border border-ink-300 p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
+                        className="w-full resize-y rounded border border-ink-600 p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
                       />
                     }
                   >

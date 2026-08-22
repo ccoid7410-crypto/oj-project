@@ -11,7 +11,6 @@ import Underline from '@tiptap/extension-underline';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
-import FilerobotImageEditor, { TABS, TOOLS } from 'react-filerobot-image-editor';
 import { CustomImage } from './CustomImage';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { lowlight } from 'lowlight';
@@ -82,42 +81,49 @@ function ColorPickerPopup({
   onClose: () => void;
 }) {
   const [hexInput, setHexInput] = useState(selectedColor || 'transparent');
-  
+
   return (
-    <div className="absolute left-0 top-full mt-2 z-50 flex w-[230px] flex-col rounded border border-ink-200 bg-white shadow-lg p-3 cursor-default" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="absolute left-0 top-full z-50 mt-2 flex w-[230px] cursor-default flex-col rounded border border-ink-500 bg-[var(--color-surface)] p-3 shadow-lg"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="grid grid-cols-7 gap-1">
         {COLOR_PALETTE.map((c, i) => (
           <button
             key={i}
+            type="button"
             onClick={() => { onChange(c); onClose(); }}
-            className={`relative flex h-6 w-6 items-center justify-center rounded-full border border-ink-200 transition-transform hover:scale-110 ${c === 'transparent' ? 'bg-white' : ''}`}
+            className={`relative flex h-6 w-6 items-center justify-center rounded-full border border-ink-500 transition-transform hover:scale-110 ${c === 'transparent' ? 'bg-[var(--color-surface)]' : ''}`}
             style={{ backgroundColor: c !== 'transparent' ? c : undefined }}
           >
-            {c === 'transparent' && <div className="absolute h-[120%] w-[1.5px] rotate-45 bg-red-400" />}
+            {c === 'transparent' && <span className="absolute h-[120%] w-[1.5px] rotate-45 bg-[var(--color-wa)]" />}
             {selectedColor === c && (
-              <span className={`text-[11px] font-bold ${c === '#FFFFFF' || c === 'transparent' ? 'text-black' : 'text-white'}`}>✓</span>
+              <span className={`text-[11px] font-bold ${c === '#FFFFFF' || c === 'transparent' ? 'text-fg' : 'text-white'}`}>✓</span>
             )}
           </button>
         ))}
       </div>
-      <div className="my-3 h-px w-full bg-ink-200" />
+      <div className="my-3 h-px w-full bg-ink-600" />
       <div className="flex items-center gap-2">
-        <div 
-          className="h-6 w-6 flex-shrink-0 rounded-full border border-ink-200 relative overflow-hidden"
-          style={{ backgroundColor: hexInput === 'transparent' ? 'white' : hexInput }}
+        <span
+          className="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded-full border border-ink-500"
+          style={{ backgroundColor: hexInput === 'transparent' ? undefined : hexInput }}
         >
-           {hexInput === 'transparent' && <div className="absolute top-0 left-1/2 h-full w-[1.5px] -translate-x-1/2 rotate-45 bg-red-400" />}
-        </div>
-        <input 
-          type="text" 
+          {hexInput === 'transparent' && (
+            <span className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 rotate-45 bg-[var(--color-wa)]" />
+          )}
+        </span>
+        <input
+          type="text"
           value={hexInput === 'transparent' ? '' : hexInput}
           onChange={(e) => setHexInput(e.target.value)}
           placeholder="#FFFFFF"
-          className="flex-1 w-0 rounded border border-ink-200 px-2 py-1 text-sm outline-none focus:border-[var(--color-brand)]"
+          className="w-0 flex-1 rounded border border-ink-500 bg-[var(--color-surface)] px-2 py-1 text-sm outline-none focus:border-[var(--color-brand)]"
         />
-        <button 
+        <button
+          type="button"
           onClick={() => { onChange(hexInput || 'transparent'); onClose(); }}
-          className="rounded border border-ink-200 px-3 py-1 text-sm transition-colors hover:bg-ink-100"
+          className="rounded border border-ink-500 px-3 py-1 text-sm transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
         >
           입력
         </button>
@@ -125,6 +131,48 @@ function ColorPickerPopup({
     </div>
   );
 }
+
+/** 툴바 아이콘은 모두 같은 규격(18px, 선 굵기 2, currentColor)으로 그린다. */
+function Icon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const ICONS = {
+  bold: <Icon><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z" /><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z" /></Icon>,
+  italic: <Icon><path d="M18 5h-6M12 19H6M15 5l-4 14" /></Icon>,
+  underline: <Icon><path d="M7 4v6a5 5 0 0 0 10 0V4" /><path d="M5 20h14" /></Icon>,
+  strike: <Icon><path d="M4 12h16" /><path d="M16.5 7.5A4 4 0 0 0 13 6h-1.5C9.6 6 8 7.1 8 8.8c0 1.2.8 2.1 2.2 2.7" /><path d="M7.5 16.5A4 4 0 0 0 11 18h1.5c1.9 0 3.5-1.1 3.5-2.8 0-.7-.3-1.3-.8-1.8" /></Icon>,
+  textColor: <Icon><path d="M5 18L11 5l6 13" /><path d="M7.5 14h7" /></Icon>,
+  highlight: <Icon><path d="M4 20h16" /><path d="M14 4l6 6-8 7H7v-5z" /></Icon>,
+  alignLeft: <Icon><path d="M4 6h16M4 12h10M4 18h16" /></Icon>,
+  alignCenter: <Icon><path d="M4 6h16M7 12h10M4 18h16" /></Icon>,
+  alignRight: <Icon><path d="M4 6h16M10 12h10M4 18h16" /></Icon>,
+  alignJustify: <Icon><path d="M4 6h16M4 12h16M4 18h16" /></Icon>,
+  quote: <Icon><path d="M4 5v14" /><path d="M9 7h11M9 12h11M9 17h6" /></Icon>,
+  list: <Icon><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" /></Icon>,
+  code: <Icon><path d="M16 18l5-6-5-6" /><path d="M8 6l-5 6 5 6" /></Icon>,
+  image: <Icon><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 15l-5-5L5 20" /></Icon>,
+  spinner: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  ),
+  undo: <Icon><path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></Icon>,
+  redo: <Icon><path d="M15 14l5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></Icon>,
+};
 
 const IMAGE_UPLOAD_ERROR = '이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)';
 
@@ -170,7 +218,7 @@ export function MarkdownEditor({
   onTitleChange,
   content,
   onContentChange,
-  placeholder = '문제 설명을 입력하세요... (슬래시(/)나 # 등의 마크다운 단축키를 사용할 수 있습니다)',
+  placeholder = '내용을 입력하세요',
   className = '',
   compact = false,
 }: MarkdownEditorProps) {
@@ -180,8 +228,7 @@ export function MarkdownEditor({
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isBgColorPickerOpen, setIsBgColorPickerOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [editingImage, setEditingImage] = useState<{ src: string; pos: number } | null>(null);
-  
+
   const [isCodeblockModalOpen, setIsCodeblockModalOpen] = useState(false);
   const [codeblockLanguage, setCodeblockLanguage] = useState('javascript');
   const [codeblockCode, setCodeblockCode] = useState('');
@@ -196,17 +243,7 @@ export function MarkdownEditor({
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-
-    const handleOpenEditor = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      setEditingImage(customEvent.detail);
-    };
-    window.addEventListener('open-image-editor', handleOpenEditor);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('open-image-editor', handleOpenEditor);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,11 +253,8 @@ export function MarkdownEditor({
     try {
       setIsUploading(true);
       const url = await uploadImage(file);
-      editor?.chain().focus().insertContent({
-        type: 'image',
-        attrs: { src: url }
-      }).run();
-    } catch (error) {
+      editor?.chain().focus().insertContent({ type: 'image', attrs: { src: url } }).run();
+    } catch {
       alert(IMAGE_UPLOAD_ERROR);
     } finally {
       setIsUploading(false);
@@ -250,39 +284,6 @@ export function MarkdownEditor({
     }
   };
 
-  const handleSaveEditedImage = async (editedImageObject: any) => {
-    if (!editingImage) return;
-    try {
-      const res = await fetch(editedImageObject.imageBase64);
-      const blob = await res.blob();
-      const file = new File([blob], 'edited-image.png', { type: 'image/png' });
-
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const token = localStorage.getItem('oj_token');
-      const uploadRes = await fetch('/api/uploads/image', {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      });
-      
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const data = await uploadRes.json();
-      
-      editor?.chain().focus().setNodeSelection(editingImage.pos).insertContent({
-        type: 'image',
-        attrs: { src: data.url }
-      }).run();
-    } catch (err) {
-      alert('편집된 이미지 저장에 실패했습니다.');
-    } finally {
-      setEditingImage(null);
-    }
-  };
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -302,6 +303,9 @@ export function MarkdownEditor({
       Markdown,
     ],
     content,
+    // 커서를 옮기거나 서식을 껐을 때 툴바의 눌린 표시가 바로 따라오게 한다.
+    // (기본값은 false여서 글자를 더 입력해야 갱신됐다)
+    shouldRerenderOnTransaction: true,
     onUpdate: ({ editor }) => {
       // tiptap-markdown이 제공하는 getMarkdown()을 사용하여 현재 편집 내용을 마크다운 문자열로 가져옵니다.
       // TypeScript가 extension의 storage 타입을 인식하지 못할 수 있으므로 any로 단언합니다.
@@ -322,8 +326,10 @@ export function MarkdownEditor({
         return true;
       },
       handleDrop(view, event, _slice, moved) {
-        // 에디터 안에서 이미지를 옮기는 중이면 기본 동작(이동)을 그대로 둔다.
-        if (moved) return false;
+        // 글 안에 있던 이미지를 옮기는 중이면 기본 동작(이동)에 맡긴다.
+        // view.dragging까지 보는 이유: 브라우저가 끌고 있는 이미지를 파일로도 넘겨줘서
+        // 그대로 두면 같은 이미지가 새로 첨부돼버린다.
+        if (moved || view.dragging) return false;
         const files = imageFilesOf(event.dataTransfer);
         if (files.length === 0) return false;
         event.preventDefault();
@@ -341,193 +347,160 @@ export function MarkdownEditor({
     }
   }, [editor, content]);
 
+  const headingLevel = [1, 2, 3, 4, 5, 6].find((level) => editor?.isActive('heading', { level })) || 0;
+
   return (
     /* 페이지 가운데 폭(main) 안에 들어가는 카드. 예전에는 화면 전체를 쓰는
        전용 레이아웃이었지만, 지금은 다른 페이지들과 같은 폭을 쓴다. */
     <div className={`flex w-full min-w-0 flex-col bg-transparent ${className}`}>
-      {/* 에디터 캔버스 */}
-      <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border border-ink-600 bg-surface shadow-sm">
-        {/* 상단 고정 툴바 */}
-        <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-surface/95 px-3 py-2 backdrop-blur-md">
-        {editor && (
-          <div className="flex flex-wrap items-center gap-1">
-            <ToolbarButton
-              icon={<span className="font-bold font-serif text-[17px]">B</span>}
-              title="굵게"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              isActive={editor.isActive('bold')}
-            />
-            <ToolbarButton
-              icon={<span className="font-serif italic text-[17px]">I</span>}
-              title="기울임"
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              isActive={editor.isActive('italic')}
-            />
-            <ToolbarButton
-              icon={<span className="font-serif text-[17px] underline decoration-ink-400">U</span>}
-              title="밑줄"
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              isActive={editor.isActive('underline')}
-            />
-            <ToolbarButton
-              icon={<span className="font-serif text-[17px] line-through decoration-ink-400">T</span>}
-              title="취소선"
-              onClick={() => editor.chain().focus().toggleStrike().run()}
-              isActive={editor.isActive('strike')}
-            />
-            
-            <div className="mx-1 h-5 w-px bg-ink-200" />
-            
-            {/* 글자 색상 선택기 */}
-            <div className="relative flex items-center" ref={colorPickerRef}>
-              <div className="group relative flex">
-                <button
-                  type="button"
-                  onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
-                  className={`flex h-9 min-w-9 flex-col items-center justify-center rounded-lg px-2 text-sm font-bold transition-all duration-200 active:scale-95 ${isColorPickerOpen ? 'bg-ink-100 text-fg' : 'text-fg-muted hover:bg-ink-100 hover:text-fg'}`}
-                >
-                  <span className="flex items-end font-serif text-[15px] font-bold leading-none">
-                    T<span className="ml-[1px] text-[20px] leading-[0.5]">•</span>
-                  </span>
-                  <div 
-                    className="mt-[3px] h-[3px] w-4 rounded-full"
-                    style={{ backgroundColor: editor.getAttributes('textStyle').color || '#000000' }}
+      <div className="flex w-full flex-1 flex-col overflow-hidden rounded-lg border border-ink-600 bg-[var(--color-surface)] shadow-sm">
+        {/* 상단 고정 툴바. 모든 버튼이 같은 크기(32px)와 같은 아이콘 규격을 쓴다. */}
+        <div className="sticky top-0 z-10 w-full border-b border-ink-600 bg-[var(--color-surface)] px-2 py-1.5">
+          {editor && (
+            <div className="flex flex-wrap items-center gap-0.5">
+              <ToolbarButton
+                icon={ICONS.bold}
+                title="굵게"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                isActive={editor.isActive('bold')}
+              />
+              <ToolbarButton
+                icon={ICONS.italic}
+                title="기울임"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                isActive={editor.isActive('italic')}
+              />
+              <ToolbarButton
+                icon={ICONS.underline}
+                title="밑줄"
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                isActive={editor.isActive('underline')}
+              />
+              <ToolbarButton
+                icon={ICONS.strike}
+                title="취소선"
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                isActive={editor.isActive('strike')}
+              />
+
+              <ToolbarDivider />
+
+              {/* 글자 색상 */}
+              <div className="relative flex items-center" ref={colorPickerRef}>
+                <ToolbarButton
+                  icon={ICONS.textColor}
+                  title="글자 색"
+                  onClick={() => setIsColorPickerOpen((v) => !v)}
+                  isActive={isColorPickerOpen}
+                  colorBar={editor.getAttributes('textStyle').color || 'currentColor'}
+                />
+                {isColorPickerOpen && (
+                  <ColorPickerPopup
+                    selectedColor={editor.getAttributes('textStyle').color || 'transparent'}
+                    onChange={(c) => {
+                      if (c === 'transparent') editor.chain().focus().unsetColor().run();
+                      else editor.chain().focus().setColor(c).run();
+                    }}
+                    onClose={() => setIsColorPickerOpen(false)}
                   />
-                </button>
-                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg group-hover:opacity-100">
-                  글자 색상
-                </div>
+                )}
               </div>
 
-              {isColorPickerOpen && (
-                <ColorPickerPopup
-                  selectedColor={editor.getAttributes('textStyle').color || 'transparent'}
-                  onChange={(c) => {
-                    if (c === 'transparent') editor.chain().focus().unsetColor().run();
-                    else editor.chain().focus().setColor(c).run();
-                  }}
-                  onClose={() => setIsColorPickerOpen(false)}
+              {/* 배경(형광펜) 색상 */}
+              <div className="relative flex items-center" ref={bgColorPickerRef}>
+                <ToolbarButton
+                  icon={ICONS.highlight}
+                  title="배경 색"
+                  onClick={() => setIsBgColorPickerOpen((v) => !v)}
+                  isActive={isBgColorPickerOpen}
+                  colorBar={editor.getAttributes('highlight').color || 'transparent'}
                 />
-              )}
-            </div>
-
-            {/* 배경 색상 선택기 */}
-            <div className="relative flex items-center" ref={bgColorPickerRef}>
-              <div className="group relative flex">
-                <button
-                  type="button"
-                  onClick={() => setIsBgColorPickerOpen(!isBgColorPickerOpen)}
-                  className={`flex h-9 min-w-9 flex-col items-center justify-center rounded-lg px-2 text-sm font-bold transition-all duration-200 active:scale-95 ${isBgColorPickerOpen ? 'bg-ink-100 text-fg' : 'text-fg-muted hover:bg-ink-100 hover:text-fg'}`}
-                >
-                  <span className="mt-0.5 rounded-[3px] border-2 border-current px-[2px] py-[1px] font-serif text-[13px] font-bold leading-none">
-                    T
-                  </span>
-                  <div 
-                    className="mt-[4px] h-[3px] w-4 rounded-full border border-ink-200"
-                    style={{ backgroundColor: editor.getAttributes('highlight').color || 'transparent' }}
+                {isBgColorPickerOpen && (
+                  <ColorPickerPopup
+                    selectedColor={editor.getAttributes('highlight').color || 'transparent'}
+                    onChange={(c) => {
+                      if (c === 'transparent') editor.chain().focus().unsetHighlight().run();
+                      else editor.chain().focus().setHighlight({ color: c }).run();
+                    }}
+                    onClose={() => setIsBgColorPickerOpen(false)}
                   />
-                </button>
-                <div className="pointer-events-none absolute top-full left-1/2 z-[100] mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg group-hover:opacity-100">
-                  배경 색상
-                </div>
+                )}
               </div>
 
-              {isBgColorPickerOpen && (
-                <ColorPickerPopup
-                  selectedColor={editor.getAttributes('highlight').color || 'transparent'}
-                  onChange={(c) => {
-                    if (c === 'transparent') editor.chain().focus().unsetHighlight().run();
-                    else editor.chain().focus().setHighlight({ color: c }).run();
-                  }}
-                  onClose={() => setIsBgColorPickerOpen(false)}
-                />
-              )}
-            </div>
+              <ToolbarDivider />
 
-            <div className="mx-1 h-5 w-px bg-ink-200" />
-            
-            <select
-              value={[1, 2, 3, 4, 5, 6].find(level => editor.isActive('heading', { level })) || 0}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (val === 0) editor.chain().focus().setParagraph().run();
-                else editor.chain().focus().toggleHeading({ level: val as any }).run();
-              }}
-              className="h-9 rounded-lg border-none bg-transparent px-2 text-sm font-medium text-fg-muted outline-none transition-colors hover:bg-ink-100 focus:ring-2 focus:ring-[var(--color-brand)]"
-            >
-              <option value={0}>본문</option>
-              <option value={1}>제목 1</option>
-              <option value={2}>제목 2</option>
-              <option value={3}>제목 3</option>
-              <option value={4}>제목 4</option>
-              <option value={5}>제목 5</option>
-              <option value={6}>제목 6</option>
-            </select>
-            
-            <div className="mx-1 h-5 w-px bg-ink-200" />
-            
-            <ToolbarButton
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h12M3 18h18"/></svg>}
-              title="좌측 정렬"
-              onClick={() => editor.chain().focus().setTextAlign('left').run()}
-              isActive={editor.isActive({ textAlign: 'left' })}
-            />
-            <ToolbarButton
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M6 12h12M3 18h18"/></svg>}
-              title="가운데 정렬"
-              onClick={() => editor.chain().focus().setTextAlign('center').run()}
-              isActive={editor.isActive({ textAlign: 'center' })}
-            />
-            <ToolbarButton
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M9 12h12M3 18h18"/></svg>}
-              title="우측 정렬"
-              onClick={() => editor.chain().focus().setTextAlign('right').run()}
-              isActive={editor.isActive({ textAlign: 'right' })}
-            />
-            <ToolbarButton
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>}
-              title="양쪽 정렬"
-              onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-              isActive={editor.isActive({ textAlign: 'justify' })}
-            />
-            
-            <div className="mx-1 h-5 w-px bg-ink-200" />
-            <ToolbarButton
-              icon={<span className="font-serif text-2xl font-bold leading-none mt-1">"</span>}
-              title="인용구"
-              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              isActive={editor.isActive('blockquote')}
-            />
-            <ToolbarButton
-              icon={<span className="font-mono text-[15px] font-bold">&lt;&gt;</span>}
-              title="코드블럭"
-              onClick={() => setIsCodeblockModalOpen(true)}
-              isActive={editor.isActive('codeBlock')}
-            />
-            
-            <div className="group relative flex">
-              <button
-                type="button"
+              <select
+                value={headingLevel}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val === 0) editor.chain().focus().setParagraph().run();
+                  else editor.chain().focus().toggleHeading({ level: val as any }).run();
+                }}
+                title="글머리"
+                className="h-8 rounded border border-ink-600 bg-transparent px-2 text-sm text-fg outline-none focus:border-[var(--color-brand)]"
+              >
+                <option value={0}>본문</option>
+                <option value={1}>제목 1</option>
+                <option value={2}>제목 2</option>
+                <option value={3}>제목 3</option>
+                <option value={4}>제목 4</option>
+                <option value={5}>제목 5</option>
+                <option value={6}>제목 6</option>
+              </select>
+
+              <ToolbarDivider />
+
+              <ToolbarButton
+                icon={ICONS.alignLeft}
+                title="왼쪽 정렬"
+                onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                isActive={editor.isActive({ textAlign: 'left' })}
+              />
+              <ToolbarButton
+                icon={ICONS.alignCenter}
+                title="가운데 정렬"
+                onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                isActive={editor.isActive({ textAlign: 'center' })}
+              />
+              <ToolbarButton
+                icon={ICONS.alignRight}
+                title="오른쪽 정렬"
+                onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                isActive={editor.isActive({ textAlign: 'right' })}
+              />
+              <ToolbarButton
+                icon={ICONS.alignJustify}
+                title="양쪽 정렬"
+                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                isActive={editor.isActive({ textAlign: 'justify' })}
+              />
+
+              <ToolbarDivider />
+
+              <ToolbarButton
+                icon={ICONS.list}
+                title="목록"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                isActive={editor.isActive('bulletList')}
+              />
+              <ToolbarButton
+                icon={ICONS.quote}
+                title="인용구"
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                isActive={editor.isActive('blockquote')}
+              />
+              <ToolbarButton
+                icon={ICONS.code}
+                title="코드 블록"
+                onClick={() => setIsCodeblockModalOpen(true)}
+                isActive={editor.isActive('codeBlock')}
+              />
+              <ToolbarButton
+                icon={isUploading ? ICONS.spinner : ICONS.image}
+                title="이미지 첨부"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-[17px] transition-all duration-200 text-fg-muted hover:bg-ink-100 hover:text-fg active:scale-95 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {/* 다른 툴바 아이콘과 같이 currentColor 단색 SVG를 쓴다(이모지는 컬러라 튄다). */}
-                {isUploading ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="M21 15l-5-5L5 21" />
-                  </svg>
-                )}
-              </button>
-              <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg">
-                이미지 첨부
-              </div>
+              />
               <input
                 type="file"
                 ref={fileInputRef}
@@ -535,113 +508,106 @@ export function MarkdownEditor({
                 accept="image/png, image/jpeg, image/webp, image/gif"
                 onChange={handleImageUpload}
               />
+
+              <ToolbarDivider />
+
+              <ToolbarButton
+                icon={ICONS.undo}
+                title="실행 취소"
+                onClick={() => editor.chain().focus().undo().run()}
+                disabled={!editor.can().undo()}
+              />
+              <ToolbarButton
+                icon={ICONS.redo}
+                title="다시 실행"
+                onClick={() => editor.chain().focus().redo().run()}
+                disabled={!editor.can().redo()}
+              />
             </div>
-            <div className="mx-1 h-5 w-px bg-ink-200" />
-            <ToolbarButton
-              icon={<span className="text-[17px]">↩</span>}
-              title="실행 취소"
-              onClick={() => editor.chain().focus().undo().run()}
-              disabled={!editor.can().undo()}
-            />
-            <ToolbarButton
-              icon={<span className="text-[17px]">↪</span>}
-              title="다시 실행"
-              onClick={() => editor.chain().focus().redo().run()}
-              disabled={!editor.can().redo()}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className={`flex flex-1 flex-col ${compact ? 'px-3 pb-3 pt-2' : 'px-5 pb-8 pt-5'}`}>
-        {onTitleChange && (
-          <>
-            <input
-              type="text"
-              value={title ?? ''}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder="제목을 입력하세요"
-              className="w-full border-none bg-transparent py-2 text-2xl font-bold outline-none placeholder:text-ink-400"
-            />
-
-            <div className="my-4 h-px w-full bg-ink-200" />
-          </>
-        )}
-
-        <div className="flex-1 markdown-body">
-          <EditorContent editor={editor} className="h-full w-full" />
+          )}
         </div>
-      </div>
-    </div>
 
-      {/* 고급 이미지 에디터 모달 */}
-      {editingImage && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-[90vw] h-[90vh] bg-white rounded shadow-xl overflow-hidden flex flex-col">
-             <FilerobotImageEditor
-                source={editingImage.src}
-                onSave={handleSaveEditedImage}
-                onClose={() => setEditingImage(null)}
-                annotationsCommon={{ fill: '#ff0000' }}
-                Text={{ text: '텍스트를 입력하세요...' }}
-                Watermark={{
-                  gallery: [],
-                }}
-                tabsIds={[TABS.ADJUST, TABS.ANNOTATE, TABS.WATERMARK]} 
-                defaultTabId={TABS.ADJUST}
-                defaultToolId={TOOLS.CROP}
-                savingPixelRatio={4}
-                previewPixelRatio={window.devicePixelRatio || 1}
-             />
+        <div className={`flex flex-1 flex-col ${compact ? 'px-3 pb-3 pt-2' : 'px-5 pb-8 pt-5'}`}>
+          {onTitleChange && (
+            <>
+              <input
+                type="text"
+                value={title ?? ''}
+                onChange={(e) => onTitleChange(e.target.value)}
+                placeholder="제목을 입력하세요"
+                className="w-full border-none bg-transparent py-2 text-2xl font-bold outline-none placeholder:text-fg-muted"
+              />
+              <div className="my-4 h-px w-full bg-ink-600" />
+            </>
+          )}
+
+          <div className="markdown-body flex-1">
+            <EditorContent editor={editor} className="h-full w-full" />
           </div>
         </div>
-      )}
+      </div>
 
       {/* 코드블럭 모달 */}
       {isCodeblockModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-[800px] h-[500px] bg-white rounded shadow-xl flex flex-col overflow-hidden">
-            <div className="border-b border-ink-300 p-4 font-bold flex justify-between items-center">
-              <span>코드블럭 삽입</span>
-              <button onClick={() => setIsCodeblockModalOpen(false)} className="text-ink-500 hover:text-black">✕</button>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="flex h-[500px] w-[800px] max-w-full flex-col overflow-hidden rounded border border-ink-500 bg-[var(--color-surface)] shadow-xl">
+            <div className="flex items-center justify-between border-b border-ink-600 p-4 font-bold">
+              <span>코드 블록 삽입</span>
+              <button
+                type="button"
+                onClick={() => setIsCodeblockModalOpen(false)}
+                className="text-fg-muted hover:text-fg"
+              >
+                ✕
+              </button>
             </div>
             <div className="flex flex-1 overflow-hidden">
-              <div className="w-48 border-r border-ink-300 bg-ink-100 overflow-y-auto">
-                {['Bash', 'C', 'C++', 'C#', 'CSS', 'Go', 'HTML', 'Java', 'JavaScript', 'JSON', 'Kotlin', 'PHP', 'Python', 'Ruby', 'Rust', 'SQL', 'Swift', 'TypeScript'].map(lang => (
+              <div className="w-44 overflow-y-auto border-r border-ink-600 bg-ink-700">
+                {['Bash', 'C', 'C++', 'C#', 'CSS', 'Go', 'HTML', 'Java', 'JavaScript', 'JSON', 'Kotlin', 'PHP', 'Python', 'Ruby', 'Rust', 'SQL', 'Swift', 'TypeScript'].map((lang) => (
                   <button
                     key={lang}
+                    type="button"
                     onClick={() => setCodeblockLanguage(lang.toLowerCase())}
-                    className={`w-full text-left px-4 py-2 text-sm ${codeblockLanguage === lang.toLowerCase() ? 'bg-white font-bold text-[var(--color-brand)]' : 'hover:bg-ink-200'}`}
+                    className={`w-full px-4 py-2 text-left text-sm ${
+                      codeblockLanguage === lang.toLowerCase()
+                        ? 'bg-[var(--color-surface)] font-bold text-[var(--color-brand)]'
+                        : 'text-fg-muted hover:text-fg'
+                    }`}
                   >
                     {lang}
                   </button>
                 ))}
               </div>
               <textarea
-                className="flex-1 p-4 outline-none resize-none bg-[#0d1117] text-[#c9d1d9] font-mono text-sm leading-relaxed"
+                className="flex-1 resize-none bg-[#0d1117] p-4 font-mono text-sm leading-relaxed text-[#c9d1d9] outline-none"
                 placeholder="여기에 코드를 입력하세요..."
                 value={codeblockCode}
-                onChange={e => setCodeblockCode(e.target.value)}
+                onChange={(e) => setCodeblockCode(e.target.value)}
               />
             </div>
-            <div className="border-t border-ink-300 p-4 flex justify-end gap-2 bg-ink-100">
-              <button onClick={() => setIsCodeblockModalOpen(false)} className="px-6 py-2 rounded border border-ink-300 bg-white hover:bg-ink-200 font-medium">취소</button>
-              <button onClick={() => {
-                if (codeblockCode.trim()) {
+            <div className="flex justify-end gap-2 border-t border-ink-600 p-4">
+              <button
+                type="button"
+                onClick={() => setIsCodeblockModalOpen(false)}
+                className="rounded border border-ink-500 px-6 py-2 font-medium hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   editor?.chain().focus().insertContent({
                     type: 'codeBlock',
                     attrs: { language: codeblockLanguage },
-                    content: [{ type: 'text', text: codeblockCode }]
+                    ...(codeblockCode.trim() ? { content: [{ type: 'text', text: codeblockCode }] } : {}),
                   }).run();
-                } else {
-                  editor?.chain().focus().insertContent({
-                    type: 'codeBlock',
-                    attrs: { language: codeblockLanguage },
-                  }).run();
-                }
-                setIsCodeblockModalOpen(false);
-                setCodeblockCode('');
-              }} className="px-6 py-2 rounded bg-black text-white hover:bg-ink-800 font-medium">확인</button>
+                  setIsCodeblockModalOpen(false);
+                  setCodeblockCode('');
+                }}
+                className="rounded bg-[var(--color-brand)] px-6 py-2 font-medium text-white hover:bg-[var(--color-brand-dim)]"
+              >
+                확인
+              </button>
             </div>
           </div>
         </div>
@@ -650,34 +616,45 @@ export function MarkdownEditor({
   );
 }
 
+function ToolbarDivider() {
+  return <span className="mx-1 h-5 w-px bg-ink-600" />;
+}
+
 function ToolbarButton({
   icon,
   title,
   onClick,
   isActive,
   disabled,
+  colorBar,
 }: {
   icon: React.ReactNode;
   title: string;
   onClick: () => void;
   isActive?: boolean;
   disabled?: boolean;
+  /** 색상 버튼일 때 아이콘 아래에 지금 고른 색을 얇게 표시한다. */
+  colorBar?: string;
 }) {
   return (
-    <div className="group relative flex">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm transition-all duration-200
-          ${isActive ? 'bg-[var(--color-brand)] text-white shadow-sm' : 'text-fg-muted hover:bg-ink-100 hover:text-fg'}
-          ${disabled ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
-      >
-        {icon}
-      </button>
-      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg">
-        {title}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      aria-pressed={isActive}
+      className={`flex h-8 w-8 flex-col items-center justify-center rounded transition-colors ${
+        isActive ? 'bg-[var(--color-brand)] text-white' : 'text-fg-muted hover:bg-ink-700 hover:text-fg'
+      } ${disabled ? 'cursor-not-allowed opacity-30' : ''}`}
+    >
+      {icon}
+      {colorBar !== undefined && (
+        <span
+          className="mt-0.5 h-[3px] w-4 rounded-full border border-ink-600"
+          style={{ backgroundColor: colorBar === 'transparent' ? undefined : colorBar }}
+        />
+      )}
+    </button>
   );
 }

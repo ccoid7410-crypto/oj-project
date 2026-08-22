@@ -140,14 +140,14 @@ export function NewCommunityPostPage() {
               </MentionScope>
             </div>
           ) : (
-            /* 문제 설명과 같은 마크다운 툴바(글자 서식·이미지 첨부 등)를 그대로 쓴다.
-               제목은 이 페이지가 따로 받으므로 에디터에는 본문만 맡긴다. */
+            /* 문제 설명과 같은 편집기를 쓴다. 제목은 이 페이지가 따로 받으므로
+               에디터에는 본문만 맡긴다. */
             <div className="rounded border border-ink-500">
               <Suspense fallback={<p className="p-3 text-sm text-fg-muted">편집기 불러오는 중...</p>}>
                 <MarkdownEditor
                   content={content}
                   onContentChange={setContent}
-                  placeholder="내용을 입력하세요. 마크다운과 이미지 첨부를 쓸 수 있습니다."
+                  placeholder="내용을 입력하세요"
                 />
               </Suspense>
             </div>
