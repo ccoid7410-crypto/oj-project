@@ -46,6 +46,11 @@ async function loadHallOfFame() {
     const res = await fetch("/api/users/hall-of-fame", {
       headers: { Authorization: `Bearer ${localStorage.getItem("oj_token")}` },
     });
+    if (res.status === 401 || res.status === 403) {
+      hofList.innerHTML =
+        '<p class="empty">명단은 동아리 부원만 볼 수 있습니다. 부원 계정으로 로그인해주세요.</p>';
+      return;
+    }
     if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
     renderHallOfFame(await res.json());
   } catch {
@@ -54,6 +59,4 @@ async function loadHallOfFame() {
   }
 }
 
-window.clubProfileReady.then((profile) => {
-  if (profile) loadHallOfFame();
-});
+loadHallOfFame();
