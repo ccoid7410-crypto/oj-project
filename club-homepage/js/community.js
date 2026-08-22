@@ -50,6 +50,22 @@ function el(tag, props = {}, children = []) {
 
 const root = document.getElementById("community-root");
 
+/**
+ * 작성자 표시(프로필 사진 + 사용자명). 누르면 그 사람의 OJ 프로필로 간다.
+ * 목록 항목처럼 부모가 클릭을 가로채는 자리에서도 링크가 먼저 동작하도록 전파를 막는다.
+ */
+function authorLink(username, avatarVersion, size, className) {
+  return el(
+    "a",
+    {
+      class: "c-author-link" + (className ? " " + className : ""),
+      href: `/users/${encodeURIComponent(username)}`,
+      onclick: (e) => e.stopPropagation(),
+    },
+    [avatarNode(username, avatarVersion, size), document.createTextNode(" " + username)],
+  );
+}
+
 function avatarNode(username, avatarVersion, size) {
   const span = el("span", { class: "c-avatar", style: `width:${size}px;height:${size}px` });
   if (avatarVersion) {
@@ -105,6 +121,87 @@ function go(query) {
   window.location.href = BOARD_PAGE + query;
 }
 
+// ===== 신고 =====
+
+const REPORT_REASONS = [
+  { value: "SPAM", label: "스팸·광고" },
+  { value: "ABUSE", label: "욕설·비방" },
+  { value: "ADULT", label: "음란물·부적절한 내용" },
+  { value: "PRIVACY", label: "개인정보 노출" },
+  { value: "FALSE_INFO", label: "허위 정보" },
+  { value: "ETC", label: "기타" },
+];
+
+/** 신고 버튼. 본인 글에는 붙이지 않고, 로그인한 사람에게만 보인다. */
+function reportButton(profile, targetType, targetId, authorUsername) {
+  if (!profile || profile.username === authorUsername) return null;
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "link-btn c-report",
+      onclick: () => openReportDialog(targetType, targetId),
+    },
+    "신고",
+  );
+}
+
+function openReportDialog(targetType, targetId) {
+  const label = targetType === "POST" ? "게시글" : "댓글";
+  const select = el("select", { class: "field-select" },
+    REPORT_REASONS.map((r) => el("option", { value: r.value }, r.label)));
+  const detail = el("textarea", {
+    class: "field-textarea",
+    rows: "4",
+    maxlength: "1000",
+    placeholder: "어떤 점이 문제인지 적어주세요. (선택)",
+  });
+  const message = el("p", { class: "c-report-message" });
+
+  const submit = el("button", { type: "button", class: "btn btn-primary btn-sm" }, "신고하기");
+  const close = () => overlay.remove();
+  const cancel = el("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: close }, "취소");
+
+  submit.addEventListener("click", async () => {
+    submit.disabled = true;
+    message.textContent = "신고를 보내는 중...";
+    message.className = "c-report-message";
+    try {
+      await authJson("/community/reports", {
+        method: "POST",
+        body: JSON.stringify({
+          targetType,
+          targetId,
+          reason: select.value,
+          detail: detail.value,
+        }),
+      });
+      message.textContent = "신고가 접수되었습니다. 관리자가 확인합니다.";
+      message.className = "c-report-message success";
+      submit.remove();
+      cancel.textContent = "닫기";
+    } catch (err) {
+      message.textContent = err instanceof Error ? err.message : "신고하지 못했습니다.";
+      message.className = "c-report-message error";
+      submit.disabled = false;
+    }
+  });
+
+  const dialog = el("div", { class: "c-report-dialog", role: "dialog", "aria-modal": "true" }, [
+    el("h3", {}, `${label} 신고`),
+    el("label", { class: "c-report-field" }, [el("span", {}, "신고 종류"), select]),
+    el("label", { class: "c-report-field" }, [el("span", {}, "신고 내용"), detail]),
+    message,
+    el("div", { class: "c-report-actions" }, [submit, cancel]),
+  ]);
+  const overlay = el("div", {
+    class: "c-report-overlay",
+    onclick: (e) => { if (e.target === overlay) close(); },
+  }, dialog);
+  document.body.appendChild(overlay);
+  select.focus();
+}
+
 // ===== 라우팅 =====
 
 function renderLoginRequired() {
@@ -152,8 +249,7 @@ async function renderList(profile) {
   const list = el("ul", { class: "c-list" });
   for (const p of posts) {
     const meta = el("div", { class: "c-item-meta" }, [
-      avatarNode(p.author.username, p.author.avatarVersion, 16),
-      el("span", {}, p.author.username),
+      authorLink(p.author.username, p.author.avatarVersion, 16),
       el("span", {}, "·"),
       el("span", {}, fmtDate(p.createdAt)),
       ...p.tags.map((t) => el("span", { class: "c-tag" }, "#" + t)),
@@ -196,11 +292,10 @@ async function renderDetail(profile, postId) {
 
   const metaRight = canManage
     ? el("button", { type: "button", class: "link-btn", onclick: () => onDeletePost(post.id) }, "삭제")
-    : null;
+    : reportButton(profile, "POST", post.id, post.author.username);
   const meta = el("div", { class: "c-detail-meta" }, [
     el("div", { class: "c-item-meta" }, [
-      avatarNode(post.author.username, post.author.avatarVersion, 20),
-      el("span", { class: "c-author" }, post.author.username),
+      authorLink(post.author.username, post.author.avatarVersion, 20, "c-author"),
       el("span", {}, "·"),
       el("span", {}, fmtDateTime(post.createdAt)),
       ...post.tags.map((t) => el("span", { class: "c-tag" }, "#" + t)),
@@ -317,10 +412,12 @@ function renderComments(profile, post) {
       voteButtons(c, (v) => onVoteComment(c.id, v)),
       !isReply && profile ? el("button", { type: "button", class: "link-btn", onclick: () => { replyTo = c.id; textarea.placeholder = "답글 내용"; textarea.focus(); } }, "답글") : null,
       canManage ? el("button", { type: "button", class: "link-btn c-del", onclick: () => onDeleteComment(c.id) }, "삭제") : null,
+      // 댓글·답글 모두 신고할 수 있다(본인 글 제외).
+      canManage ? null : reportButton(profile, "COMMENT", c.id, c.user.username),
     ]);
     return el("div", {}, [
       el("div", { class: "c-comment-top" }, [
-        el("span", { class: "c-comment-author" }, [avatarNode(c.user.username, c.user.avatarVersion, 18), document.createTextNode(" " + c.user.username)]),
+        authorLink(c.user.username, c.user.avatarVersion, 18, "c-comment-author"),
         el("span", { class: "c-comment-date" }, fmtDateTime(c.createdAt)),
       ]),
       el("p", { class: "c-comment-body" }, c.content),

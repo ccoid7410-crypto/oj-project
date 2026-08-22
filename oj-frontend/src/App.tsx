@@ -46,6 +46,7 @@ import { CommunityListPage } from './pages/community/CommunityListPage';
 import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
 import { ClubSchedulesAdminPage } from './pages/admin/ClubSchedulesAdminPage';
+import { ReportsAdminPage } from './pages/admin/ReportsAdminPage';
 
 export default function App() {
   return (
@@ -89,6 +90,7 @@ export default function App() {
               <Route element={<AdminLayout />}>
                 <Route path="/admin" element={<AdminOverviewPage />} />
                 <Route path="/admin/problems" element={<AdminProblemsPage />} />
+                <Route path="/admin/reports" element={<ReportsAdminPage />} />
                 <Route path="/admin/problems/new" element={<NewProblemPage />} />
                 <Route path="/admin/proposals" element={<ProposalsPage />} />
                 <Route path="/admin/users/bulk" element={<BulkUsersPage />} />

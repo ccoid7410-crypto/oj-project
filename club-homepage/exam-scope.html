@@ -55,6 +55,8 @@
           <button type="button" class="active" data-exam-type="MIDTERM">중간고사</button>
           <button type="button" data-exam-type="FINAL">기말고사</button>
         </div>
+        <!-- 로그인한 부원에게만 calendar.js가 아니라 exam-scope.js가 보여준다. -->
+        <button type="button" id="exam-scope-add" class="btn btn-ghost btn-sm" hidden>과목 추가</button>
       </div>
 
       <p id="exam-scope-summary" class="exam-scope-summary" aria-live="polite"></p>

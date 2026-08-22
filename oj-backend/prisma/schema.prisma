@@ -141,6 +141,9 @@ model User {
 
   examScopesUpdated ExamScope[] @relation("ExamScopeUpdater")
 
+  reportsFiled    CommunityReport[] @relation("CommunityReportReporter")
+  reportsHandled  CommunityReport[] @relation("CommunityReportHandler")
+
   @@map("users")
 }
 
@@ -324,6 +327,56 @@ model CommunityComment {
   votes CommunityCommentVote[]
 
   @@map("community_comments")
+}
+
+/// 신고 대상 종류.
+enum ReportTargetType {
+  POST // 게시글
+  COMMENT // 댓글·답글(둘 다 CommunityComment이고 parentId 유무로 구분)
+}
+
+/// 신고 사유(신고자가 목록에서 고른다).
+enum ReportReason {
+  SPAM // 스팸·광고
+  ABUSE // 욕설·비방
+  ADULT // 음란물·부적절한 내용
+  PRIVACY // 개인정보 노출
+  FALSE_INFO // 허위 정보
+  ETC // 기타
+}
+
+/// 신고 처리 상태.
+enum ReportStatus {
+  PENDING // 접수됨(관리자 확인 전)
+  ACTION_TAKEN // 조치함(대상 삭제 등)
+  DISMISSED // 기각(문제 없음)
+}
+
+/// 커뮤니티 게시글·댓글 신고. 관리자가 목록에서 보고 처리한다.
+/// 대상이 삭제되어도 신고 이력은 남기므로 FK 대신 targetId만 들고 있는다.
+model CommunityReport {
+  id         String           @id @default(uuid())
+  targetType ReportTargetType
+  targetId   String
+  reason     ReportReason
+  detail     String           @default("") @db.VarChar(1000)
+  status     ReportStatus     @default(PENDING)
+
+  reporterId String
+  reporter   User   @relation("CommunityReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  handledById String?
+  handledBy   User?     @relation("CommunityReportHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt   DateTime?
+  /// 관리자가 남기는 처리 메모(무엇을 했는지).
+  handlerNote String    @default("") @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  // 같은 사람이 같은 대상을 중복 신고하지 못하게 막는다.
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+  @@map("community_reports")
 }
 
 /// 게시글 좋아요(1)/싫어요(-1). 유저당 게시글당 1표.
