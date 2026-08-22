@@ -10,6 +10,11 @@ const MarkdownView = lazy(() =>
   import('../../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
 );
 
+// 마크다운 툴바 에디터도 무거워서(tiptap + 이미지 편집기) 필요할 때 불러온다.
+const MarkdownEditor = lazy(() =>
+  import('../../components/MarkdownEditor').then((m) => ({ default: m.MarkdownEditor })),
+);
+
 export function NewCommunityPostPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -114,13 +119,17 @@ export function NewCommunityPostPage() {
               </Suspense>
             </div>
           ) : (
-            <textarea
-              required
-              rows={14}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className={`${inputClass} resize-y font-mono leading-relaxed`}
-            />
+            /* 문제 설명과 같은 마크다운 툴바(글자 서식·이미지 첨부 등)를 그대로 쓴다.
+               제목은 이 페이지가 따로 받으므로 에디터에는 본문만 맡긴다. */
+            <div className="rounded border border-ink-500">
+              <Suspense fallback={<p className="p-3 text-sm text-fg-muted">편집기 불러오는 중...</p>}>
+                <MarkdownEditor
+                  content={content}
+                  onContentChange={setContent}
+                  placeholder="내용을 입력하세요. 마크다운과 이미지 첨부를 쓸 수 있습니다."
+                />
+              </Suspense>
+            </div>
           )}
         </div>
 

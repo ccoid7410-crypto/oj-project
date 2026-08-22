@@ -24,6 +24,7 @@ import { SubmissionCompletionSubscriber } from './internal/submission-completion
 import { ClubSchedulesModule } from './club-schedules/club-schedules.module';
 import { ExamScopesModule } from './exam-scopes/exam-scopes.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { UserNotificationsModule } from './user-notifications/user-notifications.module';
 import { PatchNotesModule } from './patch-notes/patch-notes.module';
 
 /**
@@ -65,6 +66,7 @@ import { PatchNotesModule } from './patch-notes/patch-notes.module';
     ExamScopesModule,
     InternalModule,
     UploadsModule,
+    UserNotificationsModule,
     PatchNotesModule,
   ],
   controllers: [AppController],

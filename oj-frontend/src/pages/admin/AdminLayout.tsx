@@ -7,6 +7,7 @@ const ADMIN_TABS = [
   { to: '/admin/problems/new', label: '문제 추가' },
   { to: '/admin/proposals', label: '제안 검토' },
   { to: '/admin/reports', label: '신고 관리' },
+  { to: '/admin/send-notification', label: '알림 보내기' },
   { to: '/admin/contests', label: '대회 관리' },
   { to: '/admin/classes', label: '수업 관리' },
   { to: '/admin/groups', label: '그룹 관리' },

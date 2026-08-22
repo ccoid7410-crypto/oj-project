@@ -17,6 +17,8 @@ export function Layout() {
   const location = useLocation();
   const brandName = useBrandName();
   const [unreadCount, setUnreadCount] = useState(0);
+  // 헤더 종 아이콘에 표시할 내 알림 개수(신고 결과·멘션·관리자 알림).
+  const [notifCount, setNotifCount] = useState(0);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -51,6 +53,27 @@ export function Layout() {
       window.removeEventListener('notifications-updated', load);
     };
   }, [user?.role]);
+
+  // 로그인한 사용자면 내 알림 개수를 주기적으로 확인한다.
+  useEffect(() => {
+    if (!user) {
+      setNotifCount(0);
+      return;
+    }
+    const load = () => {
+      api
+        .get<{ count: number }>('/notifications/unread-count')
+        .then((r) => setNotifCount(r.count))
+        .catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 60_000);
+    window.addEventListener('user-notifications-updated', load);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('user-notifications-updated', load);
+    };
+  }, [user]);
 
   // 백준 특유의 밑줄 없는 상단바 안에서 쓰는 링크 스타일.
   // 밑줄 대신 hover 시 글자색만 밝아진다.
@@ -156,7 +179,8 @@ export function Layout() {
                 <button
                   onClick={() => {
                     logout();
-                    navigate('/');
+                    // 화면을 새로 그려야 로그인 전용 페이지가 잠깐 남아 보이지 않는다.
+                    window.location.assign('/');
                   }}
                   className="hover:text-[var(--color-header-fg-hover)]"
                 >
@@ -176,6 +200,24 @@ export function Layout() {
                   회원가입
                 </Link>
               </>
+            )}
+            {/* 헤더 맨 오른쪽. 주변 항목과 같은 줄 높이(16px 아이콘 / 20px 박스)로 맞춘다. */}
+            {user && (
+              <Link
+                to="/notifications"
+                title="알림"
+                className="relative flex h-5 w-5 items-center justify-center hover:text-[var(--color-header-fg-hover)]"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {notifCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1 min-w-[15px] rounded-full bg-[var(--color-wa)] px-1 text-center text-[9px] font-bold leading-[15px] text-white">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </Link>
             )}
           </div>
         </div>

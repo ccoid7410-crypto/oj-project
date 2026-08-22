@@ -1884,3 +1884,201 @@ body.gate-pending .site-footer {
   color: var(--color-brand);
   text-decoration: underline;
 }
+
+/* ===== 게시글 작성 마크다운 툴바 ===== */
+.c-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--color-ink-500);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  padding: 4px 6px;
+  background: var(--color-ink-700);
+}
+
+.c-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.c-tool:hover:not(:disabled) {
+  background: var(--color-ink-600);
+  color: var(--color-fg);
+}
+
+.c-tool:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.c-tool-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--color-ink-500);
+}
+
+.c-tool-file {
+  display: none;
+}
+
+/* 툴바가 위에 붙으므로 본문 입력칸의 위쪽 모서리는 각지게 */
+.c-toolbar + .c-content {
+  border-radius: 0 0 4px 4px;
+}
+
+/* ===== 알림(헤더 종 + 알림 페이지) ===== */
+.notif-bell {
+  position: relative;
+  /* 헤더의 다른 항목(로그인·아이디)과 같은 줄 높이로 맞춘다. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+
+.notif-bell:hover {
+  color: var(--color-brand);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #e0393e;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.notif-list {
+  list-style: none;
+  border-top: 1px solid var(--color-ink-600);
+}
+
+.notif-item {
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.notif-item a {
+  display: block;
+  padding: 12px 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.notif-item a:hover {
+  background: var(--color-ink-700);
+}
+
+.notif-item.unread .notif-title {
+  font-weight: 700;
+}
+
+.notif-item.unread a {
+  border-left: 3px solid var(--color-brand);
+}
+
+.notif-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-type {
+  flex-shrink: 0;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--color-brand) 12%, transparent);
+  color: var(--color-brand);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.notif-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+}
+
+.notif-detail-title {
+  margin: 8px 0 2px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.notif-body {
+  margin: 14px 0 18px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+/* ===== 멘션 칩 ===== */
+.c-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: -3px;
+  border-radius: 999px;
+  padding: 1px 8px 1px 3px;
+  background: color-mix(in srgb, var(--color-brand) 12%, transparent);
+  color: var(--color-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.c-mention:hover {
+  background: color-mix(in srgb, var(--color-brand) 22%, transparent);
+}
+
+/* 알림의 보낸 사람(프로필 사진 + 아이디). 게시글 작성자 표시와 같은 규격.
+   메타 줄(.notif-meta)이 flex라 아바타가 있어도 날짜가 같은 줄에 남는다. */
+.notif-sender {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 아바타가 줄 높이를 늘리지 않도록 크기를 고정한다. */
+.notif-sender .c-avatar {
+  flex-shrink: 0;
+}
+
+.notif-sender:hover {
+  color: var(--color-brand);
+}

@@ -121,6 +121,159 @@ function go(query) {
   window.location.href = BOARD_PAGE + query;
 }
 
+// ===== 멘션 =====
+
+// 게시글 상세를 불러올 때 백엔드가 알려준, 실제로 존재하는 멘션 대상들.
+let mentionUsers = new Map(); // username -> avatarVersion
+
+/**
+ * 렌더된 본문에서 @사용자명을 찾아 프로필 칩으로 바꾼다.
+ * 존재하지 않는 사용자명은 멘션이 아닐 수 있으므로 원문 그대로 둔다.
+ */
+function applyMentions(container) {
+  if (mentionUsers.size === 0) return;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const tag = node.parentNode && node.parentNode.nodeName;
+      // 코드/링크 안의 @는 건드리지 않는다.
+      if (tag === "CODE" || tag === "PRE" || tag === "A") return NodeFilter.FILTER_REJECT;
+      return /@[A-Za-z0-9_-]{2,30}/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    },
+  });
+  const targets = [];
+  while (walker.nextNode()) targets.push(walker.currentNode);
+
+  for (const node of targets) {
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    const re = /@([A-Za-z0-9_-]{2,30})/g;
+    let last = 0;
+    let m;
+    while ((m = re.exec(rest)) !== null) {
+      const username = m[1];
+      if (!mentionUsers.has(username)) continue; // 없는 계정 → 원문 유지
+      frag.appendChild(document.createTextNode(rest.slice(last, m.index)));
+      frag.appendChild(mentionChip(username, mentionUsers.get(username)));
+      last = m.index + m[0].length;
+    }
+    if (last === 0) continue;
+    frag.appendChild(document.createTextNode(rest.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+
+/** 작성자 표시와 같은 규격(아바타 + 아이디)의 인라인 멘션 칩. */
+function mentionChip(username, avatarVersion) {
+  const link = el("a", {
+    class: "c-mention",
+    href: `/users/${encodeURIComponent(username)}`,
+  }, [avatarNode(username, avatarVersion, 16), document.createTextNode(username)]);
+  return link;
+}
+
+// ===== 마크다운 툴바 =====
+
+/** 선택 영역을 prefix/suffix로 감싼다. 선택이 없으면 placeholder를 넣고 그 부분을 선택해둔다. */
+function wrapSelection(textarea, prefix, suffix, placeholder) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end) || placeholder || "";
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  textarea.value = before + prefix + selected + suffix + after;
+  textarea.focus();
+  textarea.selectionStart = start + prefix.length;
+  textarea.selectionEnd = start + prefix.length + selected.length;
+}
+
+/** 커서가 있는 줄 앞에 prefix를 붙인다(제목·인용구·목록용). */
+function prefixLine(textarea, prefix) {
+  const start = textarea.selectionStart;
+  const lineStart = textarea.value.lastIndexOf("\n", start - 1) + 1;
+  textarea.value =
+    textarea.value.slice(0, lineStart) + prefix + textarea.value.slice(lineStart);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+}
+
+function insertAtCursor(textarea, text) {
+  const start = textarea.selectionStart;
+  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(textarea.selectionEnd);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+}
+
+const TOOLBAR_ICONS = {
+  bold: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 0 8H6z"/><path d="M6 12h9a4 4 0 0 1 0 8H6z"/></svg>',
+  italic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>',
+  strike: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>',
+  code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  quote: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="9" y1="8" x2="20" y2="8"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="16" x2="16" y2="16"/></svg>',
+  list: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>',
+  link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+};
+
+function toolbarButton(html, title, onClick) {
+  const b = el("button", { type: "button", class: "c-tool", title, onclick: onClick });
+  b.innerHTML = html;
+  return b;
+}
+
+/** 글 본문 textarea 위에 붙는 마크다운 툴바(이미지 첨부 포함). */
+function buildToolbar(textarea) {
+  const fileInput = el("input", {
+    type: "file",
+    class: "c-tool-file",
+    accept: "image/png, image/jpeg, image/webp, image/gif",
+  });
+
+  const imageBtn = toolbarButton(TOOLBAR_ICONS.image, "이미지 첨부", () => fileInput.click());
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    imageBtn.disabled = true;
+    // 업로드가 끝나면 커서 위치에 마크다운 이미지 문법을 끼워 넣는다.
+    const placeholder = "![업로드 중...]()";
+    insertAtCursor(textarea, placeholder);
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/uploads/image", {
+        method: "POST",
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: form,
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const url = data.url || data.path || data.location;
+      textarea.value = textarea.value.replace(placeholder, `![](${url})`);
+    } catch {
+      textarea.value = textarea.value.replace(placeholder, "");
+      alert("이미지 업로드에 실패했습니다. (png, jpeg, webp, gif만 가능합니다)");
+    } finally {
+      imageBtn.disabled = false;
+      fileInput.value = "";
+    }
+  });
+
+  return el("div", { class: "c-toolbar" }, [
+    toolbarButton(TOOLBAR_ICONS.bold, "굵게", () => wrapSelection(textarea, "**", "**", "굵게")),
+    toolbarButton(TOOLBAR_ICONS.italic, "기울임", () => wrapSelection(textarea, "*", "*", "기울임")),
+    toolbarButton(TOOLBAR_ICONS.strike, "취소선", () => wrapSelection(textarea, "~~", "~~", "취소선")),
+    el("span", { class: "c-tool-sep" }),
+    toolbarButton("H", "제목", () => prefixLine(textarea, "## ")),
+    toolbarButton(TOOLBAR_ICONS.quote, "인용구", () => prefixLine(textarea, "> ")),
+    toolbarButton(TOOLBAR_ICONS.list, "목록", () => prefixLine(textarea, "- ")),
+    toolbarButton(TOOLBAR_ICONS.code, "코드", () => wrapSelection(textarea, "`", "`", "코드")),
+    el("span", { class: "c-tool-sep" }),
+    toolbarButton(TOOLBAR_ICONS.link, "링크", () => wrapSelection(textarea, "[", "](https://)", "링크 글자")),
+    imageBtn,
+    fileInput,
+  ]);
+}
+
 // ===== 신고 =====
 
 const REPORT_REASONS = [
@@ -285,6 +438,9 @@ async function renderDetail(profile, postId) {
     return;
   }
 
+  // 백엔드가 실제 존재하는 멘션 대상만 추려 내려준다.
+  mentionUsers = new Map((post.mentions || []).map((m) => [m.username, m.avatarVersion]));
+
   root.appendChild(el("a", { class: "c-back", href: BOARD_PAGE }, "← " + BOARD_TITLE));
 
   const canManage = profile && (profile.username === post.author.username || profile.role === "ADMIN");
@@ -305,6 +461,7 @@ async function renderDetail(profile, postId) {
 
   const body = window.renderMarkdown ? window.renderMarkdown(post.content) : el("div", {}, post.content);
   body.classList.add("c-body");
+  applyMentions(body);
 
   const postActions = el("div", { class: "c-detail-votes" });
   let voteSummary = { likeCount: post.likeCount, dislikeCount: post.dislikeCount, myVote: post.myVote };
@@ -420,7 +577,11 @@ function renderComments(profile, post) {
         authorLink(c.user.username, c.user.avatarVersion, 18, "c-comment-author"),
         el("span", { class: "c-comment-date" }, fmtDateTime(c.createdAt)),
       ]),
-      el("p", { class: "c-comment-body" }, c.content),
+      (() => {
+        const p = el("p", { class: "c-comment-body" }, c.content);
+        applyMentions(p);
+        return p;
+      })(),
       actions,
     ]);
   }
@@ -600,6 +761,7 @@ async function renderNew(profile) {
       typeRow,
       tagWrap,
       contentHead,
+      buildToolbar(contentArea),
       contentArea,
       preview,
       errorP,

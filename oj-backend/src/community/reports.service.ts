@@ -5,11 +5,21 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserNotificationsService } from '../user-notifications/user-notifications.service';
 import type {
   CreateReportDto,
   ReportActionValue,
   ReportTargetTypeValue,
 } from './dto/report.dto';
+
+const REASON_LABEL: Record<string, string> = {
+  SPAM: '스팸·광고',
+  ABUSE: '욕설·비방',
+  ADULT: '음란물·부적절한 내용',
+  PRIVACY: '개인정보 노출',
+  FALSE_INFO: '허위 정보',
+  ETC: '기타',
+};
 
 /** 관리자 목록에서 신고 대상 원문을 같이 보여주기 위한 요약. */
 type TargetPreview = {
@@ -24,7 +34,10 @@ type TargetPreview = {
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: UserNotificationsService,
+  ) {}
 
   /** 신고 접수. 같은 사람이 같은 대상을 두 번 신고하면 막는다. */
   async create(reporterId: string, dto: CreateReportDto) {
@@ -52,6 +65,21 @@ export class ReportsService {
         reporterId,
       },
     });
+
+    // 신고자에게 접수 확인 알림을 보낸다(상세 페이지에서 신고 내용까지 볼 수 있게 본문에 담는다).
+    const label = dto.targetType === 'POST' ? '게시글' : '댓글';
+    await this.notifications.send({
+      userId: reporterId,
+      type: 'REPORT_RECEIVED',
+      title: '신고가 접수되었습니다.',
+      body: [
+        `${label} 신고가 접수되었습니다. 관리자가 확인 후 처리합니다.`,
+        '',
+        `신고 종류: ${REASON_LABEL[dto.reason] ?? dto.reason}`,
+        `신고 내용: ${dto.detail?.trim() || '(없음)'}`,
+      ].join('\n'),
+    });
+
     return { id: report.id, status: report.status };
   }
 
@@ -120,6 +148,16 @@ export class ReportsService {
     }
 
     const status = action === 'DELETE_TARGET' ? 'ACTION_TAKEN' : 'DISMISSED';
+    // 같은 대상에 걸린 대기 신고를 모두 처리하므로, 그 신고자들에게 결과를 알린다.
+    const affected = await this.prisma.communityReport.findMany({
+      where: {
+        targetType: report.targetType,
+        targetId: report.targetId,
+        status: 'PENDING',
+      },
+      select: { reporterId: true },
+    });
+
     await this.prisma.communityReport.updateMany({
       where: {
         targetType: report.targetType,
@@ -133,6 +171,22 @@ export class ReportsService {
         handlerNote: note?.trim() ?? '',
       },
     });
+
+    const resultText =
+      action === 'DELETE_TARGET'
+        ? '신고하신 내용이 확인되어 해당 글이 삭제되었습니다.'
+        : '검토 결과 별도 조치가 필요하지 않다고 판단되어 종결되었습니다.';
+    await Promise.all(
+      [...new Set(affected.map((a) => a.reporterId))].map((userId) =>
+        this.notifications.send({
+          userId,
+          type: 'REPORT_RESOLVED',
+          title: '신고가 처리되었습니다.',
+          body: note?.trim() ? `${resultText}\n\n관리자 메모: ${note.trim()}` : resultText,
+        }),
+      ),
+    );
+
     return { status };
   }
 

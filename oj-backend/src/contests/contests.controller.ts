@@ -1,11 +1,11 @@
 import {
   Body,
+  Req,
   Controller,
   Get,
   Param,
   Post,
   Put,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,14 +14,15 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/jwt.strategy';
+import type { OptionalAuthRequest } from '../common/http-request.types';
 import { ContestsService } from './contests.service';
 import { CreateContestDto, SetContestProblemsDto } from './dto/contest.dto';
-import type { OptionalAuthRequest } from '../common/http-request.types';
 
 @Controller('contests')
 export class ContestsController {
   constructor(private readonly contests: ContestsService) {}
 
+  // 대회 내용 열람은 비로그인도 가능하다. 참가(register)만 로그인이 필요하다.
   @Get()
   list() {
     return this.contests.list();

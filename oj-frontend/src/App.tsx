@@ -47,6 +47,8 @@ import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
 import { ClubSchedulesAdminPage } from './pages/admin/ClubSchedulesAdminPage';
 import { ReportsAdminPage } from './pages/admin/ReportsAdminPage';
+import { SendNotificationPage } from './pages/admin/SendNotificationPage';
+import { NotificationsPage as MyNotificationsPage, NotificationDetailPage } from './pages/NotificationsPage';
 
 export default function App() {
   return (
@@ -61,14 +63,18 @@ export default function App() {
             <Route path="/resend-verification" element={<ResendVerificationPage />} />
             <Route path="/patch-notes" element={<PatchNotesPage />} />
             <Route path="/problems" element={<ProblemListPage />} />
+            <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/notifications" element={<MyNotificationsPage />} />
+            <Route path="/notifications/:id" element={<NotificationDetailPage />} />
+            <Route path="/users/:username" element={<ProfilePage />} />
+            {/* 대회는 내용 열람까지 공개. 참가만 로그인이 필요하다(대회 상세에서 처리). */}
             <Route path="/contests" element={<ContestListPage />} />
             <Route path="/contests/:slug" element={<ContestDetailPage />} />
             <Route path="/contests/:slug/leaderboard" element={<ContestLeaderboardPage />} />
-            <Route path="/ranking" element={<RankingPage />} />
-            <Route path="/community" element={<CommunityListPage />} />
-            <Route path="/community/:id" element={<CommunityPostPage />} />
-            <Route path="/users/:username" element={<ProfilePage />} />
             <Route element={<ProtectedRoute />}>
+              {/* 커뮤니티는 로그인해야 볼 수 있다(일반 회원도 가능). */}
+              <Route path="/community" element={<CommunityListPage />} />
+              <Route path="/community/:id" element={<CommunityPostPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />
               <Route path="/register-name" element={<RegisterNamePage />} />
               <Route path="/community/new" element={<NewCommunityPostPage />} />
@@ -91,6 +97,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminOverviewPage />} />
                 <Route path="/admin/problems" element={<AdminProblemsPage />} />
                 <Route path="/admin/reports" element={<ReportsAdminPage />} />
+                <Route path="/admin/send-notification" element={<SendNotificationPage />} />
                 <Route path="/admin/problems/new" element={<NewProblemPage />} />
                 <Route path="/admin/proposals" element={<ProposalsPage />} />
                 <Route path="/admin/users/bulk" element={<BulkUsersPage />} />

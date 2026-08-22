@@ -30,10 +30,11 @@ window.clubProfileReady = (async () => {
   const loginUrl =
     "/login?redirect=" +
     encodeURIComponent(window.location.pathname + window.location.search);
-  // 공개 페이지(메인·일정·커뮤니티)는 js/public-gate-config.js에서
-  // GATE_REQUIRE_LOGIN/MEMBER = false 를 미리 선언해서 로그인 없이도 볼 수 있게 한다.
+  // 페이지별 접근 등급은 gate.js보다 먼저 불러오는 설정 파일이 정한다.
   // (CSP script-src 'self' 때문에 HTML 인라인 <script>로는 값을 못 넣는다.)
-  // 나머지 페이지는 기존대로 로그인한 동아리 부원만 이용 가능.
+  //   js/public-gate-config.js  - 누구나 (메인·일정·시험범위)
+  //   js/login-gate-config.js   - 로그인만 하면 됨 (공개 게시판·명예의 전당·알림)
+  //   (설정 없음)               - 동아리 부원만 (동아리 게시판)
   const requireLogin = window.GATE_REQUIRE_LOGIN !== false;
   const requireMember = window.GATE_REQUIRE_MEMBER !== false;
   try {
@@ -71,8 +72,8 @@ window.clubProfileReady = (async () => {
     if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
       renderGateScreen(
         "동아리 부원만 접속할 수 있습니다",
-        "관리자에게 부원 등록을 요청해주세요. 부원으로 등록되면 홈페이지를 이용할 수 있습니다.",
-        [{ href: "/", label: "OJ로 가기", primary: true }],
+        "이 페이지는 동아리 부원만 볼 수 있습니다. 관리자에게 부원 등록을 요청해주세요.",
+        [{ href: "index.html", label: "홈으로", primary: true }],
       );
       return null;
     }

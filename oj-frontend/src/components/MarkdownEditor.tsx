@@ -127,8 +127,9 @@ function ColorPickerPopup({
 }
 
 interface MarkdownEditorProps {
-  title: string;
-  onTitleChange: (title: string) => void;
+  /** 제목 입력을 이 에디터 안에 둘 때만 넘긴다. 생략하면 본문만 그린다(게시글 작성 등). */
+  title?: string;
+  onTitleChange?: (title: string) => void;
   content: string;
   onContentChange: (content: string) => void;
   placeholder?: string;
@@ -455,7 +456,18 @@ export function MarkdownEditor({
                 disabled={isUploading}
                 className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-[17px] transition-all duration-200 text-fg-muted hover:bg-ink-100 hover:text-fg active:scale-95 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {isUploading ? '⏳' : '🖼️'}
+                {/* 다른 툴바 아이콘과 같이 currentColor 단색 SVG를 쓴다(이모지는 컬러라 튄다). */}
+                {isUploading ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                )}
               </button>
               <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-surface opacity-0 transition-opacity group-hover:opacity-100 z-[100] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-b-fg">
                 이미지 첨부
@@ -486,15 +498,19 @@ export function MarkdownEditor({
       </div>
 
       <div className="px-10 pb-12 pt-8 flex-1 flex flex-col">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="제목을 입력하세요"
-          className="w-full border-none bg-transparent py-4 text-4xl font-bold outline-none placeholder:text-ink-400"
-        />
+        {onTitleChange && (
+          <>
+            <input
+              type="text"
+              value={title ?? ''}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="제목을 입력하세요"
+              className="w-full border-none bg-transparent py-4 text-4xl font-bold outline-none placeholder:text-ink-400"
+            />
 
-        <div className="my-6 h-px w-full bg-ink-200" />
+            <div className="my-6 h-px w-full bg-ink-200" />
+          </>
+        )}
 
         <div className="flex-1 markdown-body">
           <EditorContent editor={editor} className="h-full w-full" />

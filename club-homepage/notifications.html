@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>공개 게시판 | 두루누리</title>
+  <title>알림 | 두루누리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="vendor/katex.min.css">
   <script src="js/theme.js"></script>
 </head>
 <body class="gate-pending">
@@ -21,17 +20,17 @@
       <nav class="header-nav">
         <a href="hall-of-fame.html">명예의 전당</a>
         <div class="header-nav-menu">
-          <a href="community.html" class="header-nav-trigger" aria-current="page">커뮤니티 <span aria-hidden="true">▾</span></a>
+          <a href="community.html" class="header-nav-trigger">커뮤니티 <span aria-hidden="true">▾</span></a>
           <div class="header-mega-menu">
             <div class="header-mega-inner">
-              <a href="community.html" aria-current="page">공개 게시판</a>
+              <a href="community.html">공개 게시판</a>
               <a href="club-board.html">동아리 게시판</a>
               <a href="exam-scope.html">시험범위</a>
             </div>
           </div>
         </div>
         <a href="calendar.html">일정</a>
-        <a href="https://cbgpu.vercel.app/" target="_blank">CBGPU</a>
+        <a href="https://cbgpu.vercel.app/" target="_blank" rel="noopener noreferrer">CBGPU</a>
         <a href="/" class="nav-oj">Online Judge ↗</a>
       </nav>
       <div class="header-actions">
@@ -45,7 +44,7 @@
 
   <main class="container">
     <section class="section">
-      <div id="community-root">
+      <div id="notifications-root" class="c-narrow">
         <p class="loading">불러오는 중...</p>
       </div>
     </section>
@@ -55,16 +54,11 @@
     <p>&copy; 2026 두루누리. All rights reserved.</p>
   </footer>
 
+  <!-- 알림은 본인 것만 보므로 로그인 필요(공개 설정을 넣지 않는다). -->
   <script src="js/login-gate-config.js"></script>
   <script src="js/gate.js"></script>
   <script src="js/main.js"></script>
-  <script src="js/notifications.js"></script>
   <script src="js/banner.js"></script>
-  <!-- 게시글 본문 마크다운/TeX 렌더링용 (account.html과 동일한 로컬 vendoring) -->
-  <script src="vendor/marked.umd.js"></script>
-  <script src="vendor/purify.min.js"></script>
-  <script src="vendor/katex.min.js"></script>
-  <script src="js/markdown.js"></script>
-  <script src="js/community.js"></script>
+  <script src="js/notifications.js"></script>
 </body>
 </html>

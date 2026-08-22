@@ -143,6 +143,7 @@ model User {
 
   reportsFiled    CommunityReport[] @relation("CommunityReportReporter")
   reportsHandled  CommunityReport[] @relation("CommunityReportHandler")
+  notifications   UserNotification[] @relation("UserNotificationRecipient")
 
   @@map("users")
 }
@@ -327,6 +328,36 @@ model CommunityComment {
   votes CommunityCommentVote[]
 
   @@map("community_comments")
+}
+
+/// 사용자에게 보내는 알림 종류.
+enum UserNotificationType {
+  REPORT_RECEIVED // 신고 접수 완료(신고자에게)
+  REPORT_RESOLVED // 신고 처리 결과(신고자에게)
+  MENTION // 게시글·댓글에서 멘션됨
+  ADMIN_MESSAGE // 관리자가 직접 보낸 알림
+}
+
+/// 헤더 종 아이콘에 쌓이는 사용자 알림. 상세 페이지에서 본문까지 보여준다.
+model UserNotification {
+  id     String               @id @default(uuid())
+  userId String
+  user   User                 @relation("UserNotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  type   UserNotificationType
+
+  /// 목록에 보이는 제목과 상세 페이지 본문.
+  title String @db.VarChar(200)
+  body  String @default("")
+  /// 보낸 주체 표시(예: "Durunuri OJ", 관리자 아이디).
+  sender String @default("Durunuri OJ") @db.VarChar(60)
+  /// 눌렀을 때 이동할 곳(멘션된 글 등). 없으면 상세 페이지만 본다.
+  linkUrl String @default("") @db.VarChar(500)
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@map("user_notifications")
 }
 
 /// 신고 대상 종류.

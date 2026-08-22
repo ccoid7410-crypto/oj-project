@@ -37,14 +37,14 @@ function parseBoard(raw: string | undefined): Board {
 export class CommunityController {
   constructor(private readonly community: CommunityService) {}
 
-  // 목록/상세는 비로그인도 볼 수 있다(로그인 시 내 좋아요 표시를 위해 optional 인증).
+  // 로그인 필요(보드별 권한은 서비스가 판별). optional 인증으로 받아 서비스에서 401/403을 던진다.
   @UseGuards(OptionalJwtAuthGuard)
   @Get('posts')
   listPosts(
     @Query('board') board: string | undefined,
     @Req() req: OptionalAuthRequest,
   ) {
-    return this.community.listPosts(parseBoard(board), req.user?.userId);
+    return this.community.listPosts(parseBoard(board), req.user?.userId, req.user?.role);
   }
 
   // ---- 태그(보드별). 정적 경로라 :id 라우트보다 먼저 선언한다. ----
@@ -54,7 +54,7 @@ export class CommunityController {
     @Query('board') board: string | undefined,
     @Req() req: OptionalAuthRequest,
   ) {
-    return this.community.listTags(parseBoard(board), req.user?.userId);
+    return this.community.listTags(parseBoard(board), req.user?.userId, req.user?.role);
   }
 
   // 게시글에 태그를 붙일 수 있는 사람이면(=로그인 사용자) 새 태그를 만들 수 있다.
@@ -67,7 +67,7 @@ export class CommunityController {
   @UseGuards(OptionalJwtAuthGuard)
   @Get('posts/:id')
   getPost(@Param('id') id: string, @Req() req: OptionalAuthRequest) {
-    return this.community.getPost(id, req.user?.userId);
+    return this.community.getPost(id, req.user?.userId, req.user?.role);
   }
 
   @UseGuards(JwtAuthGuard)
