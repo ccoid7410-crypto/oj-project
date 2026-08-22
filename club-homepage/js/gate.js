@@ -1,89 +1,16 @@
-const gateMain = document.querySelector("main");
-
-function renderGateScreen(title, message, buttons) {
-  gateMain.innerHTML = "";
-  const section = document.createElement("section");
-  section.className = "section";
-
-  const heading = document.createElement("h2");
-  heading.textContent = title;
-
-  const desc = document.createElement("p");
-  desc.textContent = message;
-
-  const actions = document.createElement("div");
-  actions.className = "hero-actions";
-  for (const b of buttons) {
-    const link = document.createElement("a");
-    link.href = b.href;
-    link.textContent = b.label;
-    link.className = b.primary ? "btn btn-primary" : "btn btn-ghost";
-    actions.appendChild(link);
-  }
-
-  section.append(heading, desc, actions);
-  gateMain.appendChild(section);
-}
-
+// 홈페이지는 비로그인 방문자도 모두 열람 가능. 여기서는 로그인한 경우에만
+// 부원 프로필(닉네임 등 헤더 표시용)을 가져오고, 실패하거나 로그인 안 했으면
+// null을 반환해서 main.js가 비로그인 상태로 헤더를 그린다.
 window.clubProfileReady = (async () => {
-  const loginUrl =
-    "/login?redirect=" +
-    encodeURIComponent(window.location.pathname + window.location.search);
-  // 캘린더 페이지(calendar.html)는 window.GATE_REQUIRE_LOGIN = false 를 먼저 선언해서
-  // 로그인 없이(비로그인 방문자도) 볼 수 있게 한다. 나머지 페이지는 기존대로 로그인 필요.
-  const requireLogin = window.GATE_REQUIRE_LOGIN !== false;
+  const token = localStorage.getItem("oj_token");
+  if (!token) return null;
   try {
-    const token = localStorage.getItem("oj_token");
-    if (!token) {
-      if (!requireLogin) return null;
-      renderGateScreen(
-        "동아리 회원 전용 공간입니다",
-        "두루누리 홈페이지는 로그인한 동아리 회원만 이용할 수 있습니다.",
-        [
-          { href: loginUrl, label: "로그인", primary: true },
-          { href: "/signup", label: "회원가입" },
-        ],
-      );
-      return null;
-    }
-
     const res = await fetch("/api/users/me/club-profile", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.status === 401) {
-      // 공개 페이지(GATE_REQUIRE_LOGIN=false)는 토큰이 남아있지만 만료된 상태여도
-      // 게이트로 막지 않고 비로그인처럼 그대로 열람하게 한다.
-      if (!requireLogin) return null;
-      renderGateScreen(
-        "다시 로그인해주세요",
-        "로그인 정보가 만료되었습니다.",
-        [{ href: loginUrl, label: "로그인", primary: true }],
-      );
-      return null;
-    }
-    if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
-
-    const profile = await res.json();
-    // 캘린더 페이지(calendar.html)는 window.GATE_REQUIRE_MEMBER = false 를 먼저 선언해서
-    // 동아리 부원이 아니어도(로그인만 했으면) 볼 수 있게 한다. 나머지 페이지는 기존대로 부원 전용.
-    const requireMember = window.GATE_REQUIRE_MEMBER !== false;
-    if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
-      renderGateScreen(
-        "동아리 부원만 접속할 수 있습니다",
-        "관리자에게 부원 등록을 요청해주세요. 부원으로 등록되면 홈페이지를 이용할 수 있습니다.",
-        [{ href: "/", label: "OJ로 가기", primary: true }],
-      );
-      return null;
-    }
-    return profile;
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    renderGateScreen(
-      "잠시 후 다시 시도해주세요",
-      "서버와 통신하지 못했습니다.",
-      [{ href: window.location.pathname, label: "새로고침", primary: true }],
-    );
     return null;
-  } finally {
-    document.body.classList.remove("gate-pending");
   }
 })();
