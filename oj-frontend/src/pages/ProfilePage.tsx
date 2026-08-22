@@ -10,6 +10,7 @@ import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
 import { UserTitleBadge } from '../components/UserTitleBadge';
 import { VerdictBadge } from '../components/VerdictBadge';
+import { ProfileWebsiteLink } from '../components/ProfileWebsiteLink';
 
 // KaTeX(수식) 번들이 커서 소개(bio)가 있을 때만 lazy load 한다.
 const MarkdownView = lazy(() =>
@@ -61,19 +62,11 @@ export function ProfilePage() {
             )}
           </div>
           {profile.websites.length > 0 && (
-            <span className="flex flex-wrap gap-x-3">
+            <div className="mt-2 flex flex-wrap gap-2">
               {profile.websites.map((site) => (
-                <a
-                  key={site}
-                  href={site}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-fg-muted underline hover:text-[var(--color-brand)]"
-                >
-                  {site}
-                </a>
+                <ProfileWebsiteLink key={site} site={site} />
               ))}
-            </span>
+            </div>
           )}
         </div>
       </div>
