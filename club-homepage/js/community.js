@@ -101,12 +101,21 @@ function go(query) {
 
 // ===== 라우팅 =====
 
+function renderLoginRequired() {
+  root.innerHTML = "";
+  root.className = "";
+  root.appendChild(el("p", { class: "c-error" }, "글쓰기는 로그인 후 이용할 수 있습니다."));
+}
+
 function main() {
+  // 목록/상세는 백엔드가 비로그인 조회를 허용하므로(OptionalJwtAuthGuard) 항상 렌더링한다.
+  // 글쓰기만 로그인이 필요하다.
   window.clubProfileReady.then((profile) => {
-    if (!profile) return; // gate.js가 로그인/부원 안내 화면을 이미 띄움
     const params = new URLSearchParams(window.location.search);
-    if (params.has("new")) renderNew(profile);
-    else if (params.get("post")) renderDetail(profile, params.get("post"));
+    if (params.has("new")) {
+      if (!profile) renderLoginRequired();
+      else renderNew(profile);
+    } else if (params.get("post")) renderDetail(profile, params.get("post"));
     else renderList(profile);
   });
 }
@@ -118,7 +127,7 @@ async function renderList(profile) {
   root.className = ""; // 목록은 넓게(OJ 목록과 동일)
   const header = el("div", { class: "c-list-header" }, [
     el("h2", {}, "게시판"),
-    el("a", { class: "btn btn-primary btn-sm", href: "community.html?new" }, "글쓰기"),
+    profile ? el("a", { class: "btn btn-primary btn-sm", href: "community.html?new" }, "글쓰기") : null,
   ]);
   root.appendChild(header);
 
@@ -203,6 +212,7 @@ async function renderDetail(profile, postId) {
     postActions.appendChild(voteButtons(voteSummary, onVotePost, "md"));
   }
   async function onVotePost(value) {
+    if (!profile) { alert("로그인 후 이용할 수 있습니다."); return; }
     try {
       voteSummary = await authJson(`/community/posts/${post.id}/vote`, { method: "POST", body: JSON.stringify({ value }) });
       drawActions();
@@ -248,6 +258,7 @@ function renderComments(profile, post) {
   }
 
   async function onVoteComment(commentId, value) {
+    if (!profile) { alert("로그인 후 이용할 수 있습니다."); return; }
     try {
       const summary = await authJson(`/community/comments/${commentId}/vote`, { method: "POST", body: JSON.stringify({ value }) });
       comments = comments.map((c) => (c.id === commentId ? { ...c, ...summary } : c));
@@ -298,7 +309,7 @@ function renderComments(profile, post) {
     const canManage = profile && (profile.username === c.user.username || profile.role === "ADMIN");
     const actions = el("div", { class: "c-comment-actions" }, [
       voteButtons(c, (v) => onVoteComment(c.id, v)),
-      !isReply ? el("button", { type: "button", class: "link-btn", onclick: () => { replyTo = c.id; textarea.placeholder = "답글 내용"; textarea.focus(); } }, "답글") : null,
+      !isReply && profile ? el("button", { type: "button", class: "link-btn", onclick: () => { replyTo = c.id; textarea.placeholder = "답글 내용"; textarea.focus(); } }, "답글") : null,
       canManage ? el("button", { type: "button", class: "link-btn c-del", onclick: () => onDeleteComment(c.id) }, "삭제") : null,
     ]);
     return el("div", {}, [
@@ -346,12 +357,13 @@ function renderComments(profile, post) {
   draw();
   section.append(header, listWrap);
 
-  // 작성 폼 (부원 전용 페이지라 항상 로그인 상태)
-  const form = el("div", { class: "c-comment-form" }, [
-    textarea,
-    noticeP,
-    el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: submitComment }, "등록"),
-  ]);
+  const form = profile
+    ? el("div", { class: "c-comment-form" }, [
+        textarea,
+        noticeP,
+        el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: submitComment }, "등록"),
+      ])
+    : el("p", { class: "field-hint" }, "댓글을 남기려면 로그인해주세요.");
   section.appendChild(form);
   return section;
 }

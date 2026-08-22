@@ -129,7 +129,11 @@ if (scopeList && scopeSummary) {
     });
   });
   window.clubProfileReady?.then((profile) => {
-    if (!profile) return;
+    if (!profile) {
+      scopeSummary.textContent = "";
+      scopeList.innerHTML = '<p class="empty">시험범위는 동아리 부원만 볼 수 있습니다. 부원 계정으로 로그인해주세요.</p>';
+      return;
+    }
     canEdit = profile.username === "hift";
     void loadExamScopes();
   });
