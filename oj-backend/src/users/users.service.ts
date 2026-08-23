@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { generationFromStudentId } from './generation';
+import { CLUB_MEMBER_ROLES } from '../common/club-member';
 
 export interface BulkUserSpec {
   username: string;
@@ -698,7 +699,7 @@ export class UsersService {
    */
   async hallOfFame() {
     const users = await this.prisma.user.findMany({
-      where: { banned: false, role: { in: ['MEMBER', 'ADMIN'] } },
+      where: { banned: false, role: { in: [...CLUB_MEMBER_ROLES] } },
       select: { username: true, name: true, studentId: true },
       orderBy: [{ name: 'asc' }, { username: 'asc' }],
     });

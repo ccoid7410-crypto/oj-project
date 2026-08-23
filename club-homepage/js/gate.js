@@ -89,7 +89,10 @@ window.clubProfileReady = (async () => {
     if (!res.ok) throw new Error(`API 응답 오류: ${res.status}`);
 
     const profile = await res.json();
-    if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
+    // 동아리 부원으로 치는 역할. 백엔드(common/club-member.ts)와 같은 목록이어야 한다.
+    // DEV(개발 담당)도 부원이므로 포함한다.
+    const CLUB_MEMBER_ROLES = ["MEMBER", "DEV", "ADMIN"];
+    if (requireMember && !CLUB_MEMBER_ROLES.includes(profile.role)) {
       renderGateScreen(
         GATE_TEXT.member.title,
         GATE_TEXT.member.message,

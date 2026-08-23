@@ -31,7 +31,7 @@ export class TagsController {
 
   /** 문제 추가/수정 폼에서 새 태그를 등록한다. 문제를 만들 수 있는 부원 이상이면 가능. */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('MEMBER', 'DEV', 'ADMIN')
   @Post()
   create(@Body() dto: CreateTagDto) {
     return this.tags.create(dto.name);

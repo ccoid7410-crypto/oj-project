@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isClubMember } from '../common/club-member';
 import { UserNotificationsService } from '../user-notifications/user-notifications.service';
 import type { Board, PostType } from './dto/community.dto';
 
@@ -72,11 +73,7 @@ export class CommunityService {
     if (!requesterId) {
       throw new UnauthorizedException('로그인 후 이용할 수 있습니다.');
     }
-    if (
-      board === 'CLUB' &&
-      requesterRole !== 'MEMBER' &&
-      requesterRole !== 'ADMIN'
-    ) {
+    if (board === 'CLUB' && !isClubMember(requesterRole)) {
       throw new ForbiddenException('동아리 게시판은 부원만 볼 수 있습니다.');
     }
   }

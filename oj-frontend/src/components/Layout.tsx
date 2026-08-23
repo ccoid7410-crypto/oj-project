@@ -141,9 +141,11 @@ export function Layout() {
                 onScheduleClose={scheduleClose}
               />
             ))}
-            {user?.role === 'ADMIN' && (
+            {/* 부분 권한 역할(선생님·개발자)도 자기 몫의 관리 화면이 있으므로 들어갈 길을 준다.
+                예전에는 ADMIN만 이 링크가 보여서, 그 역할들은 주소를 직접 쳐야만 들어갈 수 있었다. */}
+            {(user?.role === 'ADMIN' || user?.role === 'TEACHER' || user?.role === 'DEV') && (
               <Link to="/admin" className={navLinkClass}>
-                관리자
+                {user.role === 'TEACHER' ? '선생님' : user.role === 'DEV' ? '개발자' : '관리자'}
               </Link>
             )}
             {user?.role === 'ADMIN' && (

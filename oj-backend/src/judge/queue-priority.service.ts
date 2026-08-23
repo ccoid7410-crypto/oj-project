@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isClubMember } from '../common/club-member';
 
 // LCM(6,4)=12. stride = 12/weight. 매 제출마다 자기 그룹의 pass를 stride만큼 증가시키고
 // "증가 전" 값을 BullMQ 우선순위(작을수록 먼저 처리)로 쓰면, 장기적으로 두 그룹이
@@ -17,7 +18,7 @@ export class QueuePriorityService {
       where: { id: userId },
       select: { role: true },
     });
-    return user?.role === 'MEMBER' || user?.role === 'ADMIN';
+    return isClubMember(user?.role);
   }
 
   /** 이 제출이 채점 큐에서 쓸 BullMQ priority 값을 계산 + 내부 카운터를 갱신한다. */

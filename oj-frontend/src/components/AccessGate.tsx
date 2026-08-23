@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { isClubMember } from '../lib/clubMember';
 
 /**
  * 페이지 접근 등급. 홈페이지(gate.js)와 같은 기준을 쓴다.
@@ -95,7 +96,7 @@ export function AccessGate({
   if (loading) return <p className="text-sm text-fg-muted">불러오는 중...</p>;
 
   if (!user) return <AccessGateScreen level={level} />;
-  if (level === 'member' && user.role !== 'MEMBER' && user.role !== 'ADMIN') {
+  if (level === 'member' && !isClubMember(user.role)) {
     return <AccessGateScreen level="member" />;
   }
   return <>{children}</>;

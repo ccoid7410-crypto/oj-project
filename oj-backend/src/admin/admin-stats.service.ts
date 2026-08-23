@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CLUB_MEMBER_ROLES } from '../common/club-member';
 
 @Injectable()
 export class AdminStatsService {
@@ -22,7 +23,7 @@ export class AdminStatsService {
     ] = await Promise.all([
       this.prisma.user.count(),
       // 부원 가입자: 관리자도 부원이므로 MEMBER 이상을 센다
-      this.prisma.user.count({ where: { role: { in: ['MEMBER', 'ADMIN'] } } }),
+      this.prisma.user.count({ where: { role: { in: [...CLUB_MEMBER_ROLES] } } }),
       this.prisma.user.count({ where: { banned: true } }),
       this.prisma.problem.groupBy({ by: ['status'], _count: true }),
       this.prisma.submission.count({

@@ -34,7 +34,7 @@ export class ExamScopesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('MEMBER', 'DEV', 'ADMIN')
   @Post()
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateExamScopeDto) {
     return this.examScopes.create(user.userId, dto);
@@ -42,7 +42,7 @@ export class ExamScopesController {
 
   /** 범위 본문만 바꾸는 기존 경로(시험범위 카드의 "범위 수정"). */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('MEMBER', 'DEV', 'ADMIN')
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -54,7 +54,7 @@ export class ExamScopesController {
 
   /** 과목 이름·범위·표시 순서 편집. */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  @Roles('MEMBER', 'DEV', 'ADMIN')
   @Patch(':id')
   edit(
     @Param('id') id: string,

@@ -7,6 +7,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { isClubMember } from '../common/club-member';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { UpdateProblemDto } from './dto/update-problem.dto';
 import { CreateTestCaseDto, UpdateTestCaseDto } from './dto/testcase.dto';
@@ -325,7 +326,7 @@ export class ProblemsService {
     }
     if (!isAdmin) {
       // 문제 등록은 동아리 부원(MEMBER) 이상만 가능하다. 일반(USER) 계정은 풀이만 할 수 있다.
-      if (authorRole !== 'MEMBER') {
+      if (!isClubMember(authorRole)) {
         throw new ForbiddenException(
           '동아리 부원만 문제를 등록할 수 있습니다.',
         );
@@ -415,7 +416,7 @@ export class ProblemsService {
     authorRole: string,
     dto: CreateProblemDto,
   ) {
-    if (authorRole !== 'ADMIN' && authorRole !== 'MEMBER') {
+    if (!isClubMember(authorRole)) {
       throw new ForbiddenException('동아리 부원만 문제를 등록할 수 있습니다.');
     }
     // 초안이라도 문제를 식별할 최소한의 정보(제목/주소)는 있어야 한다. slug는 unique라 빈 값이면 충돌한다.
