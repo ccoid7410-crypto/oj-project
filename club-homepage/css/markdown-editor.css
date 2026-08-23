@@ -1,0 +1,301 @@
+/**
+ * 공용 마크다운 편집기 스타일 (OJ + 동아리 홈페이지 공통)
+ * js/markdown-editor.js와 짝이다. 여기만 고치면 두 사이트가 같이 바뀐다.
+ *
+ * 두 사이트가 공통으로 가진 색 변수만 쓴다.
+ *   --color-ink-500/600/700, --color-fg, --color-fg-muted, --color-brand
+ * 배경은 OJ의 --color-surface, 홈페이지의 --color-bg 중 있는 쪽을 쓴다.
+ */
+
+.md-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  background: var(--color-surface, var(--color-bg));
+  overflow: hidden;
+}
+
+/* 툴바 줄: 왼쪽에 도구들, 오른쪽 끝에 미리보기 전환 */
+.md-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-ink-600);
+  padding: 6px 8px;
+}
+
+.md-tools {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.md-tools[hidden] {
+  display: none;
+}
+
+.md-tool {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.md-tool:hover:not(:disabled) {
+  background: var(--color-ink-700);
+  color: var(--color-fg);
+}
+
+.md-tool:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.md-preview-btn {
+  /* 미리보기 중에는 도구가 숨으므로, 버튼이 왼쪽으로 딸려가지 않게 오른쪽에 붙여 둔다. */
+  flex: none;
+  margin-left: auto;
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-fg-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.md-preview-btn:hover {
+  color: var(--color-brand);
+}
+
+/* 색 버튼: 아이콘 아래에 지금 고른 색을 얇게 표시한다. */
+.md-tool-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.md-tool-bar {
+  margin-top: 2px;
+  width: 16px;
+  height: 3px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 999px;
+}
+
+.md-color-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(7, 24px);
+  gap: 4px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  background: var(--color-surface, var(--color-bg));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.md-color-pop[hidden] {
+  display: none;
+}
+
+.md-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.md-swatch:hover {
+  transform: scale(1.1);
+}
+
+/* 기본(색 없음)은 빗금으로 표시한다. */
+.md-swatch-none {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface, var(--color-bg));
+}
+
+.md-swatch-none::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 140%;
+  background: #e0393e;
+  transform: rotate(45deg);
+}
+
+.md-select {
+  height: 32px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-fg);
+  font: inherit;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.md-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--color-ink-600);
+}
+
+.md-file {
+  display: none;
+}
+
+/* 편집 중에는 항상 마크다운 원문을 보여준다. */
+.md-input {
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  padding: 12px;
+  background: transparent;
+  color: var(--color-fg);
+  font: inherit;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+}
+
+.md-input-compact {
+  min-height: 120px;
+}
+
+.md-input[hidden] {
+  display: none;
+}
+
+.md-preview {
+  min-height: 320px;
+  padding: 12px;
+}
+
+.md-editor-compact .md-preview {
+  min-height: 120px;
+}
+
+.md-preview[hidden] {
+  display: none;
+}
+
+.md-preview img {
+  max-width: 100%;
+}
+
+/* ===== 링크 넣기 창 ===== */
+.md-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.md-dialog {
+  width: 380px;
+  max-width: 100%;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  padding: 20px;
+  background: var(--color-surface, var(--color-bg));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.md-dialog-title {
+  margin-bottom: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.md-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 0.8125rem;
+  color: var(--color-fg-muted);
+}
+
+.md-dialog-input {
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--color-surface, var(--color-bg));
+  color: var(--color-fg);
+  font: inherit;
+  outline: none;
+}
+
+.md-dialog-input:focus {
+  border-color: var(--color-brand);
+}
+
+.md-dialog-error {
+  margin-bottom: 8px;
+  min-height: 1em;
+  color: #e0393e;
+  font-size: 0.75rem;
+}
+
+.md-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.md-dialog-btn {
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--color-fg);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.md-dialog-btn:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+.md-dialog-primary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #ffffff;
+}
+
+.md-dialog-primary:hover {
+  background: var(--color-brand-dim, var(--color-brand));
+  color: #ffffff;
+}

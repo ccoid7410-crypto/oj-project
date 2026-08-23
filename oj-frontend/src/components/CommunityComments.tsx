@@ -30,8 +30,6 @@ export function CommunityComments({
   const [content, setContent] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // 등록 후 입력칸을 비우기 위한 값(바뀌면 편집기를 새로 그린다).
-  const [editorKey, setEditorKey] = useState(0);
   // 댓글 정렬: 인기순(좋아요-싫어요, 기본) / 날짜순(오래된 순) / 최신순
   const [sort, setSort] = useState<'popular' | 'old' | 'new'>('popular');
 
@@ -47,7 +45,6 @@ export function CommunityComments({
         parentId: replyTo ?? undefined,
       });
       setContent('');
-      setEditorKey((k) => k + 1);
       setReplyTo(null);
       onReload();
     } catch (err) {
@@ -166,7 +163,6 @@ export function CommunityComments({
           <CommentEditor
             value={content}
             onChange={setContent}
-            resetKey={editorKey}
             placeholder={replyTo ? '답글 내용' : '댓글을 남겨보세요'}
           />
           {error && <p className="mt-1 text-xs text-[var(--color-wa)]">{error}</p>}

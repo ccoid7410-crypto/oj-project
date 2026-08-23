@@ -12,8 +12,6 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
   const [content, setContent] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // 등록 후 입력칸을 비우기 위한 값(바뀌면 편집기를 새로 그린다).
-  const [editorKey, setEditorKey] = useState(0);
 
   function load() {
     api
@@ -32,7 +30,6 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
         parentId: replyTo ?? undefined,
       });
       setContent('');
-      setEditorKey((k) => k + 1);
       setReplyTo(null);
       load();
     } catch (err) {
@@ -84,7 +81,6 @@ export function ProblemComments({ problemId, contestId }: { problemId: string; c
           <CommentEditor
             value={content}
             onChange={setContent}
-            resetKey={editorKey}
             placeholder={replyTo ? '답글 내용' : '질문을 남겨보세요'}
           />
           {error && <p className="mt-1 text-xs text-[var(--color-wa)]">{error}</p>}

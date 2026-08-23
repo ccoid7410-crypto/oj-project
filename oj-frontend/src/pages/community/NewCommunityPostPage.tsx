@@ -1,20 +1,35 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 import type { CommunityPostType, MentionUser } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { CommunityTagPicker } from '../../components/CommunityTagPicker';
-import { MentionScope } from '../../components/MentionText';
+import { applyMentionChips } from '../../components/MentionText';
 
-// KaTeX(수식) 번들이 커서 미리보기를 켤 때만 lazy load 한다.
-const MarkdownView = lazy(() =>
-  import('../../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
-);
-
-// 마크다운 툴바 에디터도 무거워서(tiptap + 이미지 편집기) 필요할 때 불러온다.
+// 편집기(마크다운 렌더러 포함)가 무거워서 이 화면에 들어올 때 불러온다.
 const MarkdownEditor = lazy(() =>
   import('../../components/MarkdownEditor').then((m) => ({ default: m.MarkdownEditor })),
 );
+
+/** 미리보기: 마크다운으로 그린 뒤, 실제로 존재하는 계정만 멘션 칩으로 바꾼다. */
+function renderPreviewWithMentions(content: string, container: HTMLElement) {
+  const body = document.createElement('div');
+  body.className = 'markdown-body';
+  container.appendChild(body);
+
+  void import('../../lib/markdown').then(({ renderMarkdownToHtml }) => {
+    body.innerHTML = content.trim()
+      ? renderMarkdownToHtml(content)
+      : '<p class="text-fg-muted">내용이 없습니다.</p>';
+    if (!content.trim()) return;
+    api
+      .post<MentionUser[]>('/community/mentions/resolve', { content })
+      .then((found) => applyMentionChips(body, found))
+      .catch(() => {
+        /* 확인에 실패하면 멘션 없이 원문 그대로 둔다 */
+      });
+  });
+}
 
 export function NewCommunityPostPage() {
   const navigate = useNavigate();
@@ -24,27 +39,8 @@ export function NewCommunityPostPage() {
   const [content, setContent] = useState('');
   const [type, setType] = useState<CommunityPostType>('NORMAL');
   const [tags, setTags] = useState<string[]>([]);
-  const [preview, setPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // 미리보기에서도 @사용자명을 칩으로 보여주려면 초안에 실제 계정이 있는지 물어봐야 한다.
-  const [mentions, setMentions] = useState<MentionUser[]>([]);
-
-  useEffect(() => {
-    if (!preview || !content.trim()) return;
-    let alive = true;
-    api
-      .post<MentionUser[]>('/community/mentions/resolve', { content })
-      .then((found) => {
-        if (alive) setMentions(found);
-      })
-      .catch(() => {
-        /* 확인에 실패하면 멘션 없이 원문 그대로 보여준다 */
-      });
-    return () => {
-      alive = false;
-    };
-  }, [preview, content]);
 
   // 유형은 하나만 고를 수 있다. 체크를 풀면 일반(NORMAL)로 돌아간다.
   function toggleType(t: Exclude<CommunityPostType, 'NORMAL'>) {
@@ -117,41 +113,17 @@ export function NewCommunityPostPage() {
         <CommunityTagPicker board="OJ" value={tags} onChange={setTags} />
 
         <div className="flex flex-col gap-1 text-sm">
-          <div className="flex items-center justify-between">
-            <span>내용</span>
-            <button
-              type="button"
-              onClick={() => setPreview((v) => !v)}
-              className="text-xs text-fg-muted underline hover:text-[var(--color-brand)]"
-            >
-              {preview ? '편집' : '미리보기'}
-            </button>
-          </div>
-          {preview ? (
-            <div className="min-h-[240px] rounded border border-ink-500 bg-white p-3">
-              <MentionScope mentions={mentions} deps={[content]}>
-                <Suspense fallback={<p className="text-sm text-fg-muted">미리보기 불러오는 중...</p>}>
-                  {content.trim() ? (
-                    <MarkdownView content={content} />
-                  ) : (
-                    <p className="text-sm text-fg-muted">내용이 없습니다.</p>
-                  )}
-                </Suspense>
-              </MentionScope>
-            </div>
-          ) : (
-            /* 문제 설명과 같은 편집기를 쓴다. 제목은 이 페이지가 따로 받으므로
-               에디터에는 본문만 맡긴다. */
-            <div className="rounded border border-ink-500">
-              <Suspense fallback={<p className="p-3 text-sm text-fg-muted">편집기 불러오는 중...</p>}>
-                <MarkdownEditor
-                  content={content}
-                  onContentChange={setContent}
-                  placeholder="내용을 입력하세요"
-                />
-              </Suspense>
-            </div>
-          )}
+          <span>내용</span>
+          {/* 문제 설명과 같은 공용 편집기(원문 편집 + 미리보기)를 쓴다.
+              제목은 이 페이지가 따로 받으므로 편집기에는 본문만 맡긴다. */}
+          <Suspense fallback={<p className="p-3 text-sm text-fg-muted">편집기 불러오는 중...</p>}>
+            <MarkdownEditor
+              content={content}
+              onContentChange={setContent}
+              placeholder="내용을 입력하세요"
+              renderPreview={renderPreviewWithMentions}
+            />
+          </Suspense>
         </div>
 
         {error && <p className="text-xs text-[var(--color-wa)]">{error}</p>}
