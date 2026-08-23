@@ -33,9 +33,10 @@ import { StudentIdService } from '../student-id/student-id.service';
 import type { RequestUser } from '../auth/jwt.strategy';
 
 class UpdateStudentIdDto {
+  // 가입 때와 같은 형식(입학년도 4자리 + 학번 4자리). 기수를 여기서 뽑기 때문에 형식이 중요하다.
   @IsString()
-  @Matches(/^[a-zA-Z0-9-]{1,20}$/, {
-    message: '학번 형식이 올바르지 않습니다.',
+  @Matches(/^20\d{6}$/, {
+    message: '입학년도 4자리 + 학번 4자리, 총 8자리 숫자로 입력해주세요. (예: 20261119)',
   })
   studentId: string;
 }

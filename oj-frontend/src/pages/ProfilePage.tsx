@@ -620,8 +620,12 @@ function StudentIdSection({ onUpdated }: { onUpdated: () => void }) {
 
   return (
     <div className="mt-4 rounded border border-ink-500 p-3 text-xs">
-      <p className="font-bold text-fg">학번</p>
-      {!hasStudentId && <p className="mt-1 text-fg-muted">아직 등록된 학번이 없습니다. 최초 등록은 언제든 가능합니다.</p>}
+      <p className="font-bold text-fg">입학년도+학번</p>
+      {!hasStudentId && (
+        <p className="mt-1 text-fg-muted">
+          아직 등록된 학번이 없습니다. 최초 등록은 언제든 가능합니다. (입학년도 4자리 + 학번 4자리)
+        </p>
+      )}
       {hasStudentId && !window?.isOpen && (
         <p className="mt-1 text-fg-muted">
           현재 학번: <span className="font-bold text-fg">{user?.studentId}</span> · 지금은 수정 기간이 아닙니다.
@@ -643,7 +647,10 @@ function StudentIdSection({ onUpdated }: { onUpdated: () => void }) {
           <input
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            placeholder="예: 20240001"
+            inputMode="numeric"
+            pattern="^20\d{6}$"
+            maxLength={8}
+            placeholder="예: 20261119"
             className="w-40 rounded border border-ink-500 bg-white px-2 py-1.5 outline-none focus:border-[var(--color-brand)]"
           />
           <button

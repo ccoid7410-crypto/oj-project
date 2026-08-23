@@ -81,15 +81,18 @@ export function SignupPage() {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          학번 (선택, 동아리 회원인 경우)
+          입학년도+학번 (선택, 두루누리인 경우 필수)
           <input
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            placeholder="예: 20260001"
+            inputMode="numeric"
+            pattern="^20\d{6}$"
+            maxLength={8}
+            placeholder="예: 20261119"
             className="rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]"
           />
           <span className="text-xs text-fg-muted">
-            앞 4자리(입학년도)로 기수를 계산합니다. 없으면 명예의 전당에서 '기타'로 표시됩니다.
+            입학년도 4자리 + 학번 4자리, 총 8자리입니다. 앞 4자리로 기수를 계산합니다.
           </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
