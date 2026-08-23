@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const DEPLOY_REQUEST_TIMEOUT_MS = 11 * 60 * 1000; // 배포 에이전트의 단계별 10분 타임아웃보다 여유
 
-interface DeployAgentResult {
+export interface DeployAgentResult {
   ok: boolean;
   steps: Array<{ step: string; ok: boolean; output: string }>;
 }
