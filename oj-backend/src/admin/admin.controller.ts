@@ -73,8 +73,8 @@ class BanUserDto {
 }
 
 class SetRoleDto {
-  @IsIn(['USER', 'MEMBER', 'TEACHER', 'ADMIN'])
-  role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN';
+  @IsIn(['USER', 'MEMBER', 'TEACHER', 'DEV', 'ADMIN'])
+  role: 'USER' | 'MEMBER' | 'TEACHER' | 'DEV' | 'ADMIN';
 }
 
 class SetCustomTitleDto {

@@ -92,6 +92,12 @@ services:
       # 루트 .env에 생성되는 값을 명시적으로 전달해야 기존 oj-backend/.env를 쓰는 서버에서도
       # 내부 리스너가 활성화된다.
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?run ./setup.sh to generate service tokens}
+      # DEV/ADMIN 관리자 페이지의 "지금 배포" 버튼이 이 값들로 deploy-agent를 호출한다.
+      # DEPLOY_AGENT_URL이 비어 있으면(구버전 .env) 배포 트리거 기능만 비활성화되고 나머지는 그대로 동작한다.
+      DEPLOY_AGENT_URL: http://deploy-agent:3002
+      DEPLOY_SERVICE_TOKEN: ${DEPLOY_SERVICE_TOKEN:-}
+      # setup.sh가 감지한 이 머신의 LAN IP. 관리자 페이지에 그대로 표시만 한다(추측/조작 방지).
+      SERVER_LAN_IP: ${SERVER_LAN_IP:-}
       # 컨테이너 메모리 상한(384M)보다 여유 있게 힙을 잡아두면 OOM-kill 직전에 GC가 못 돌아
       # 급사하는 대신, V8이 스스로 컬렉션을 더 자주 돌려서 은근슬쩍 버틴다.
       NODE_OPTIONS: --max-old-space-size=320
@@ -234,6 +240,36 @@ services:
         limits:
           memory: 256M
           cpus: "1.0"
+    logging: *default-logging
+
+  # DEV/ADMIN 역할 유저가 관리자 페이지에서 "지금 배포" 버튼을 누르면 api가 이 서비스를
+  # 호출해 git pull + docker compose build/up을 실행한다. docker.sock을 쥐는 서비스라
+  # 사실상 호스트 root와 동급 권한 - api 컨테이너에는 절대 이 권한을 주지 않고 완전히
+  # 분리된 별도 컨테이너로만 존재한다(judge-worker와 동일한 격리 철학).
+  # 호스트로 포트를 publish하지 않으므로 인터넷/브라우저에서는 절대 닿을 수 없고,
+  # backend_net 내부에서 api만 호출할 수 있다(그마저도 전용 서비스 토큰으로 한 번 더 막음).
+  deploy-agent:
+    build:
+      context: ./oj-backend
+      dockerfile: Dockerfile.deploy
+    restart: unless-stopped
+    networks:
+      - backend_net
+    environment:
+      DEPLOY_SERVICE_TOKEN: ${DEPLOY_SERVICE_TOKEN:?run ./setup.sh to generate service tokens}
+      DEPLOY_REPO_DIR: /repo
+      PORT: 3002
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 이 저장소 체크아웃 자체를 마운트한다 - git pull이 여기서 직접 코드를 갱신하고,
+      # 그 다음 docker compose build/up이 같은 디렉토리를 대상으로 돈다.
+      - .:/repo
+    user: "0:0"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
     logging: *default-logging
 
   frontend:

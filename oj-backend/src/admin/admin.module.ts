@@ -10,6 +10,8 @@ import { AdminStatsService } from './admin-stats.service';
 import { MailModule } from '../mail/mail.module';
 import { BannerModule } from '../banner/banner.module';
 import { RootAdminGuard } from './guards/root-admin.guard';
+import { DeployTriggerController } from './deploy-trigger.controller';
+import { DeployTriggerService } from './deploy-trigger.service';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { RootAdminGuard } from './guards/root-admin.guard';
     MailModule,
     BannerModule,
   ],
-  controllers: [AdminController],
-  providers: [AdminStatsService, RootAdminGuard],
+  controllers: [AdminController, DeployTriggerController],
+  providers: [AdminStatsService, RootAdminGuard, DeployTriggerService],
 })
 export class AdminModule {}

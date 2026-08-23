@@ -33,6 +33,7 @@ docker compose up -d
 - `judge-worker` (`dist/main-worker.js`) — 현재는 같은 Compose 호스트에서 `judge_net`으로만 분리되어 있다. `docker.sock` 마운트는 사실상 **현재 호스트 root 권한과 동급**이므로 VM 격리가 완료된 상태가 아니다. 별도 VM2 준비 시 `docker-compose.judge.yml` + `setup-judge.sh`를 만든다.
 - `frontend` — Vite 빌드 결과를 nginx로 서빙 (SPA 라우팅 처리 포함). 현재 `/api/`와 `/socket.io/`는 api 컨테이너로 직접 프록시한다. 인터체인저 전환 조건과 위험은 [DEPLOYMENT_PHASES.md](./DEPLOYMENT_PHASES.md)를 참고한다.
 - `homepage` — 동아리 홈페이지(`club-homepage/`, 정적 HTML/CSS/JS)를 nginx로 서빙. 외부 포트는 열지 않고 frontend를 통해서만 접근한다. OJ와 같은 origin을 유지해 localStorage의 `oj_token`을 공유하므로 두 페이지 간 로그인 상태가 이어진다.
+- `deploy-agent` (`dist/main-deploy.js`) — DEV/ADMIN 역할 유저가 관리자 페이지(`/admin/deploy`)에서 배포를 트리거하면 api가 이 서비스를 호출해 `git pull --ff-only` + `docker compose build/up`을 실행한다. `docker.sock`을 쥔 유일한 서비스라 judge-worker와 마찬가지로 **호스트 root와 동급 권한**이다 — 그래서 api 컨테이너에는 이 권한을 절대 주지 않고 완전히 분리했고, 호스트로 포트를 publish하지 않으며(backend_net 내부 전용), 실행되는 커맨드는 요청 바디와 무관하게 코드에 고정돼 있다(인젝션 경로 없음). 트리거 자체도 비밀번호 재확인 + 분당 1회 제한이 걸려 있다. 주의: 배포가 api 컨테이너 자신을 재기동시키므로, 트리거한 브라우저는 마지막 단계에서 응답 대신 연결 끊김/타임아웃을 볼 수 있다 — 실패가 아니라 정상 동작이니 `docker compose ps`로 확인할 것.
 
 ## 지금까지 만든 것 (요약)
 

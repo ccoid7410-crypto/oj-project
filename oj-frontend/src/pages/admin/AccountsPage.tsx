@@ -3,7 +3,13 @@ import { api, ApiError } from '../../api/client';
 import type { AdminUser, Role } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 
-const ROLE_LABEL: Record<Role, string> = { USER: '일반', MEMBER: '부원', TEACHER: '선생님', ADMIN: '관리자' };
+const ROLE_LABEL: Record<Role, string> = {
+  USER: '일반',
+  MEMBER: '부원',
+  TEACHER: '선생님',
+  DEV: '개발자',
+  ADMIN: '관리자',
+};
 
 export function AccountsPage() {
   const { user: me } = useAuth();
@@ -197,6 +203,7 @@ export function AccountsPage() {
                         <option value="USER">일반</option>
                         <option value="MEMBER">부원</option>
                         <option value="TEACHER">선생님</option>
+                        <option value="DEV">개발자</option>
                         <option value="ADMIN">관리자</option>
                       </select>
                     ) : (

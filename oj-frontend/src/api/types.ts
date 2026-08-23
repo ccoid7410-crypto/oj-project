@@ -1,4 +1,4 @@
-export type Role = 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN';
+export type Role = 'USER' | 'MEMBER' | 'TEACHER' | 'DEV' | 'ADMIN';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
@@ -463,4 +463,19 @@ export interface CommunityPostDetail {
   dislikeCount: number;
   myVote: number;
   comments: CommunityComment[];
+}
+
+export interface ServerInfo {
+  lanIp: string | null;
+}
+
+export interface DeployStepResult {
+  step: string;
+  ok: boolean;
+  output: string;
+}
+
+export interface DeployResult {
+  ok: boolean;
+  steps: DeployStepResult[];
 }

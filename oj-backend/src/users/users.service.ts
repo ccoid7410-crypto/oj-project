@@ -728,7 +728,7 @@ export class UsersService {
   /** 권한 변경 (USER=일반, MEMBER=부원, ADMIN=관리자). 관리자 강등에는 잠금 사고 방지 장치가 걸려 있다. */
   async setRole(
     id: string,
-    role: 'USER' | 'MEMBER' | 'TEACHER' | 'ADMIN',
+    role: 'USER' | 'MEMBER' | 'TEACHER' | 'DEV' | 'ADMIN',
     actingUserId: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id } });

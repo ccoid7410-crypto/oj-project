@@ -46,6 +46,7 @@ import { CommunityListPage } from './pages/community/CommunityListPage';
 import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
 import { ClubSchedulesAdminPage } from './pages/admin/ClubSchedulesAdminPage';
+import { DeployPage } from './pages/admin/DeployPage';
 
 export default function App() {
   return (
@@ -96,6 +97,7 @@ export default function App() {
                 <Route path="/admin/mail" element={<MailSettingsPage />} />
                 <Route path="/admin/banner" element={<BannerSettingsPage />} />
                 <Route path="/admin/club-schedules" element={<ClubSchedulesAdminPage />} />
+                <Route path="/admin/deploy" element={<DeployPage />} />
                 <Route path="/admin/api-keys" element={<ApiKeysPage />} />
                 <Route path="/admin/accounts" element={<AccountsPage />} />
                 <Route path="/admin/notifications" element={<NotificationsPage />} />

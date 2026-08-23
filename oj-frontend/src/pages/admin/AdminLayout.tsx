@@ -29,14 +29,21 @@ const TEACHER_TABS = [
   { to: '/admin/accounts', label: '계정 관리' },
 ];
 
+// 개발자는 배포 트리거 + 서버 정보 열람 권한만 있다. 그 외 관리자 화면은 안 보여준다
+// (TEACHER_TABS와 동일한 패턴 - 백엔드도 어차피 막지만 눌러서 403 보는 것보다 낫다).
+const DEV_TABS = [{ to: '/admin/deploy', label: '배포/서버 정보' }];
+
 export function AdminLayout() {
   const { user } = useAuth();
   const isTeacherOnly = user?.role === 'TEACHER';
-  const TABS = isTeacherOnly ? TEACHER_TABS : ADMIN_TABS;
+  const isDevOnly = user?.role === 'DEV';
+  const TABS = isTeacherOnly ? TEACHER_TABS : isDevOnly ? DEV_TABS : ADMIN_TABS;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{isTeacherOnly ? '선생님 관리' : '관리자'}</h1>
+      <h1 className="text-2xl font-bold">
+        {isTeacherOnly ? '선생님 관리' : isDevOnly ? '개발자' : '관리자'}
+      </h1>
       <nav className="mt-4 flex gap-1 border-b border-ink-500">
         {TABS.map((t) => (
           <NavLink

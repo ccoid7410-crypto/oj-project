@@ -15,6 +15,7 @@ enum Role {
   USER
   MEMBER // 동아리 부원: 홈페이지 접속 자격
   TEACHER // 선생님: 수업 관리 + 문제 검수/승인 + 학생(USER/MEMBER) 계정 정지 - ADMIN 전체 권한은 없음
+  DEV // 배포(git pull + docker 재빌드) 트리거, 서버 정보 열람 권한. ADMIN 전체 권한은 없음
   ADMIN
 }
 

@@ -103,8 +103,8 @@ else
   echo "==> JWT_SECRET이 이미 설정되어 있어 건너뜀"
 fi
 
-# 인터체인저의 두 신뢰 경계에 쓰는 서비스 토큰도 루트 .env에서 각각 독립적으로 생성한다.
-for service_token_key in INTERNAL_API_TOKEN JUDGE_SERVICE_TOKEN; do
+# 인터체인저/배포 에이전트 등 각 신뢰 경계에 쓰는 서비스 토큰을 루트 .env에서 각각 독립적으로 생성한다.
+for service_token_key in INTERNAL_API_TOKEN JUDGE_SERVICE_TOKEN DEPLOY_SERVICE_TOKEN; do
   current_service_token="$(get_env_var ".env" "$service_token_key")"
   if [ -z "$current_service_token" ] || [ "$current_service_token" = "changeme-run-setup-sh" ]; then
     set_env_var ".env" "$service_token_key" "$(openssl rand -hex 32)"
@@ -145,6 +145,11 @@ if [ -n "$LAN_IP" ]; then
   else
     echo "==> FRONTEND_URL이 이미 커스텀 값이라 건너뜀"
   fi
+  # DEV/ADMIN 관리자 페이지에 표시할 값. 컨테이너 안에서는 호스트의 실제 LAN IP를
+  # 알아낼 방법이 없어서(도커 브리지 IP만 보임) setup.sh가 감지한 값을 그대로 넘겨준다.
+  # 재실행할 때마다 최신 값으로 덮어쓴다(DHCP로 IP가 바뀔 수 있음).
+  set_env_var ".env" "SERVER_LAN_IP" "$LAN_IP"
+  echo "==> SERVER_LAN_IP을 $LAN_IP 로 채웠다"
 else
   echo "==> LAN IP를 자동으로 못 찾았다. CORS_ORIGIN/FRONTEND_URL을 직접 확인할 것"
 fi

@@ -1,0 +1,33 @@
+# 배포 에이전트 전용 이미지. api/judge-worker와 같은 Dockerfile을 쓰지 않는 이유:
+# 이 서비스만 git + docker CLI(compose 플러그인 포함)가 필요한데, 그걸 공용 Dockerfile에
+# 넣으면 로그인한 유저의 요청을 직접 받는 api 컨테이너까지 불필요하게 공격 표면이 늘어난다.
+FROM node:20-bookworm-slim AS builder
+WORKDIR /app
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npx prisma generate
+RUN npm run build
+
+FROM node:20-bookworm-slim AS runner
+WORKDIR /app
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+      openssl git ca-certificates curl gnupg \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/prisma ./prisma
+
+EXPOSE 3002
+# docker.sock 접근 때문에 이 컨테이너는 항상 root로 띄운다(compose에서 user: "0:0"으로 강제).
+CMD ["node", "dist/main-deploy.js"]
