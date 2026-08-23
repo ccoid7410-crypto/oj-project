@@ -77,6 +77,13 @@ set_env_var ".env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 set_env_var "oj-backend/.env" "HOST_JUDGE_TMP_DIR" "$JUDGE_TMP_HOST_PATH"
 echo "==> HOST_JUDGE_TMP_DIR을 두 .env 파일에 채워 넣었다"
 
+# 배포 에이전트가 이 저장소를 마운트할 때 쓰는 절대경로.
+# 컨테이너 안팎을 같은 경로로 맞춰야 한다 - 에이전트가 실행하는 docker compose가 만드는
+# 바인드 마운트 경로는 호스트의 도커 데몬이 해석하기 때문에, 컨테이너 안에서만 통하는
+# 경로(/repo 같은)를 쓰면 다음 배포 때 엉뚱한 빈 디렉터리가 마운트된다.
+set_env_var ".env" "HOST_REPO_DIR" "$ROOT_DIR"
+echo "==> HOST_REPO_DIR을 $ROOT_DIR 로 채웠다"
+
 # 3. DB 비밀번호와 JWT_SECRET이 예시 값 그대로면 무작위로 생성
 current_db_password="$(get_env_var ".env" "POSTGRES_PASSWORD")"
 if [ -z "$current_db_password" ] || [ "$current_db_password" = "oj_password" ] || [ "$current_db_password" = "changeme-run-setup-sh" ]; then

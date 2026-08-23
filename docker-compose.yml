@@ -257,13 +257,19 @@ services:
       - backend_net
     environment:
       DEPLOY_SERVICE_TOKEN: ${DEPLOY_SERVICE_TOKEN:?run ./setup.sh to generate service tokens}
-      DEPLOY_REPO_DIR: /repo
+      DEPLOY_REPO_DIR: ${HOST_REPO_DIR:?run ./setup.sh first to set this}
       PORT: 3002
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # 이 저장소 체크아웃 자체를 마운트한다 - git pull이 여기서 직접 코드를 갱신하고,
       # 그 다음 docker compose build/up이 같은 디렉토리를 대상으로 돈다.
-      - .:/repo
+      #
+      # 호스트와 "똑같은 절대경로"에 마운트하는 게 핵심이다. 이 컨테이너가 실행하는
+      # docker compose는 바인드 마운트 경로를 호스트의 도커 데몬에 넘기는데, 데몬은 그걸
+      # 호스트 경로로 해석한다. /repo 같이 컨테이너 안에서만 통하는 경로를 쓰면 compose가
+      # 이 서비스를 호스트의 (존재하지도 않는) /repo로 다시 만들어버려서, 다음 배포 때
+      # 빈 디렉터리를 보고 죽는다. judge-worker의 HOST_JUDGE_TMP_DIR과 같은 이유다.
+      - ${HOST_REPO_DIR:?run ./setup.sh first to set this}:${HOST_REPO_DIR}
     user: "0:0"
     deploy:
       resources:

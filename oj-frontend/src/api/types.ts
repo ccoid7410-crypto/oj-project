@@ -483,7 +483,12 @@ export interface DeployStepResult {
   output: string;
 }
 
-export interface DeployResult {
-  ok: boolean;
+/** 배포 진행 상황. 배포는 백그라운드로 돌고 이 값을 주기적으로 조회해서 본다. */
+export interface DeployStatus {
+  running: boolean;
+  /** 끝난 배포의 성패. 아직 안 끝났거나 기록이 없으면 null. */
+  ok: boolean | null;
   steps: DeployStepResult[];
+  startedAt: string | null;
+  finishedAt: string | null;
 }

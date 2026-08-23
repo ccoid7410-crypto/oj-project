@@ -9,11 +9,21 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
-const DEPLOY_REQUEST_TIMEOUT_MS = 11 * 60 * 1000; // 배포 에이전트의 단계별 10분 타임아웃보다 여유
+// 에이전트는 배포를 백그라운드로 돌리고 바로 답하므로 오래 기다릴 일이 없다.
+const DEPLOY_REQUEST_TIMEOUT_MS = 15_000;
 
-export interface DeployAgentResult {
+export interface DeployStepResult {
+  step: string;
   ok: boolean;
-  steps: Array<{ step: string; ok: boolean; output: string }>;
+  output: string;
+}
+
+export interface DeployStatus {
+  running: boolean;
+  ok: boolean | null;
+  steps: DeployStepResult[];
+  startedAt: string | null;
+  finishedAt: string | null;
 }
 
 @Injectable()
@@ -39,7 +49,7 @@ export class DeployTriggerService {
     };
   }
 
-  async trigger(userId: string, password: string): Promise<DeployAgentResult> {
+  async trigger(userId: string, password: string): Promise<{ started: boolean }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
     const matches = await bcrypt.compare(password, user.passwordHash);
@@ -52,8 +62,25 @@ export class DeployTriggerService {
     }
 
     this.logger.log(`배포 트리거됨 (요청자: ${user.username})`);
-    const res = await fetch(`${this.baseUrl}/deploy`, {
-      method: 'POST',
+    return this.callAgent<{ started: boolean }>('/deploy', 'POST');
+  }
+
+  /**
+   * 진행 상황 조회. 배포 마지막 단계에서 api 컨테이너까지 재생성되므로, 이 요청 자체가
+   * 잠깐 실패할 수 있다 - 프론트는 그걸 "재시작 중"으로 보고 계속 물어본다.
+   */
+  async status(): Promise<DeployStatus> {
+    if (!this.baseUrl) {
+      throw new ServiceUnavailableException(
+        '배포 에이전트가 설정되지 않았습니다(DEPLOY_AGENT_URL 없음).',
+      );
+    }
+    return this.callAgent<DeployStatus>('/deploy/status', 'GET');
+  }
+
+  private async callAgent<T>(path: string, method: 'GET' | 'POST'): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method,
       headers: { Authorization: `Bearer ${this.token}` },
       signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
     });
@@ -62,10 +89,6 @@ export class DeployTriggerService {
         `배포 에이전트 응답 오류: ${res.status}`,
       );
     }
-    const result = (await res.json()) as DeployAgentResult;
-    this.logger.log(
-      `배포 결과 (요청자: ${user.username}): ${result.ok ? '성공' : '실패'}`,
-    );
-    return result;
+    return (await res.json()) as T;
   }
 }

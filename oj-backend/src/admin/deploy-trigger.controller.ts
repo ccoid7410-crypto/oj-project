@@ -19,7 +19,13 @@ export class DeployTriggerController {
     return this.deploy.getServerInfo();
   }
 
-  // 되돌리기 번거로운 작업이라 전역 제한(분당 120회)보다 훨씬 빡빡하게 건다.
+  /** 배포 진행 상황. 눌러놓고 화면을 나갔다 들어와도 여기서 결과를 볼 수 있다. */
+  @Get('status')
+  status() {
+    return this.deploy.status();
+  }
+
+  // 되돌리기 번거로운 작업이라 전역 제한(분당 120회)보다 훨씬 빡빡하게 건다(2분에 1회).
   @Throttle({ default: { limit: 1, ttl: 120_000 } })
   @Post()
   trigger(

@@ -21,6 +21,9 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
+# 이 컨테이너는 root로 도는데 저장소 파일은 호스트 유저 소유라, 그냥 두면 git이
+# "detected dubious ownership"으로 거부한다.
+RUN git config --system --add safe.directory '*'
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
