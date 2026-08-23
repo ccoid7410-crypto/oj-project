@@ -10,6 +10,8 @@ const proposalSubmit = document.getElementById("schedule-submit");
 const proposalToggle = document.getElementById("schedule-proposal-toggle");
 const editCancel = document.getElementById("schedule-edit-cancel");
 const scheduleType = document.getElementById("schedule-type");
+const scheduleCustomTypeField = document.getElementById("schedule-custom-type-field");
+const scheduleCustomType = document.getElementById("schedule-custom-type");
 const scheduleSubjectField = document.getElementById("schedule-subject-field");
 const scheduleSubject = document.getElementById("schedule-subject");
 const scheduleStartField = document.getElementById("schedule-start-field");
@@ -57,14 +59,55 @@ function formatDateRange(schedule) {
   return range;
 }
 
-function scheduleTypeLabel(type) {
-  return {
-    ASSESSMENT: "수행평가",
-    EXAM: "시험",
-    EVENT: "행사 및 축제",
-    OTHER: "기타",
-    VACATION: "방학",
-  }[type] || "기타";
+// 기본 종류. 배열 순서가 곧 범례와 선택 목록의 순서다.
+const BUILTIN_TYPES = [
+  { value: "EXAM", label: "시험" },
+  { value: "ASSESSMENT", label: "수행평가" },
+  { value: "EVENT", label: "행사 및 축제" },
+  { value: "VACATION", label: "방학" },
+  { value: "OTHER", label: "기타" },
+];
+
+// 승인된 일정에 쓰인 사용자 정의 종류 이름들(백엔드에서 받아온다).
+let customTypes = [];
+
+function scheduleTypeLabel(type, customType) {
+  if (type === "CUSTOM") return customType || "기타";
+  return BUILTIN_TYPES.find((t) => t.value === type)?.label || "기타";
+}
+
+/** 사용자 정의 종류는 이름을 해시해서 팔레트에서 색을 고른다(같은 이름이면 항상 같은 색). */
+const CUSTOM_COLORS = ["#1f9e8f", "#c2185b", "#8d6e63", "#5c6bc0", "#d08700", "#7cb342"];
+function customTypeColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return CUSTOM_COLORS[hash % CUSTOM_COLORS.length];
+}
+
+/** 일정 하나가 어떤 색으로 그려질지. 기본 종류는 CSS 클래스, 사용자 정의는 인라인 색. */
+function scheduleColorStyle(schedule) {
+  return schedule.type === "CUSTOM" ? customTypeColor(schedule.customType || "") : "";
+}
+
+function renderLegend() {
+  const legend = document.getElementById("calendar-legend");
+  if (!legend) return;
+  legend.replaceChildren();
+  for (const t of BUILTIN_TYPES) {
+    const span = document.createElement("span");
+    const dot = document.createElement("i");
+    dot.className = `legend-dot legend-${t.value.toLowerCase()}`;
+    span.append(dot, document.createTextNode(t.label));
+    legend.appendChild(span);
+  }
+  for (const name of customTypes) {
+    const span = document.createElement("span");
+    const dot = document.createElement("i");
+    dot.className = "legend-dot";
+    dot.style.background = customTypeColor(name);
+    span.append(dot, document.createTextNode(name));
+    legend.appendChild(span);
+  }
 }
 
 function scheduleTitle(schedule) {
@@ -166,12 +209,14 @@ function renderScheduleList(schedules) {
     const card = document.createElement("article");
     card.id = `schedule-${schedule.id}`;
     card.className = `calendar-schedule-card schedule-${schedule.type.toLowerCase()}`;
+    const cardColor = scheduleColorStyle(schedule);
+    if (cardColor) card.style.setProperty("--schedule-color", cardColor);
 
     const top = document.createElement("div");
     top.className = "calendar-schedule-top";
     const badge = document.createElement("span");
     badge.className = "calendar-schedule-badge";
-    badge.textContent = scheduleTypeLabel(schedule.type);
+    badge.textContent = scheduleTypeLabel(schedule.type, schedule.customType);
     const date = document.createElement("time");
     date.textContent = formatDateRange(schedule);
     top.append(badge, date);
@@ -271,6 +316,8 @@ function renderScheduleBars(schedules) {
       const bar = document.createElement("button");
       bar.type = "button";
       bar.className = `calendar-bar schedule-${seg.schedule.type.toLowerCase()}`;
+      const barColor = scheduleColorStyle(seg.schedule);
+      if (barColor) bar.style.setProperty("--schedule-color", barColor);
       if (seg.continuesLeft) bar.classList.add("bar-continues-left");
       if (seg.continuesRight) bar.classList.add("bar-continues-right");
       bar.style.left = `calc(${seg.startCol} / 7 * 100% + 2px)`;
@@ -330,11 +377,51 @@ function setProposalOpen(open) {
   proposalToggle.textContent = open ? "접기" : "펼치기";
 }
 
+/**
+ * 종류 선택 목록을 다시 그린다: 기본 종류 → 승인된 사용자 정의 종류 → "+ 새 종류 만들기".
+ * 사용자 정의 종류는 값이 "CUSTOM:<이름>" 형태이고, 새로 만들기는 "__NEW__"다.
+ */
+function renderTypeOptions(selected) {
+  if (!scheduleType) return;
+  const keep = selected ?? scheduleType.value;
+  scheduleType.replaceChildren();
+  for (const t of BUILTIN_TYPES) {
+    scheduleType.appendChild(new Option(t.label, t.value));
+  }
+  for (const name of customTypes) {
+    scheduleType.appendChild(new Option(name, `CUSTOM:${name}`));
+  }
+  scheduleType.appendChild(new Option("+ 새 종류 만들기", "__NEW__"));
+  if (keep) scheduleType.value = keep;
+  if (!scheduleType.value) scheduleType.value = BUILTIN_TYPES[0].value;
+}
+
+async function loadCustomTypes() {
+  try {
+    const res = await fetch("/api/club-schedules/custom-types");
+    if (!res.ok) return;
+    customTypes = await res.json();
+  } catch {
+    // 목록을 못 받아도 기본 종류만으로 동작한다.
+  }
+  renderLegend();
+  renderTypeOptions();
+}
+
 function updateDateFields() {
-  const type = scheduleType?.value;
+  const raw = scheduleType?.value ?? "";
+  const isNewType = raw === "__NEW__";
+  const type = isNewType || raw.startsWith("CUSTOM:") ? "CUSTOM" : raw;
   const isAssessment = type === "ASSESSMENT";
   const isExam = type === "EXAM";
   const usesSubject = isAssessment || isExam;
+
+  // 새 종류를 만들 때만 이름 입력칸을 보여준다.
+  if (scheduleCustomTypeField) {
+    scheduleCustomTypeField.hidden = !isNewType;
+    scheduleCustomType.required = isNewType;
+    if (!isNewType) scheduleCustomType.value = "";
+  }
 
   // 수행평가는 단일 날짜 + 마감 시간, 나머지(시험/행사/기타/방학)는 시작일~종료일 범위.
   scheduleSubjectField.hidden = !usesSubject;
@@ -353,6 +440,7 @@ function updateDateFields() {
 function resetProposalForm() {
   if (!proposalForm) return;
   proposalForm.reset();
+  renderTypeOptions(BUILTIN_TYPES[0].value);
   const dateToday = toDateString(today);
   document.getElementById("schedule-start").value = dateToday;
   document.getElementById("schedule-end").value = dateToday;
@@ -365,7 +453,9 @@ function resetProposalForm() {
 
 function beginScheduleEdit(schedule) {
   editingScheduleId = schedule.id;
-  scheduleType.value = schedule.type;
+  renderTypeOptions(
+    schedule.type === "CUSTOM" ? `CUSTOM:${schedule.customType}` : schedule.type,
+  );
   document.getElementById("schedule-subject").value = schedule.subject;
   document.getElementById("schedule-title").value = schedule.title;
   document.getElementById("schedule-start").value = schedule.startsOn;
@@ -395,7 +485,19 @@ async function submitProposal(event) {
   if (!proposalForm || !proposalSubmit) return;
 
   const startsOn = document.getElementById("schedule-start").value;
-  const type = scheduleType.value;
+  const raw = scheduleType.value;
+  // "__NEW__"(새로 만들기)와 "CUSTOM:<이름>"(기존 사용자 정의)을 CUSTOM + 이름으로 푼다.
+  const isNewType = raw === "__NEW__";
+  const type = isNewType || raw.startsWith("CUSTOM:") ? "CUSTOM" : raw;
+  const customTypeName = isNewType
+    ? scheduleCustomType.value.trim()
+    : raw.startsWith("CUSTOM:")
+      ? raw.slice("CUSTOM:".length)
+      : "";
+  if (type === "CUSTOM" && !customTypeName) {
+    setProposalMessage("새 종류의 이름을 입력해주세요.", "error");
+    return;
+  }
   const isAssessment = type === "ASSESSMENT";
   const isExam = type === "EXAM";
   const usesSubject = isAssessment || isExam;
@@ -411,6 +513,7 @@ async function submitProposal(event) {
   );
   const payload = {
     type,
+    customType: customTypeName || undefined,
     subject: usesSubject ? scheduleSubject.value : "",
     title: document.getElementById("schedule-title").value,
     classTags,
@@ -483,7 +586,7 @@ function renderPendingSchedules(schedules) {
 
     const meta = document.createElement("p");
     meta.className = "calendar-approval-meta";
-    meta.textContent = `${schedule.proposedBy || "알 수 없음"} 제안 · ${formatDateRange(schedule)} · ${scheduleTypeLabel(schedule.type)}`;
+    meta.textContent = `${schedule.proposedBy || "알 수 없음"} 제안 · ${formatDateRange(schedule)} · ${scheduleTypeLabel(schedule.type, schedule.customType)}`;
     const title = document.createElement("h4");
     title.textContent = scheduleTitle(schedule);
     card.append(meta, title);
@@ -554,7 +657,11 @@ async function reviewSchedule(id, action, approveButton, rejectButton) {
     });
     if (!response.ok) throw new Error(await getErrorMessage(response, "일정을 처리하지 못했습니다."));
     await loadPendingSchedules();
-    if (action === "approve") refreshCalendar();
+    if (action === "approve") {
+      // 승인된 순간부터 그 종류가 목록·범례에 노출된다.
+      void loadCustomTypes();
+      refreshCalendar();
+    }
   } catch (error) {
     window.alert(error.message || "일정을 처리하지 못했습니다.");
     approveButton.disabled = false;
@@ -590,6 +697,9 @@ if (
     refreshCalendar();
   });
 
+  renderLegend();
+  renderTypeOptions(BUILTIN_TYPES[0].value);
+  void loadCustomTypes(); // 승인된 사용자 정의 종류를 받아와 범례·목록에 덧붙인다
   refreshCalendar();
 
   const dateToday = toDateString(today);

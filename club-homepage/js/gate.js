@@ -26,23 +26,44 @@ function renderGateScreen(title, message, buttons) {
   gateMain.appendChild(section);
 }
 
+// 페이지를 통째로 막을 때 쓰는 문구. OJ(components/AccessGate.tsx)와 동일하게 맞춘다.
+// 제목뿐 아니라 아래 설명도 상황(등급 + 로그인 여부)마다 다르게 안내한다.
+const GATE_TEXT = {
+  login: {
+    title: "일반 회원 전용 공간입니다",
+    message: "로그인한 회원만 이용할 수 있는 페이지입니다. 로그인 후 다시 시도해주세요.",
+  },
+  // 부원 전용인데 아직 로그인조차 안 한 경우
+  memberAnon: {
+    title: "동아리 회원 전용 공간입니다",
+    message: "동아리 부원만 볼 수 있는 페이지입니다. 부원 계정으로 로그인해주세요.",
+  },
+  // 부원 전용인데 로그인은 했지만 부원이 아닌 경우
+  member: {
+    title: "동아리 회원 전용 공간입니다",
+    message: "동아리 부원만 볼 수 있는 페이지입니다. 관리자에게 부원 등록을 요청해주세요.",
+  },
+};
+
 window.clubProfileReady = (async () => {
   const loginUrl =
     "/login?redirect=" +
     encodeURIComponent(window.location.pathname + window.location.search);
-  // 캘린더 페이지(calendar.html)는 js/calendar-gate-config.js에서
-  // GATE_REQUIRE_LOGIN = false 를 미리 선언해서 로그인 없이도 볼 수 있게 한다.
-  // (calendar.html은 CSP script-src 'self' 때문에 인라인 <script>로는 값을 못 넣는다.)
-  // 나머지 페이지는 기존대로 로그인한 동아리 부원만 이용 가능.
+  // 페이지별 접근 등급은 gate.js보다 먼저 불러오는 설정 파일이 정한다.
+  // (CSP script-src 'self' 때문에 HTML 인라인 <script>로는 값을 못 넣는다.)
+  //   js/public-gate-config.js  - 누구나 (메인·일정·시험범위)
+  //   js/login-gate-config.js   - 로그인만 하면 됨 (공개 게시판·명예의 전당·알림)
+  //   (설정 없음)               - 동아리 부원만 (동아리 게시판)
   const requireLogin = window.GATE_REQUIRE_LOGIN !== false;
   const requireMember = window.GATE_REQUIRE_MEMBER !== false;
   try {
     const token = localStorage.getItem("oj_token");
     if (!token) {
       if (!requireLogin) return null;
+      const anonText = requireMember ? GATE_TEXT.memberAnon : GATE_TEXT.login;
       renderGateScreen(
-        "동아리 회원 전용 공간입니다",
-        "두루누리 홈페이지는 로그인한 동아리 회원만 이용할 수 있습니다.",
+        anonText.title,
+        anonText.message,
         [
           { href: loginUrl, label: "로그인", primary: true },
           { href: "/signup", label: "회원가입" },
@@ -70,9 +91,9 @@ window.clubProfileReady = (async () => {
     const profile = await res.json();
     if (requireMember && profile.role !== "MEMBER" && profile.role !== "ADMIN") {
       renderGateScreen(
-        "동아리 부원만 접속할 수 있습니다",
-        "관리자에게 부원 등록을 요청해주세요. 부원으로 등록되면 홈페이지를 이용할 수 있습니다.",
-        [{ href: "/", label: "OJ로 가기", primary: true }],
+        GATE_TEXT.member.title,
+        GATE_TEXT.member.message,
+        [{ href: "index.html", label: "홈으로", primary: true }],
       );
       return null;
     }

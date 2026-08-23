@@ -242,9 +242,8 @@ export class UsersController {
     return this.usersService.ranking(limit ? parseInt(limit, 10) : undefined);
   }
 
-  /** 동아리 홈페이지의 명예의 전당. 부원(MEMBER) 이상만 조회할 수 있다. */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MEMBER', 'ADMIN')
+  /** 동아리 홈페이지의 명예의 전당. 로그인한 사용자면 누구나 볼 수 있다(부원 아니어도 됨). */
+  @UseGuards(JwtAuthGuard)
   @Get('hall-of-fame')
   hallOfFame() {
     return this.usersService.hallOfFame();

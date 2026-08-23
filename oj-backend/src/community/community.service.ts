@@ -2,8 +2,10 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserNotificationsService } from '../user-notifications/user-notifications.service';
 import type { Board, PostType } from './dto/community.dto';
 
 // 작성자 표시용 최소 정보(문제 Q&A 댓글과 동일 규칙): 아바타는 버전만 내려서
@@ -44,13 +46,47 @@ function summarizeVotes(
 
 @Injectable()
 export class CommunityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: UserNotificationsService,
+  ) {}
+
+  /** 게시글/댓글을 볼 때 쓰이는 링크. 보드에 따라 홈페이지/OJ 주소가 다르다. */
+  private postUrl(board: string, postId: string) {
+    if (board === 'OJ') return `/community/${postId}`;
+    const page = board === 'CLUB' ? 'club-board.html' : 'community.html';
+    return `/home/${page}?post=${postId}`;
+  }
+
+  /**
+   * 게시판별 열람 권한. 홈페이지 게이트(gate.js)는 화면만 가리므로, API를 직접
+   * 호출하는 경우까지 여기서 막는다.
+   *   OJ/HOME  - 로그인 필요(일반 회원도 가능)
+   *   CLUB     - 동아리 부원(MEMBER) 또는 관리자만
+   */
+  private assertBoardReadable(
+    board: Board,
+    requesterId?: string,
+    requesterRole?: string,
+  ) {
+    if (!requesterId) {
+      throw new UnauthorizedException('로그인 후 이용할 수 있습니다.');
+    }
+    if (
+      board === 'CLUB' &&
+      requesterRole !== 'MEMBER' &&
+      requesterRole !== 'ADMIN'
+    ) {
+      throw new ForbiddenException('동아리 게시판은 부원만 볼 수 있습니다.');
+    }
+  }
 
   /**
    * 게시글 목록. 공지(NOTICE)를 최상단에 고정하고, 그 안/밖 모두 최신순으로 정렬한다.
-   * OJ/HOME 보드는 같은 백엔드를 쓰지만 board로 분리되어 서로 글을 공유하지 않는다.
+   * OJ/HOME/CLUB 보드는 같은 백엔드를 쓰지만 board로 분리되어 서로 글을 공유하지 않는다.
    */
-  async listPosts(board: Board, requesterId?: string) {
+  async listPosts(board: Board, requesterId?: string, requesterRole?: string) {
+    this.assertBoardReadable(board, requesterId, requesterRole);
     const posts = await this.prisma.communityPost.findMany({
       where: { board },
       orderBy: { createdAt: 'desc' },
@@ -77,7 +113,7 @@ export class CommunityService {
   }
 
   /** 게시글 상세 + 댓글/답글(평면 목록, 정렬은 프론트가 담당). */
-  async getPost(id: string, requesterId?: string) {
+  async getPost(id: string, requesterId?: string, requesterRole?: string) {
     const post = await this.prisma.communityPost.findUnique({
       where: { id },
       include: {
@@ -93,10 +129,17 @@ export class CommunityService {
       },
     });
     if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    this.assertBoardReadable(post.board, requesterId, requesterRole);
+
+    // 본문·댓글에 등장한 @사용자명 중 실제 계정만 추려서 내려준다.
+    // 프론트는 이 목록에 있는 이름만 멘션 칩으로 그리고, 나머지는 원문 그대로 둔다.
+    const mentionSource = [post.content, ...post.comments.map((c) => c.content)].join('\n');
+    const mentions = await this.notifications.resolveMentions(mentionSource);
 
     return {
       id: post.id,
       board: post.board,
+      mentions,
       type: post.type,
       title: post.title,
       content: post.content,
@@ -116,6 +159,11 @@ export class CommunityService {
     };
   }
 
+  /** 본문에 등장한 @사용자명 중 실제 계정만 돌려준다(미리보기·상세 렌더링용). */
+  resolveMentions(content: string) {
+    return this.notifications.resolveMentions(content);
+  }
+
   async createPost(
     authorId: string,
     authorRole: string,
@@ -127,6 +175,8 @@ export class CommunityService {
       tags?: string[];
     },
   ) {
+    // 쓰기도 열람과 같은 기준을 적용한다(동아리 게시판은 부원만).
+    this.assertBoardReadable(dto.board, authorId, authorRole);
     // 공지(NOTICE) 유형은 어드민만 지정할 수 있다.
     const type: PostType = dto.type ?? 'NORMAL';
     if (type === 'NOTICE' && authorRole !== 'ADMIN') {
@@ -151,6 +201,19 @@ export class CommunityService {
         authorId,
       },
     });
+
+    const author = await this.prisma.user.findUnique({
+      where: { id: authorId },
+      select: { username: true },
+    });
+    await this.notifications.notifyMentions({
+      content: dto.content,
+      actorId: authorId,
+      actorUsername: author?.username ?? '알 수 없음',
+      where: '게시글',
+      linkUrl: this.postUrl(dto.board, post.id),
+    });
+
     return { id: post.id };
   }
 
@@ -213,6 +276,19 @@ export class CommunityService {
     const created = await this.prisma.communityComment.create({
       data: { postId, userId, content, parentId },
     });
+
+    const commenter = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
+    await this.notifications.notifyMentions({
+      content,
+      actorId: userId,
+      actorUsername: commenter?.username ?? '알 수 없음',
+      where: parentId ? '답글' : '댓글',
+      linkUrl: this.postUrl(post.board, postId),
+    });
+
     return { id: created.id };
   }
 
@@ -262,7 +338,8 @@ export class CommunityService {
 
   // ---- 태그(보드별 태그 풀) ----
 
-  listTags(board: Board) {
+  listTags(board: Board, requesterId?: string, requesterRole?: string) {
+    this.assertBoardReadable(board, requesterId, requesterRole);
     return this.prisma.communityTag.findMany({
       where: { board },
       orderBy: { name: 'asc' },

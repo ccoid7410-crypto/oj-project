@@ -1,0 +1,8 @@
+# 프론트엔드 이미지가 저장소 루트를 빌드 컨텍스트로 쓴다(공용 편집기 파일을 같이 넣어야 해서).
+# 컨텍스트가 커지지 않도록 빌드에 필요 없는 것들은 제외한다.
+.git
+**/node_modules
+**/dist
+oj-backend
+interchanger
+*.patch

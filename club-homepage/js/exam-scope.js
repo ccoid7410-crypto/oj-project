@@ -1,6 +1,7 @@
 const scopeList = document.getElementById("exam-scope-list");
 const scopeSummary = document.getElementById("exam-scope-summary");
 const examTypeButtons = document.querySelectorAll("[data-exam-type]");
+const addButton = document.getElementById("exam-scope-add");
 
 const ACADEMIC_YEAR = 2026;
 const SEMESTER = 2;
@@ -59,7 +60,82 @@ function renderEditor(item, content) {
   editor.focus();
 }
 
-function createScopeCard(item) {
+/** 과목 이름·범위·순서를 바꾸는 요청. 넘긴 항목만 반영된다. */
+async function patchScope(item, patch) {
+  const response = await fetch(`/api/exam-scopes/${encodeURIComponent(item.id)}`, {
+    method: "PATCH",
+    headers: authHeaders(true),
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.message || "저장하지 못했습니다.");
+  }
+  return response.json();
+}
+
+async function onRenameSubject(item) {
+  const next = window.prompt("과목 이름", item.subject);
+  if (next === null) return;
+  const subject = next.trim();
+  if (!subject || subject === item.subject) return;
+  try {
+    const updated = await patchScope(item, { subject });
+    item.subject = updated.subject;
+    renderExamScopes();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "저장하지 못했습니다.");
+  }
+}
+
+/** 목록에서 위/아래로 한 칸 옮긴다(옆 과목과 displayOrder를 맞바꾼다). */
+async function onMoveSubject(item, delta) {
+  const index = examScopes.indexOf(item);
+  const other = examScopes[index + delta];
+  if (!other) return;
+  try {
+    // 순서 값이 같으면(초기 데이터) 인덱스 기준으로 다시 매겨야 자리가 바뀐다.
+    const a = item.displayOrder === other.displayOrder ? index : item.displayOrder;
+    const b = item.displayOrder === other.displayOrder ? index + delta : other.displayOrder;
+    await patchScope(item, { displayOrder: b });
+    await patchScope(other, { displayOrder: a });
+    item.displayOrder = b;
+    other.displayOrder = a;
+    examScopes.splice(index, 1);
+    examScopes.splice(index + delta, 0, item);
+    renderExamScopes();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "순서를 바꾸지 못했습니다.");
+  }
+}
+
+async function onAddSubject() {
+  const name = window.prompt("추가할 과목 이름");
+  if (name === null) return;
+  const subject = name.trim();
+  if (!subject) return;
+  try {
+    const response = await fetch("/api/exam-scopes", {
+      method: "POST",
+      headers: authHeaders(true),
+      body: JSON.stringify({
+        academicYear: ACADEMIC_YEAR,
+        semester: SEMESTER,
+        examType: selectedExamType,
+        subject,
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.message || "과목을 추가하지 못했습니다.");
+    }
+    await loadExamScopes();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "과목을 추가하지 못했습니다.");
+  }
+}
+
+function createScopeCard(item, index) {
   const card = document.createElement("article");
   card.className = "exam-scope-card";
 
@@ -73,11 +149,21 @@ function createScopeCard(item) {
   const content = document.createElement("div");
   content.className = "exam-scope-content";
   if (canEdit) {
-    top.appendChild(
-      createActionButton("범위 수정", "exam-scope-edit-button", () => {
-        renderEditor(item, content);
-      }),
+    const tools = document.createElement("div");
+    tools.className = "exam-scope-tools";
+    const up = createActionButton("↑", "exam-scope-move", () => onMoveSubject(item, -1));
+    up.title = "위로";
+    up.disabled = index === 0;
+    const down = createActionButton("↓", "exam-scope-move", () => onMoveSubject(item, 1));
+    down.title = "아래로";
+    down.disabled = index === examScopes.length - 1;
+    tools.append(
+      up,
+      down,
+      createActionButton("이름", "exam-scope-edit-button", () => onRenameSubject(item)),
+      createActionButton("범위 수정", "exam-scope-edit-button", () => renderEditor(item, content)),
     );
+    top.appendChild(tools);
   }
 
   const title = document.createElement("h3");
@@ -96,7 +182,7 @@ function renderExamScopes() {
   scopeSummary.textContent = `${ACADEMIC_YEAR}학년도 ${SEMESTER}학기 · ${EXAM_LABELS[selectedExamType]} · ${examScopes.length}과목`;
   const grid = document.createElement("div");
   grid.className = "exam-scope-grid";
-  for (const item of examScopes) grid.appendChild(createScopeCard(item));
+  examScopes.forEach((item, index) => grid.appendChild(createScopeCard(item, index)));
   scopeList.appendChild(grid);
 }
 
@@ -128,9 +214,17 @@ if (scopeList && scopeSummary) {
       void loadExamScopes();
     });
   });
+  addButton?.addEventListener("click", () => void onAddSubject());
+
+  // 시험범위는 로그인 없이도 볼 수 있다. 프로필은 편집 권한 판별에만 쓰고,
+  // 목록은 프로필 조회 결과와 상관없이 처음부터 불러온다.
+  void loadExamScopes();
   window.clubProfileReady?.then((profile) => {
     if (!profile) return;
+    // 시험범위 편집(과목 추가·이름·범위·순서)은 지정 관리자(hift)만 할 수 있다.
     canEdit = profile.username === "hift";
-    void loadExamScopes();
+    if (!canEdit) return;
+    if (addButton) addButton.hidden = false;
+    renderExamScopes(); // 편집 버튼을 뒤늦게 붙인다
   });
 }

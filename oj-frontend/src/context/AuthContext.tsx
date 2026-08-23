@@ -62,7 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     adoptUser(res.user);
   }
 
-  async function signup(email: string, username: string, name: string, password: string, studentId?: string) {
+  async function signup(
+    email: string,
+    username: string,
+    name: string,
+    password: string,
+    studentId?: string,
+  ) {
     // 이메일 인증 전에는 토큰이 발급되지 않는다. 안내 메시지만 반환하고 로그인 상태로 만들지 않는다.
     return api.post<{ requiresEmailVerification: true; message: string }>('/auth/signup', {
       email,

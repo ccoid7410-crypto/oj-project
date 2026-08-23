@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client';
 import type { ProblemDetail } from '../api/types';
 import { DifficultyBadge } from '../components/DifficultyBadge';
 import { useAuth } from '../context/AuthContext';
+import { loginHint } from '../components/AccessGate';
 import { labelOfLevel, LEVEL_MAX, LEVEL_MIN } from '../lib/difficulty';
 import { ProblemComments } from '../components/ProblemComments';
 import { ProblemTypeBadge } from '../components/ProblemTypeBadge';
@@ -210,7 +211,7 @@ export function ProblemDetailPage() {
             제출하기
           </Link>
         ) : (
-          <span className="text-xs text-fg-muted">제출하려면 로그인하세요</span>
+          <span className="text-xs text-fg-muted">{loginHint('제출')}</span>
         )}
         <Link
           to="/submissions/me"

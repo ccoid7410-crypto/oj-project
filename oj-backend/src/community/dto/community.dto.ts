@@ -8,7 +8,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export const BOARDS = ['OJ', 'HOME'] as const;
+export const BOARDS = ['OJ', 'HOME', 'CLUB'] as const;
 export type Board = (typeof BOARDS)[number];
 
 export const POST_TYPES = ['NORMAL', 'UPDATE_LOG', 'NOTICE'] as const;
@@ -65,4 +65,12 @@ export class CreateTagDto {
   @MinLength(1, { message: '태그 이름을 입력해주세요.' })
   @MaxLength(20, { message: '태그는 20자 이하여야 합니다.' })
   name: string;
+}
+
+/** 미리보기에서 초안 본문의 멘션 대상을 확인할 때 쓴다. */
+export class ResolveMentionsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  content?: string;
 }

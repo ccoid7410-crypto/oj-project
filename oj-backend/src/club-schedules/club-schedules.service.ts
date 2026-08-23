@@ -26,6 +26,7 @@ function serializeSchedule(schedule: ClubSchedule) {
   return {
     id: schedule.id,
     type: schedule.type,
+    customType: schedule.customType,
     status: schedule.status,
     title: schedule.title,
     subject: schedule.subject,
@@ -92,6 +93,7 @@ export class ClubSchedulesService {
     const schedule = await this.prisma.clubSchedule.create({
       data: {
         type: dto.type,
+        customType: dto.type === 'CUSTOM' ? (dto.customType?.trim() ?? '') : '',
         status: 'PENDING',
         title: dto.title.trim(),
         subject:
@@ -128,6 +130,7 @@ export class ClubSchedulesService {
       where: { id },
       data: {
         type: dto.type,
+        customType: dto.type === 'CUSTOM' ? (dto.customType?.trim() ?? '') : '',
         title: dto.title.trim(),
         subject:
           dto.type === 'ASSESSMENT' || dto.type === 'EXAM'
@@ -194,10 +197,27 @@ export class ClubSchedulesService {
     return { deleted: true };
   }
 
+  /**
+   * 종류 목록에 노출할 사용자 정의 종류. 승인된 일정에 쓰인 이름만 모아서 돌려주므로,
+   * 제안만 하고 승인되지 않은 종류는 목록/범례에 나타나지 않는다.
+   */
+  async listCustomTypes() {
+    const rows = await this.prisma.clubSchedule.findMany({
+      where: { status: 'APPROVED', type: 'CUSTOM', customType: { not: '' } },
+      select: { customType: true },
+      distinct: ['customType'],
+      orderBy: { customType: 'asc' },
+    });
+    return rows.map((r) => r.customType);
+  }
+
   private validateDates(dto: SaveClubScheduleDto) {
     const startsOn = parseDateOnly(dto.startsOn, '시작일');
     if (!dto.title.trim()) {
       throw new BadRequestException('일정 제목을 입력해주세요.');
+    }
+    if (dto.type === 'CUSTOM' && !dto.customType?.trim()) {
+      throw new BadRequestException('새 종류의 이름을 입력해주세요.');
     }
     if (dto.type === 'ASSESSMENT') {
       if (!dto.deadlineTime) {

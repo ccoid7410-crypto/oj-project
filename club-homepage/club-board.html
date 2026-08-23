@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>동아리 게시판 | 두루누리</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/markdown-editor.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
+  <script src="js/theme.js"></script>
+</head>
+<body class="gate-pending">
+  <header class="site-header">
+    <div class="site-header-bar">
+      <a href="index.html" class="logo">
+        <span class="logo-title">Durunuri<span class="logo-accent">&gt;</span></span>
+        <span class="logo-subtitle">CBSH 정보과</span>
+      </a>
+      <nav class="header-nav">
+        <a href="hall-of-fame.html">명예의 전당</a>
+        <div class="header-nav-menu">
+          <a href="community.html" class="header-nav-trigger" aria-current="page">커뮤니티 <span aria-hidden="true">▾</span></a>
+          <div class="header-mega-menu">
+            <div class="header-mega-inner">
+              <a href="community.html">공개 게시판</a>
+              <a href="club-board.html" aria-current="page">동아리 게시판</a>
+              <a href="exam-scope.html">시험범위</a>
+            </div>
+          </div>
+        </div>
+        <a href="calendar.html">일정</a>
+        <a href="https://cbgpu.vercel.app/" target="_blank" rel="noopener noreferrer">CBGPU</a>
+        <a href="/" class="nav-oj">Online Judge ↗</a>
+      </nav>
+      <div class="header-actions">
+        <span id="auth-area" class="auth-area"></span>
+        <span id="notif-slot"></span>
+      </div>
+    </div>
+  </header>
+
+  <div id="site-banner" class="site-banner"></div>
+
+  <main class="container">
+    <section class="section">
+      <div id="community-root">
+        <p class="loading">불러오는 중...</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 두루누리. All rights reserved.</p>
+  </footer>
+
+  <!-- 동아리 게시판은 부원 전용이라 js/public-gate-config.js를 넣지 않는다(기본값이 로그인 필요). -->
+  <script src="js/gate.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/banner.js"></script>
+  <!-- 게시글 본문 마크다운/TeX 렌더링용 (account.html과 동일한 로컬 vendoring) -->
+  <script src="vendor/marked.umd.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="vendor/katex.min.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/markdown-editor.js"></script>
+  <script src="js/community.js"></script>
+</body>
+</html>

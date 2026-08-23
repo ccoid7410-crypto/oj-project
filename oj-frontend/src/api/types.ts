@@ -463,6 +463,14 @@ export interface CommunityPostDetail {
   dislikeCount: number;
   myVote: number;
   comments: CommunityComment[];
+  /** 본문·댓글에 등장한 @사용자명 중 실제로 존재하는 계정만. 멘션 칩을 그릴 때 쓴다. */
+  mentions: MentionUser[];
+}
+
+/** 멘션 칩(프로필 사진 + 아이디)을 그리는 데 필요한 최소 정보. */
+export interface MentionUser {
+  username: string;
+  avatarVersion: number | null;
 }
 
 export interface ServerInfo {

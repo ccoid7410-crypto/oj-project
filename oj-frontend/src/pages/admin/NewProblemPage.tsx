@@ -16,9 +16,13 @@ import { TestCaseDraftList, type TestCaseDraft } from '../../components/TestCase
 import { TagPicker } from '../../components/TagPicker';
 import { ProblemAdvancedSettings } from '../../components/ProblemAdvancedSettings';
 
-import { MarkdownEditor } from '../../components/MarkdownEditor';
 
 // Ace 에디터 번들이 커서 필요할 때만 lazy load 한다.
+// 편집기(tiptap)가 무거워서 이 화면에 들어올 때 불러온다.
+const MarkdownEditor = lazy(() =>
+  import('../../components/MarkdownEditor').then((m) => ({ default: m.MarkdownEditor })),
+);
+
 const CodeEditor = lazy(() =>
   import('../../components/CodeEditor').then((m) => ({ default: m.CodeEditor })),
 );
@@ -113,6 +117,9 @@ export function NewProblemPage() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 본문과 설정을 한 화면에 나란히 두기엔 폭이 좁아 탭으로 전환한다.
+  const [tab, setTab] = useState<'content' | 'settings'>('content');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 이어서 작성: 서버에 저장된 초안(slug)을 불러와 폼을 채운다.
   useEffect(() => {
@@ -229,6 +236,23 @@ export function NewProblemPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    // 필수 항목이 숨겨진 탭에 있으면 브라우저가 어디가 빈칸인지 못 짚어준다(포커스 불가).
+    // 그래서 검사를 직접 하고, 문제가 있는 항목이 있는 탭을 먼저 열어준 뒤 안내를 띄운다.
+    const form = e.currentTarget as HTMLFormElement;
+    const invalid = form.querySelector<HTMLInputElement>(
+      'input:invalid, select:invalid, textarea:invalid',
+    );
+    if (invalid) {
+      const target = invalid;
+      const inSettings = !contentRef.current?.contains(target);
+      if (inSettings && tab !== 'settings') {
+        setTab('settings');
+        requestAnimationFrame(() => target.reportValidity());
+      } else {
+        target.reportValidity();
+      }
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -296,35 +320,55 @@ export function NewProblemPage() {
   const inputClass =
     'rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]';
 
+  const tabClass = (active: boolean) =>
+    `rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
+      active ? 'bg-[var(--color-surface)] text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+    }`;
+
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full flex-col bg-ink-50 -mx-4 -my-6 sm:-mx-6 sm:-my-8" style={{ width: '100vw', maxWidth: 'none', marginLeft: 'calc(-50vw + 50%)' }}>
-      <form onSubmit={onSubmit} className="flex h-full flex-col">
-        {/* 상단 네비게이션바 */}
-        <div className="flex shrink-0 items-center justify-between border-b border-ink-300 bg-white px-6 py-3">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">{resumeSlug ? '문제 이어서 작성' : '새 문제 작성'}</h1>
-            {loadingDraft && <span className="text-sm text-fg-muted">초안을 불러오는 중...</span>}
-            {draftNotice && (
-              <div className="flex items-center gap-2 text-xs text-fg-muted bg-ink-200 px-3 py-1 rounded-full">
-                임시 저장본을 불러왔습니다.
-                <button type="button" onClick={discardDraft} className="underline hover:text-[var(--color-wa)] ml-2">
-                  새로 쓰기
-                </button>
-                <button type="button" onClick={() => setDraftNotice(false)} className="underline hover:text-[var(--color-brand)] ml-2">
-                  닫기
-                </button>
-              </div>
-            )}
+    /* 다른 페이지와 같이 가운데 폭(main)만 쓴다. 그만큼 좁아지므로 본문과 설정을
+       나란히 두지 않고 문제 목록의 전체/연습 탭처럼 전환해서 본다. */
+    <div>
+      {/* noValidate: 숨은 탭의 필수 항목을 브라우저가 대신 막지 않게 하고, onSubmit에서 직접 검사한다. */}
+      <form onSubmit={onSubmit} noValidate>
+        <h1 className="text-2xl font-bold">{resumeSlug ? '문제 이어서 작성' : '새 문제 작성'}</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+          {loadingDraft && <span>초안을 불러오는 중...</span>}
+          {draftNotice && (
+            <span className="flex items-center gap-2 rounded-full bg-ink-700 px-3 py-1">
+              임시 저장본을 불러왔습니다.
+              <button type="button" onClick={discardDraft} className="underline hover:text-[var(--color-wa)]">
+                새로 쓰기
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftNotice(false)}
+                className="underline hover:text-[var(--color-brand)]"
+              >
+                닫기
+              </button>
+            </span>
+          )}
+        </div>
+
+        {/* 상단 탭 + 저장/생성 버튼 */}
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-2 border-b border-ink-500">
+          <div className="flex gap-1">
+            <button type="button" onClick={() => setTab('content')} className={tabClass(tab === 'content')}>
+              문제 내용
+            </button>
+            <button type="button" onClick={() => setTab('settings')} className={tabClass(tab === 'settings')}>
+              문제 설정
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-3">
             {error && <span className="text-sm text-[var(--color-wa)]">{error}</span>}
             {draftSavedNotice && <span className="text-sm text-[var(--color-ac)]">{draftSavedNotice}</span>}
-            
             <button
               type="button"
               onClick={onSaveDraft}
               disabled={savingDraft || submitting}
-              className="rounded border border-ink-500 bg-white px-4 py-2 text-sm font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
+              className="rounded border border-ink-500 px-4 py-2 text-sm font-bold text-fg hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-60"
             >
               {savingDraft ? '저장 중...' : '임시 저장'}
             </button>
@@ -338,20 +382,20 @@ export function NewProblemPage() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          {/* 좌측 에디터 영역 */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-page-bg">
+        {/* 탭을 바꿔도 입력한 내용이 날아가지 않도록 숨기기만 한다(제출은 폼 전체가 함께 간다). */}
+        <div ref={contentRef} className={tab === 'content' ? 'mt-6' : 'hidden'}>
+          <Suspense fallback={<p className="text-sm text-fg-muted">편집기 불러오는 중...</p>}>
             <MarkdownEditor
               title={title}
               onTitleChange={setTitle}
               content={description}
               onContentChange={setDescription}
-              placeholder="문제 설명을 마크다운으로 작성하세요..."
+              placeholder="문제 설명을 입력하세요"
             />
-          </div>
+          </Suspense>
+        </div>
 
-          {/* 우측 설정 사이드바 */}
-          <div className="w-[450px] shrink-0 overflow-y-auto bg-surface border-l border-ink-500 p-6 flex flex-col gap-6 shadow-xl z-10 relative">
+        <div className={tab === 'settings' ? 'mt-6 flex flex-col gap-6' : 'hidden'}>
             <div>
               <h2 className="text-lg font-bold mb-4">기본 설정</h2>
               <div className="flex flex-col gap-4">
@@ -419,7 +463,7 @@ export function NewProblemPage() {
               </div>
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">문제 유형 설정</h2>
               <ProblemAdvancedSettings
                 problemType={problemType}
@@ -438,12 +482,12 @@ export function NewProblemPage() {
               />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">태그</h2>
               <TagPicker value={tags} onChange={setTags} />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="text-lg font-bold mb-1">테스트케이스</h2>
               <p className="text-xs text-fg-muted mb-4">
                 직접 입력하거나, zip을 올려 추가합니다.
@@ -452,7 +496,7 @@ export function NewProblemPage() {
             </div>
 
             {isAdmin ? (
-              <div className="border-t border-ink-300 pt-6 flex flex-col gap-3">
+              <div className="border-t border-ink-600 pt-6 flex flex-col gap-3">
                 <label className="flex items-center gap-2 text-sm text-fg-muted">
                   <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
                   생성 후 바로 공개
@@ -463,11 +507,11 @@ export function NewProblemPage() {
                 </label>
               </div>
             ) : (
-              <div className="border-t border-ink-300 pt-6">
+              <div className="border-t border-ink-600 pt-6">
                 <p className="text-xs text-fg-muted mb-4">
                   일반 사용자는 생성 후 <strong>검토 대기</strong> 상태가 됩니다.
                 </p>
-                <div className="rounded border border-ink-300 bg-white p-4 shadow-sm">
+                <div className="rounded border border-ink-600 bg-[var(--color-surface)] p-4 shadow-sm">
                   <p className="text-sm font-bold mb-1">검증용 정답 코드 (필수)</p>
                   <p className="text-xs text-fg-muted mb-3">
                     위 테스트케이스를 모두 통과하는 코드를 작성하세요.
@@ -479,7 +523,7 @@ export function NewProblemPage() {
                       setVerificationLanguage(lang);
                       setVerificationCode(DEFAULT_TEMPLATE[lang]);
                     }}
-                    className="w-full rounded border border-ink-300 bg-white px-2 py-1.5 text-xs mb-3"
+                    className="w-full rounded border border-ink-600 bg-[var(--color-surface)] px-2 py-1.5 text-xs mb-3"
                   >
                     {LANGUAGE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -495,7 +539,7 @@ export function NewProblemPage() {
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value)}
                         spellCheck={false}
-                        className="w-full resize-y rounded border border-ink-300 p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
+                        className="w-full resize-y rounded border border-ink-600 p-2 font-mono text-xs outline-none focus:border-[var(--color-brand)]"
                       />
                     }
                   >
@@ -510,7 +554,6 @@ export function NewProblemPage() {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </form>
     </div>

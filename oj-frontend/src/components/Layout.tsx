@@ -17,6 +17,8 @@ export function Layout() {
   const location = useLocation();
   const brandName = useBrandName();
   const [unreadCount, setUnreadCount] = useState(0);
+  // 헤더 종 아이콘에 표시할 내 알림 개수(신고 결과·멘션·관리자 알림).
+  const [notifCount, setNotifCount] = useState(0);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,10 +54,31 @@ export function Layout() {
     };
   }, [user?.role]);
 
+  // 로그인한 사용자면 내 알림 개수를 주기적으로 확인한다.
+  useEffect(() => {
+    if (!user) {
+      setNotifCount(0);
+      return;
+    }
+    const load = () => {
+      api
+        .get<{ count: number }>('/notifications/unread-count')
+        .then((r) => setNotifCount(r.count))
+        .catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 60_000);
+    window.addEventListener('user-notifications-updated', load);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('user-notifications-updated', load);
+    };
+  }, [user]);
+
   // 백준 특유의 밑줄 없는 상단바 안에서 쓰는 링크 스타일.
   // 밑줄 대신 hover 시 글자색만 밝아진다.
-  const navLinkClass =
-    'shrink-0 py-3 text-[13px] font-medium text-[var(--color-header-fg)] hover:text-[var(--color-header-fg-hover)]';
+  const navLinkBase = 'shrink-0 py-3 text-[13px] font-medium';
+  const navLinkClass = `${navLinkBase} text-[var(--color-header-fg)] hover:text-[var(--color-header-fg-hover)]`;
 
   // 하위 항목이 2개 이상인 메뉴만 메가패널이 열린다(1개짜리는 트리거 자체가 그 링크).
   // "내 문제"는 예전엔 별도 최상위 링크였는데, "문제" 메뉴 하나로 모으는 게 자연스러워 여기로 옮겼다.
@@ -66,24 +89,21 @@ export function Layout() {
       items: [
         { to: '/problems', label: '전체 문제' },
         { to: '/problems?scope=PRACTICE', label: '연습 문제' },
-        ...(user ? [{ to: '/problems/mine', label: '내 문제' }] : []),
+        // 로그인해야 볼 수 있지만 탭은 항상 보여준다(들어가면 안내 화면).
+        { to: '/problems/mine', label: '내 문제' },
       ],
     },
     { key: 'contests', label: '대회', items: [{ to: '/contests', label: '대회' }] },
-    ...(user
-      ? [
-          {
-            key: 'submissions',
-            label: '채점 현황',
-            items: [
-              { to: '/submissions', label: '전체 제출' },
-              { to: '/submissions/me', label: '내 제출' },
-            ],
-          },
-        ]
-      : []),
+    {
+      key: 'submissions',
+      label: '채점 현황',
+      items: [
+        { to: '/submissions', label: '전체 제출' },
+        { to: '/submissions/me', label: '내 제출' },
+      ],
+    },
     { key: 'ranking', label: '랭킹', items: [{ to: '/ranking', label: '랭킹' }] },
-    ...(user ? [{ key: 'classes', label: '수업', items: [{ to: '/classes', label: '수업' }] }] : []),
+    { key: 'classes', label: '수업', items: [{ to: '/classes', label: '수업' }] },
     { key: 'community', label: '커뮤니티', items: [{ to: '/community', label: '커뮤니티' }] },
   ];
   const cancelClose = () => {
@@ -136,8 +156,12 @@ export function Layout() {
                 )}
               </Link>
             )}
-            {/* 동아리 홈페이지로 이동. React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다. */}
-            <a href="/home/" className={navLinkClass}>
+            {/* 동아리 홈페이지로 이동. React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다.
+                홈페이지의 OJ 링크(.nav-oj)와 같이 다른 사이트로 나가는 링크는 파란색으로 구분한다. */}
+            <a
+              href="/home/"
+              className={`${navLinkBase} text-[var(--color-brand)] hover:text-[var(--color-brand-dim)]`}
+            >
               Durunuri ↗
             </a>
           </nav>
@@ -156,7 +180,8 @@ export function Layout() {
                 <button
                   onClick={() => {
                     logout();
-                    navigate('/');
+                    // 화면을 새로 그려야 로그인 전용 페이지가 잠깐 남아 보이지 않는다.
+                    window.location.assign('/');
                   }}
                   className="hover:text-[var(--color-header-fg-hover)]"
                 >
@@ -176,6 +201,24 @@ export function Layout() {
                   회원가입
                 </Link>
               </>
+            )}
+            {/* 헤더 맨 오른쪽. 주변 항목과 같은 줄 높이(16px 아이콘 / 20px 박스)로 맞춘다. */}
+            {user && (
+              <Link
+                to="/notifications"
+                title="알림"
+                className="relative flex h-5 w-5 items-center justify-center hover:text-[var(--color-header-fg-hover)]"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {notifCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1 min-w-[15px] rounded-full bg-[var(--color-wa)] px-1 text-center text-[9px] font-bold leading-[15px] text-white">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </Link>
             )}
           </div>
         </div>

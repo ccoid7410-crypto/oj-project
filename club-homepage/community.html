@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>게시판 | 두루누리</title>
+  <title>공개 게시판 | 두루누리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/markdown-editor.css">
   <link rel="stylesheet" href="vendor/katex.min.css">
   <script src="js/theme.js"></script>
 </head>
@@ -24,7 +25,8 @@
           <a href="community.html" class="header-nav-trigger" aria-current="page">커뮤니티 <span aria-hidden="true">▾</span></a>
           <div class="header-mega-menu">
             <div class="header-mega-inner">
-              <a href="community.html" aria-current="page">게시판</a>
+              <a href="community.html" aria-current="page">공개 게시판</a>
+              <a href="club-board.html">동아리 게시판</a>
               <a href="exam-scope.html">시험범위</a>
             </div>
           </div>
@@ -35,6 +37,7 @@
       </nav>
       <div class="header-actions">
         <span id="auth-area" class="auth-area"></span>
+        <span id="notif-slot"></span>
       </div>
     </div>
   </header>
@@ -53,14 +56,17 @@
     <p>&copy; 2026 두루누리. All rights reserved.</p>
   </footer>
 
+  <script src="js/login-gate-config.js"></script>
   <script src="js/gate.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/banner.js"></script>
   <!-- 게시글 본문 마크다운/TeX 렌더링용 (account.html과 동일한 로컬 vendoring) -->
   <script src="vendor/marked.umd.js"></script>
   <script src="vendor/purify.min.js"></script>
   <script src="vendor/katex.min.js"></script>
   <script src="js/markdown.js"></script>
+  <script src="js/markdown-editor.js"></script>
   <script src="js/community.js"></script>
 </body>
 </html>

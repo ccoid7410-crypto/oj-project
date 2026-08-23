@@ -142,6 +142,10 @@ model User {
 
   examScopesUpdated ExamScope[] @relation("ExamScopeUpdater")
 
+  reportsFiled    CommunityReport[] @relation("CommunityReportReporter")
+  reportsHandled  CommunityReport[] @relation("CommunityReportHandler")
+  notifications   UserNotification[] @relation("UserNotificationRecipient")
+
   @@map("users")
 }
 
@@ -243,9 +247,11 @@ model ProblemComment {
 }
 
 /// 커뮤니티 게시판 구분. OJ와 두루누리 홈페이지는 같은 백엔드를 쓰지만 글/태그를 공유하지 않는다.
+/// HOME은 홈페이지의 공개 게시판(비로그인 열람 가능), CLUB은 동아리 게시판(부원 전용)이다.
 enum CommunityBoard {
   OJ
   HOME
+  CLUB
 }
 
 /// 게시글 유형. NOTICE(공지)는 어드민만 지정 가능하며 목록 상단에 고정된다.
@@ -262,6 +268,7 @@ enum ClubScheduleType {
   EVENT // 행사 및 축제
   OTHER // 기타
   VACATION // 방학
+  CUSTOM // 부원이 직접 만든 종류. 실제 이름은 customType에 저장한다.
 }
 
 enum ClubScheduleStatus {
@@ -322,6 +329,86 @@ model CommunityComment {
   votes CommunityCommentVote[]
 
   @@map("community_comments")
+}
+
+/// 사용자에게 보내는 알림 종류.
+enum UserNotificationType {
+  REPORT_RECEIVED // 신고 접수 완료(신고자에게)
+  REPORT_RESOLVED // 신고 처리 결과(신고자에게)
+  MENTION // 게시글·댓글에서 멘션됨
+  ADMIN_MESSAGE // 관리자가 직접 보낸 알림
+}
+
+/// 헤더 종 아이콘에 쌓이는 사용자 알림. 상세 페이지에서 본문까지 보여준다.
+model UserNotification {
+  id     String               @id @default(uuid())
+  userId String
+  user   User                 @relation("UserNotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  type   UserNotificationType
+
+  /// 목록에 보이는 제목과 상세 페이지 본문.
+  title String @db.VarChar(200)
+  body  String @default("")
+  /// 보낸 주체 표시(예: "Durunuri OJ", 관리자 아이디).
+  sender String @default("Durunuri OJ") @db.VarChar(60)
+  /// 눌렀을 때 이동할 곳(멘션된 글 등). 없으면 상세 페이지만 본다.
+  linkUrl String @default("") @db.VarChar(500)
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@map("user_notifications")
+}
+
+/// 신고 대상 종류.
+enum ReportTargetType {
+  POST // 게시글
+  COMMENT // 댓글·답글(둘 다 CommunityComment이고 parentId 유무로 구분)
+}
+
+/// 신고 사유(신고자가 목록에서 고른다).
+enum ReportReason {
+  SPAM // 스팸·광고
+  ABUSE // 욕설·비방
+  ADULT // 음란물·부적절한 내용
+  PRIVACY // 개인정보 노출
+  FALSE_INFO // 허위 정보
+  ETC // 기타
+}
+
+/// 신고 처리 상태.
+enum ReportStatus {
+  PENDING // 접수됨(관리자 확인 전)
+  ACTION_TAKEN // 조치함(대상 삭제 등)
+  DISMISSED // 기각(문제 없음)
+}
+
+/// 커뮤니티 게시글·댓글 신고. 관리자가 목록에서 보고 처리한다.
+/// 대상이 삭제되어도 신고 이력은 남기므로 FK 대신 targetId만 들고 있는다.
+model CommunityReport {
+  id         String           @id @default(uuid())
+  targetType ReportTargetType
+  targetId   String
+  reason     ReportReason
+  detail     String           @default("") @db.VarChar(1000)
+  status     ReportStatus     @default(PENDING)
+
+  reporterId String
+  reporter   User   @relation("CommunityReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  handledById String?
+  handledBy   User?     @relation("CommunityReportHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt   DateTime?
+  /// 관리자가 남기는 처리 메모(무엇을 했는지).
+  handlerNote String    @default("") @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  // 같은 사람이 같은 대상을 중복 신고하지 못하게 막는다.
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+  @@map("community_reports")
 }
 
 /// 게시글 좋아요(1)/싫어요(-1). 유저당 게시글당 1표.
@@ -483,6 +570,8 @@ model SiteBanner {
 model ClubSchedule {
   id              String             @id @default(uuid())
   type            ClubScheduleType
+  /// type=CUSTOM일 때 부원이 직접 지은 종류 이름. 승인된 일정의 값만 종류 목록/범례에 노출된다.
+  customType      String             @default("") @db.VarChar(20)
   status          ClubScheduleStatus @default(PENDING)
   title           String             @db.VarChar(120)
   subject         String             @default("") @db.VarChar(80)

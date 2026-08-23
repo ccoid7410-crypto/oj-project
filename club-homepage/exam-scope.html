@@ -23,7 +23,8 @@
           <a href="community.html" class="header-nav-trigger" aria-current="page">커뮤니티 <span aria-hidden="true">▾</span></a>
           <div class="header-mega-menu">
             <div class="header-mega-inner">
-              <a href="community.html">게시판</a>
+              <a href="community.html">공개 게시판</a>
+              <a href="club-board.html">동아리 게시판</a>
               <a href="exam-scope.html" aria-current="page">시험범위</a>
             </div>
           </div>
@@ -34,6 +35,7 @@
       </nav>
       <div class="header-actions">
         <span id="auth-area" class="auth-area"></span>
+        <span id="notif-slot"></span>
       </div>
     </div>
   </header>
@@ -54,6 +56,8 @@
           <button type="button" class="active" data-exam-type="MIDTERM">중간고사</button>
           <button type="button" data-exam-type="FINAL">기말고사</button>
         </div>
+        <!-- 로그인한 부원에게만 calendar.js가 아니라 exam-scope.js가 보여준다. -->
+        <button type="button" id="exam-scope-add" class="btn btn-ghost btn-sm" hidden>과목 추가</button>
       </div>
 
       <p id="exam-scope-summary" class="exam-scope-summary" aria-live="polite"></p>
@@ -67,8 +71,10 @@
     <p>&copy; 2026 두루누리. All rights reserved.</p>
   </footer>
 
+  <script src="js/public-gate-config.js"></script>
   <script src="js/gate.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/banner.js"></script>
   <script src="js/exam-scope.js"></script>
 </body>

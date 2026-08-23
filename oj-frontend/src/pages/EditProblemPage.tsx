@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type {
@@ -14,7 +14,11 @@ import { TIER_OPTIONS, labelOfLevel, tierOfLevel } from '../lib/difficulty';
 import { TestCaseDraftList, type TestCaseDraft } from '../components/TestCaseDraftList';
 import { TagPicker } from '../components/TagPicker';
 import { ProblemAdvancedSettings } from '../components/ProblemAdvancedSettings';
-import { MarkdownEditor } from '../components/MarkdownEditor';
+
+// 편집기(tiptap)가 무거워서 이 화면에 들어올 때 불러온다.
+const MarkdownEditor = lazy(() =>
+  import('../components/MarkdownEditor').then((m) => ({ default: m.MarkdownEditor })),
+);
 
 export function EditProblemPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -36,6 +40,9 @@ export function EditProblemPage() {
   const [allowedLanguages, setAllowedLanguages] = useState<Language[]>([]);
   const [compileOptions, setCompileOptions] = useState<Partial<Record<Language, string[]>>>({});
   const [submitting, setSubmitting] = useState(false);
+  // 본문과 설정을 한 화면에 나란히 두기엔 폭이 좁아 탭으로 전환한다.
+  const [tab, setTab] = useState<'content' | 'settings'>('content');
+  const contentRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -101,6 +108,22 @@ export function EditProblemPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    // 필수 항목이 숨겨진 탭에 있으면 브라우저가 짚어주지 못하므로 직접 검사하고
+    // 문제가 있는 항목이 있는 탭을 먼저 열어준다.
+    const form = e.currentTarget as HTMLFormElement;
+    const invalid = form.querySelector<HTMLInputElement>(
+      'input:invalid, select:invalid, textarea:invalid',
+    );
+    if (invalid) {
+      const inSettings = !contentRef.current?.contains(invalid);
+      if (inSettings && tab !== 'settings') {
+        setTab('settings');
+        requestAnimationFrame(() => invalid.reportValidity());
+      } else {
+        invalid.reportValidity();
+      }
+      return;
+    }
     if (!problem) return;
     setSubmitting(true);
     setError(null);
@@ -148,24 +171,35 @@ export function EditProblemPage() {
   const inputClass =
     'rounded border border-ink-500 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]';
 
+  const tabClass = (active: boolean) =>
+    `rounded-t border border-b-0 border-ink-500 px-4 py-2 text-sm font-bold ${
+      active ? 'bg-[var(--color-surface)] text-[var(--color-brand)]' : 'bg-ink-700 text-fg-muted'
+    }`;
+
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full flex-col bg-ink-50 -mx-4 -my-6 sm:-mx-6 sm:-my-8" style={{ width: '100vw', maxWidth: 'none', marginLeft: 'calc(-50vw + 50%)' }}>
-      <form onSubmit={onSubmit} className="flex h-full flex-col">
-        {/* 상단 네비게이션바 */}
-        <div className="flex shrink-0 items-center justify-between border-b border-ink-300 bg-white px-6 py-3">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">문제 수정</h1>
-            <span className="text-sm font-medium text-fg-muted px-2 py-0.5 bg-ink-200 rounded">{problem.title}</span>
-            {user?.role !== 'ADMIN' && (
-              <span className="text-xs text-[var(--color-wa)] bg-wa/10 px-2 py-1 rounded">
-                공개 문제 수정 시 검토 대기 상태로 변경됩니다.
-              </span>
-            )}
+    /* 문제 작성 화면과 같은 규격: 가운데 폭 + 페이지 제목 + 내용/설정 탭 */
+    <div>
+      <form onSubmit={onSubmit} noValidate>
+        <h1 className="text-2xl font-bold">문제 수정</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+          <span className="font-medium text-fg">{problem.title}</span>
+          {user?.role !== 'ADMIN' && (
+            <span className="text-[var(--color-wa)]">공개 문제 수정 시 검토 대기 상태로 변경됩니다.</span>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-2 border-b border-ink-500">
+          <div className="flex gap-1">
+            <button type="button" onClick={() => setTab('content')} className={tabClass(tab === 'content')}>
+              문제 내용
+            </button>
+            <button type="button" onClick={() => setTab('settings')} className={tabClass(tab === 'settings')}>
+              문제 설정
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-3">
             {error && <span className="text-sm text-[var(--color-wa)]">{error}</span>}
             {notice && <span className="text-sm text-[var(--color-ac)]">{notice}</span>}
-            
             <button
               type="submit"
               disabled={submitting}
@@ -176,20 +210,20 @@ export function EditProblemPage() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          {/* 좌측 에디터 영역 */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-page-bg">
+        {/* 탭을 바꿔도 입력한 내용이 날아가지 않도록 숨기기만 한다. */}
+        <div ref={contentRef} className={tab === 'content' ? 'mt-6' : 'hidden'}>
+          <Suspense fallback={<p className="text-sm text-fg-muted">편집기 불러오는 중...</p>}>
             <MarkdownEditor
               title={title}
               onTitleChange={setTitle}
               content={description}
               onContentChange={setDescription}
-              placeholder="문제 설명을 마크다운으로 작성하세요..."
+              placeholder="문제 설명을 입력하세요"
             />
-          </div>
+          </Suspense>
+        </div>
 
-          {/* 우측 설정 사이드바 */}
-          <div className="w-[450px] shrink-0 overflow-y-auto bg-surface border-l border-ink-500 p-6 flex flex-col gap-6 shadow-xl z-10 relative">
+        <div className={tab === 'settings' ? 'mt-6 flex flex-col gap-6' : 'hidden'}>
             <div>
               <h2 className="text-lg font-bold mb-4">기본 설정</h2>
               <div className="flex flex-col gap-4">
@@ -257,7 +291,7 @@ export function EditProblemPage() {
               </div>
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">문제 유형 설정</h2>
               <ProblemAdvancedSettings
                 problemType={problemType}
@@ -276,12 +310,12 @@ export function EditProblemPage() {
               />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <h2 className="mb-4 text-lg font-bold">태그</h2>
               <TagPicker value={tags} onChange={setTags} />
             </div>
 
-            <div className="border-t border-ink-300 pt-6">
+            <div className="border-t border-ink-600 pt-6">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-lg font-bold">테스트케이스 관리</h2>
                 <button
@@ -302,7 +336,6 @@ export function EditProblemPage() {
 
               <TestCaseDraftList value={drafts} onChange={setDrafts} inputClass={`${inputClass} font-mono`} />
             </div>
-          </div>
         </div>
       </form>
     </div>

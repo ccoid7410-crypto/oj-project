@@ -274,7 +274,9 @@ services:
 
   frontend:
     build:
-      context: ./oj-frontend
+      # 공용 편집기 파일이 club-homepage/에 있어서 컨텍스트를 저장소 루트로 둔다.
+      context: .
+      dockerfile: oj-frontend/Dockerfile
       args:
         # 비워두면(기본값) 프론트가 같은 origin의 상대 경로(/api)로 nginx를 통해 API를 부른다 -
         # 접속 주소가 IP든 도메인이든 항상 되고 CORS도 안 걸린다. 백엔드를 완전히 다른

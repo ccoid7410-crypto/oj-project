@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
+import { loginHint } from '../../components/AccessGate';
 import type { ContestDetail } from '../../api/types';
 import { DifficultyBadge } from '../../components/DifficultyBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -62,9 +63,12 @@ export function ContestDetailPage() {
         <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{contest.description}</p>
       )}
 
-      {user && contest.phase !== 'ENDED' && (
+      {contest.phase !== 'ENDED' && (
         <div className="mt-4">
-          {contest.registered ? (
+          {!user ? (
+            // 버튼을 숨기지 않고, 왜 못 누르는지 자리에 그대로 알려준다(문제 제출과 동일).
+            <span className="text-xs text-fg-muted">{loginHint('참가 신청')}</span>
+          ) : contest.registered ? (
             <span className="text-sm font-bold text-[var(--color-ac)]">참가 신청 완료</span>
           ) : (
             <button
