@@ -8,12 +8,13 @@ import { ThemeButtons } from '../components/ThemeButtons';
 import { fileToAvatarPayload, fileToBannerPayload } from '../lib/avatar';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'profile' | 'security' | 'theme';
+type Tab = 'profile' | 'security' | 'theme' | 'oj';
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'profile', label: '프로필' },
   { key: 'security', label: '개인정보 및 보안' },
   { key: 'theme', label: '테마' },
+  { key: 'oj', label: 'Durunuri OJ' },
 ];
 
 export function SettingsPage() {
@@ -47,6 +48,7 @@ export function SettingsPage() {
         {tab === 'profile' && <ProfileTab />}
         {tab === 'security' && <SecurityTab />}
         {tab === 'theme' && <ThemeTab />}
+        {tab === 'oj' && <OjTab />}
       </div>
     </div>
   );
@@ -457,14 +459,21 @@ function DeleteAccountCard() {
 
 function ThemeTab() {
   return (
-    <div className="flex flex-col gap-4">
-      <div className={cardClass}>
-        <p className="font-bold">테마</p>
-        <p className="mt-1 text-xs text-fg-muted">화면 색상 모드를 고릅니다. 시스템은 기기 설정을 따릅니다.</p>
-        <div className="mt-3">
-          <ThemeButtons />
-        </div>
+    <div className={cardClass}>
+      <p className="font-bold">테마</p>
+      <p className="mt-1 text-xs text-fg-muted">화면 색상 모드를 고릅니다. 시스템은 기기 설정을 따릅니다.</p>
+      <div className="mt-3">
+        <ThemeButtons />
       </div>
+    </div>
+  );
+}
+
+// ===== 4) Durunuri OJ 탭 (온라인 저지 관련 설정) =====
+
+function OjTab() {
+  return (
+    <div className="flex flex-col gap-4">
       <PreferredLanguageCard />
     </div>
   );
