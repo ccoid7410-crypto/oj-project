@@ -1404,16 +1404,23 @@ body.gate-pending .site-footer {
   justify-content: center;
   background: color-mix(in srgb, var(--color-bg) 80%, transparent);
   backdrop-filter: blur(24px); /* backdrop-blur-xl */
-  border: 1px solid var(--color-ink-500);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* shadow-xl */
-  color: var(--color-fg-muted);
+  /* 버튼 자체엔 글자색을 안 주고(OJ 원본도 그렇다) 상속받은 fg로 currentColor를 맞춘다. */
+  border: 1px solid currentColor; /* OJ 실제 렌더링과 동일: ink-200 fallback → 글자색 */
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, color 0.15s;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.pn-fab svg {
+  color: var(--color-fg-muted);
+  transition: color 0.15s;
 }
 
 .pn-fab:hover {
   transform: scale(1.1);
   border-color: var(--color-brand);
+}
+
+.pn-fab:hover svg {
   color: var(--color-fg);
 }
 
@@ -1451,26 +1458,18 @@ body.gate-pending .site-footer {
   }
 }
 
-/* ---- 펼친 상태: 유리질감 카드 ---- */
+/* ---- 펼친 상태 ----
+   OJ 실제 배포본을 뜯어보면, 펼쳐진 카드 바깥 div(w-[320px] rounded-2xl bg-white/80
+   backdrop-blur-xl border shadow-xl p-6 gap-5)만 이상하게 스타일이 하나도 안 먹고
+   테두리 없는 맨 텍스트로 뜬다(안쪽 header/timeline/점/링크 등은 전부 정상 렌더링됨).
+   테두리·구분선 색은 border-[var(--color-ink-200/300)]이 정의되지 않은 변수라
+   currentColor(글자색)로 대체되면서, 라이트 모드에선 우연히 거의 검게 보인다.
+   요청에 따라 이 모양을 그대로 재현한다(의도된 디자인이 아니라 실제 버그 재현). */
 .pn-card {
   position: relative;
-  width: 320px; /* w-[320px] */
   display: flex;
   flex-direction: column;
-  gap: 20px; /* gap-5 */
-  padding: 24px; /* p-6 */
-  border-radius: 16px; /* rounded-2xl */
-  overflow: hidden;
-  background: color-mix(in srgb, var(--color-bg) 80%, transparent); /* bg-white/80 */
-  backdrop-filter: blur(24px); /* backdrop-blur-xl */
-  border: 1px solid var(--color-ink-500);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); /* shadow-xl shadow-black/5 */
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.pn-card:hover {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* hover:shadow-2xl */
-  border-color: var(--color-ink-600); /* hover:border-ink-300 */
+  gap: 16px; /* 실측값(의도는 gap-5=20px였지만 실제로는 16px로 렌더링됨) */
 }
 
 .pn-card-glow {
@@ -1494,7 +1493,7 @@ body.gate-pending .site-footer {
   justify-content: space-between;
   gap: 8px;
   padding-bottom: 16px; /* pb-4 */
-  border-bottom: 1px solid var(--color-ink-500);
+  border-bottom: 1px solid currentColor; /* OJ 실제 렌더링과 동일하게 글자색을 그대로 씀 */
 }
 
 .pn-card-title {
@@ -1561,7 +1560,7 @@ body.gate-pending .site-footer {
   padding-left: 24px; /* pl-6 */
   padding-top: 8px;
   padding-bottom: 8px; /* py-2 */
-  border-left: 2px solid var(--color-ink-500); /* border-l-2 */
+  border-left: 2px solid currentColor; /* OJ 실제 렌더링과 동일하게 글자색을 그대로 씀 */
 }
 
 .pn-item {
@@ -1582,7 +1581,7 @@ body.gate-pending .site-footer {
   height: 14px;
   border-radius: 999px;
   background: var(--color-bg);
-  border: 3px solid var(--color-ink-500); /* border-[3px] border-ink-300 */
+  border: 3px solid currentColor; /* OJ 실제 렌더링과 동일하게 글자색을 그대로 씀 */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
   transition: border-color 0.3s, background 0.3s;
 }
