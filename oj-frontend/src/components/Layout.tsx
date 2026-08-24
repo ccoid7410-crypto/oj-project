@@ -7,6 +7,7 @@ import { Avatar } from './Avatar';
 import { UserTitleBadge } from './UserTitleBadge';
 import { MegaMenuTrigger, type MegaMenu } from './HeaderDropdown';
 import { HeaderThemeToggle } from './HeaderThemeToggle';
+import { BonobonoEasterEgg } from './BonobonoEasterEgg';
 
 // 마우스가 트리거에서 패널로 넘어가는 짧은 순간 깜빡이며 닫히는 걸 막기 위한 유예 시간.
 const CLOSE_DELAY_MS = 120;
@@ -21,6 +22,24 @@ export function Layout() {
   const [notifCount, setNotifCount] = useState(0);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [isRainbowMode, setIsRainbowMode] = useState(false);
+
+  useEffect(() => {
+    const toggleRainbow = () => {
+      setIsRainbowMode((prev) => {
+        const next = !prev;
+        if (next) {
+          document.documentElement.classList.add('theme-rainbow');
+        } else {
+          document.documentElement.classList.remove('theme-rainbow');
+        }
+        return next;
+      });
+    };
+    window.addEventListener('toggle-rainbow', toggleRainbow);
+    return () => window.removeEventListener('toggle-rainbow', toggleRainbow);
+  }, []);
 
   // 관리자가 대량 생성한 계정은 최초 로그인 후 비밀번호를 바꾸기 전까지 다른 화면을 못 쓰게 막는다.
   useEffect(() => {
@@ -240,6 +259,7 @@ export function Layout() {
       <main className="mx-auto max-w-5xl border-x border-ink-600 bg-[var(--color-surface)] px-6 py-6">
         <Outlet />
       </main>
+      <BonobonoEasterEgg active={isRainbowMode} />
     </div>
   );
 }

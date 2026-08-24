@@ -454,16 +454,44 @@ function DeleteAccountCard() {
     </div>
   );
 }
-
 // ===== 3) 테마 탭 =====
 
 function ThemeTab() {
+  const [, setKeys] = useState('');
+  const [clickCount, setClickCount] = useState(0);
+
+  useEffect(() => {
+    // 테마를 3번 이상 클릭해야만 키로거 작동
+    if (clickCount < 3) return;
+
+    const handler = (e: KeyboardEvent) => {
+      setKeys((prev) => {
+        const next = (prev + e.key).slice(-10);
+        if (next.endsWith('qkrwlgns') || next.endsWith('박지훈')) {
+          window.dispatchEvent(new CustomEvent('toggle-rainbow'));
+          setClickCount(0); // 발동 후 초기화
+          return '';
+        }
+        return next;
+      });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [clickCount]);
+
   return (
-    <div className={cardClass}>
-      <p className="font-bold">테마</p>
-      <p className="mt-1 text-xs text-fg-muted">화면 색상 모드를 고릅니다. 시스템은 기기 설정을 따릅니다.</p>
-      <div className="mt-3">
-        <ThemeButtons />
+    <div className="flex flex-col gap-4">
+      <div className={cardClass}>
+        <h3 
+          className="mb-4 text-lg font-bold select-none cursor-text"
+          onClick={() => setClickCount(c => c + 1)}
+        >
+          화면 테마
+        </h3>
+        <p className="mt-1 text-xs text-fg-muted">화면 색상 모드를 고릅니다. 시스템은 기기 설정을 따릅니다.</p>
+        <div className="mt-3">
+          <ThemeButtons />
+        </div>
       </div>
     </div>
   );
