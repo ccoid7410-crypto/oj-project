@@ -40,12 +40,12 @@ function pnRender() {
   root.innerHTML = "";
 
   if (pnLoading) {
-    const card = document.createElement("div");
-    card.className = "pn-card";
-    card.innerHTML =
-      '<div class="pn-card-header"><span class="pn-card-title">🚀 최근 업데이트</span></div>' +
+    const wrap = document.createElement("div");
+    wrap.className = "pn-skeleton-wrap";
+    wrap.innerHTML =
+      '<div class="pn-skeleton-header">🚀 최근 업데이트</div>' +
       '<div class="pn-skeleton"><div class="pn-skeleton-bar"></div><div class="pn-skeleton-bar"></div><div class="pn-skeleton-bar"></div></div>';
-    root.appendChild(card);
+    root.appendChild(wrap);
     return;
   }
 
