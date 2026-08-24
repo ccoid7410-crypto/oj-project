@@ -109,11 +109,12 @@ export function DeployPage() {
           <ul className="mt-2 space-y-2">
             {status.steps.map((s, i) => (
               <li key={i} className="rounded border border-ink-500 p-2 text-xs">
-                <p
-                  className={`font-bold ${s.ok ? 'text-[var(--color-ac)]' : 'text-[var(--color-wa)]'}`}
-                >
-                  {s.ok ? '✓' : '✗'} {s.step}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className={`font-bold ${s.ok ? 'text-[var(--color-ac)]' : 'text-[var(--color-wa)]'}`}>
+                    {s.ok ? '✓' : '✗'} {s.step}
+                  </p>
+                  <CopyButton text={s.output} />
+                </div>
                 <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
                   {s.output}
                 </pre>
@@ -123,5 +124,59 @@ export function DeployPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** 로그 한 칸의 오른쪽 위 복사 버튼. 그 칸의 출력 전체를 클립보드로 복사한다. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // clipboard API가 막힌 환경(비-HTTPS 등) 폴백
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* 무시 */
+      }
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title="로그 전체 복사"
+      aria-label="로그 전체 복사"
+      className="flex shrink-0 items-center gap-1 rounded border border-ink-500 px-1.5 py-0.5 text-[11px] text-fg-muted hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
+    >
+      {copied ? (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          복사됨
+        </>
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          복사
+        </>
+      )}
+    </button>
   );
 }

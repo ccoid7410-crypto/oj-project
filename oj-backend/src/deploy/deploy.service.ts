@@ -121,10 +121,26 @@ export class DeployService {
       const build = await this.exec('docker', ['compose', 'build'], this.repoDir);
       if (!(await record('docker compose build', build))) return finish(false);
 
-      // 여기서 이 컨테이너까지 새로 만들어진다. 그래서 아래 write는 못 돌 수도 있는데,
-      // 그 경우 상태 파일에는 "docker compose up -d까지 실행함"이 남고 running이 true로
-      // 남는다. 재기동 뒤 status()가 오래된 기록을 정리하고, 프론트는 재연결 후 결과를 본다.
-      const up = await this.exec('docker', ['compose', 'up', '-d'], this.repoDir);
+      // 이 배포 에이전트 자신은 재생성 대상에서 뺀다.
+      // docker compose up -d가 에이전트 컨테이너를 다시 만들면 그 순간 이 프로세스가 죽어서
+      // up -d가 중간에 끊긴다(그래서 일부 컨테이너만 뜨고 배포가 실패로 남았다).
+      // 에이전트 코드는 거의 안 바뀌고, 바뀌더라도 다음 배포나 수동 재시작으로 반영하면 된다.
+      const services = await this.exec(
+        'docker',
+        ['compose', 'config', '--services'],
+        this.repoDir,
+      );
+      if (!(await record('대상 서비스 확인', services))) return finish(false);
+      const targets = services.output
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s && s !== 'deploy-agent');
+
+      const up = await this.exec(
+        'docker',
+        ['compose', 'up', '-d', ...targets],
+        this.repoDir,
+      );
       await record('docker compose up -d', up);
       return finish(up.ok);
     } catch (err) {

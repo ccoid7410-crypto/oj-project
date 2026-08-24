@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import { resetSocket } from '../lib/socket';
 import { setTheme } from '../lib/theme';
 import type { User } from '../api/types';
@@ -45,8 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 그 사이 값이 바뀌었으면(=더 최신 로그인이 있었으면) 이 응답으로 덮어쓰지 않는다.
         if (localStorage.getItem('oj_token') === token) adoptUser(u);
       })
-      .catch(() => {
-        if (localStorage.getItem('oj_token') === token) localStorage.removeItem('oj_token');
+      .catch((err) => {
+        // 토큰이 실제로 무효(401)일 때만 로그아웃시킨다. 서버가 잠깐 죽어 있거나(배포 중)
+        // 네트워크 오류일 때까지 토큰을 지우면, 배포를 누르자마자 로그아웃되는 문제가 생긴다.
+        const status = err instanceof ApiError ? err.status : 0;
+        if (status === 401 && localStorage.getItem('oj_token') === token) {
+          localStorage.removeItem('oj_token');
+        }
       })
       .finally(() => setLoading(false));
   }, []);
