@@ -1331,6 +1331,37 @@ body.gate-pending .site-footer {
   color: var(--color-fg-muted);
 }
 
+/* 최근 업데이트(패치노트) */
+.update-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.update-log-item {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.update-log-item:last-child {
+  border-bottom: none;
+}
+
+.update-log-date {
+  flex: none;
+  width: 56px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-fg-muted);
+}
+
+.update-log-title {
+  font-size: 0.875rem;
+}
+
 .site-footer {
   padding: 24px;
   text-align: center;
