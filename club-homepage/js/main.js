@@ -71,6 +71,30 @@ function mountThemeToggle() {
 
 mountThemeToggle();
 
+/* ===== 헤더 설정(톱니) 아이콘 =====
+   OJ 헤더와 같은 위치(종 아이콘 오른쪽)에 두고, 누르면 OJ의 설정 페이지(/settings)로 간다.
+   설정 페이지는 OJ 앱에 있고 홈페이지와 같은 origin이라 절대 경로로 바로 연결된다.
+   로그인했을 때만 보인다(종 아이콘과 동일). */
+function mountSettingsGear() {
+  const actions = document.querySelector(".header-actions");
+  if (!actions || !localStorage.getItem("oj_token")) return;
+
+  const link = document.createElement("a");
+  link.href = "/settings";
+  link.className = "notif-bell"; // 종 아이콘과 같은 규격(20px 박스 / 16px 아이콘)
+  link.title = "설정";
+  link.setAttribute("aria-label", "설정");
+  link.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="12" cy="12" r="3"/>' +
+    '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+  // 종(#notif-slot)보다 뒤에 붙여 맨 오른쪽에 오게 한다.
+  actions.appendChild(link);
+}
+
+mountSettingsGear();
+
 function setHeroActionsVisible(visible) {
   const actions = document.querySelector(".hero-actions");
   if (actions) actions.style.display = visible ? "" : "none";
