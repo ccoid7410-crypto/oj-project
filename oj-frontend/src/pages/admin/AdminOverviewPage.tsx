@@ -24,7 +24,7 @@ export function AdminOverviewPage() {
 
   // 선생님/개발자는 이 대시보드(전체 현황) 접근 권한이 없다 - 권한이 있는 화면으로 대신 보낸다.
   if (user?.role === 'TEACHER') return <Navigate to="/admin/proposals" replace />;
-  if (user?.role === 'DEV') return <Navigate to="/admin/deploy" replace />;
+  if (user?.role === 'DEV') return <Navigate to="/admin/server" replace />;
 
   if (!stats) return <p className="text-sm text-fg-muted">불러오는 중...</p>;
 

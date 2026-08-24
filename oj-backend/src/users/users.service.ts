@@ -92,6 +92,10 @@ export class UsersService {
         rating: true,
         bio: true,
         websites: true,
+        // 기수(학번에서 계산)·권한·가입일은 이제 모든 프로필에서 공개한다.
+        // 실명·학번·이메일 같은 개인정보는 여전히 본인 전용(findById)에만 둔다.
+        studentId: true,
+        createdAt: true,
         avatarUpdatedAt: true,
         bannerUpdatedAt: true,
       },
@@ -155,6 +159,8 @@ export class UsersService {
       rating: user.rating,
       bio: user.bio,
       websites: user.websites,
+      generation: generationFromStudentId(user.studentId),
+      createdAt: user.createdAt,
       // 이미지 바이트 대신 버전(타임스탬프)만 내려준다. 프론트는 이 값으로
       // /users/:username/avatar?v=... URL을 만들고, null이면 기본(회색) 아바타를 그린다.
       avatarVersion: user.avatarUpdatedAt

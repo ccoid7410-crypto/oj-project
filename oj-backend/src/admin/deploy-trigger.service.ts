@@ -42,11 +42,35 @@ export class DeployTriggerService {
     this.token = this.config.get<string>('DEPLOY_SERVICE_TOKEN', '');
   }
 
-  /** 서버 정보(내부 LAN IP)는 setup.sh가 감지해 .env에 채워둔 값을 그대로 보여준다. */
-  getServerInfo() {
+  /**
+   * 서버 정보 + 상태.
+   * - lanIp: setup.sh가 감지해 .env에 채워둔 내부 IP를 그대로 보여준다.
+   * - agentOnline: 배포 에이전트가 응답하는지(= 배포 버튼이 실제로 동작하는지) 확인.
+   * - uptimeSec/nodeVersion: 이 API 프로세스의 상태.
+   */
+  async getServerInfo() {
     return {
       lanIp: this.config.get<string>('SERVER_LAN_IP', '') || null,
+      agentConfigured: !!this.baseUrl,
+      agentOnline: await this.pingAgent(),
+      uptimeSec: Math.round(process.uptime()),
+      nodeVersion: process.version,
+      serverTime: new Date().toISOString(),
     };
+  }
+
+  /** 배포 에이전트 health 확인. 켜져 있고 토큰이 맞으면 true. */
+  private async pingAgent(): Promise<boolean> {
+    if (!this.baseUrl) return false;
+    try {
+      const res = await fetch(`${this.baseUrl}/health`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+        signal: AbortSignal.timeout(3000),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   async trigger(userId: string, password: string): Promise<{ started: boolean }> {

@@ -24,6 +24,7 @@ import { ContestDetailPage } from './pages/contests/ContestDetailPage';
 import { ContestLeaderboardPage } from './pages/contests/ContestLeaderboardPage';
 import { RankingPage } from './pages/RankingPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { EditProblemPage } from './pages/EditProblemPage';
 import { NewProblemPage } from './pages/admin/NewProblemPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -48,6 +49,7 @@ import { CommunityPostPage } from './pages/community/CommunityPostPage';
 import { NewCommunityPostPage } from './pages/community/NewCommunityPostPage';
 import { ClubSchedulesAdminPage } from './pages/admin/ClubSchedulesAdminPage';
 import { DeployPage } from './pages/admin/DeployPage';
+import { ServerInfoPage } from './pages/admin/ServerInfoPage';
 import { ReportsAdminPage } from './pages/admin/ReportsAdminPage';
 import { SendNotificationPage } from './pages/admin/SendNotificationPage';
 import { NotificationsPage as MyNotificationsPage, NotificationDetailPage } from './pages/NotificationsPage';
@@ -82,6 +84,7 @@ export default function App() {
             <Route path="/classes/:slug" element={<AccessGate level="login"><ClassDetailPage /></AccessGate>} />
             <Route element={<ProtectedRoute />}>
               <Route path="/change-password" element={<ChangePasswordPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/register-name" element={<RegisterNamePage />} />
               <Route path="/community/new" element={<NewCommunityPostPage />} />
               <Route path="/problems/new" element={<NewProblemPage />} />
@@ -108,6 +111,7 @@ export default function App() {
                 <Route path="/admin/mail" element={<MailSettingsPage />} />
                 <Route path="/admin/banner" element={<BannerSettingsPage />} />
                 <Route path="/admin/club-schedules" element={<ClubSchedulesAdminPage />} />
+                <Route path="/admin/server" element={<ServerInfoPage />} />
                 <Route path="/admin/deploy" element={<DeployPage />} />
                 <Route path="/admin/api-keys" element={<ApiKeysPage />} />
                 <Route path="/admin/accounts" element={<AccountsPage />} />

@@ -288,6 +288,8 @@ export interface UserProfile {
   rating: number;
   bio: string | null;
   websites: string[];
+  generation: string | null; // 기수(학번에서 계산). 모든 프로필에 공개
+  createdAt: string; // 가입일. 모든 프로필에 공개
   avatarVersion: number | null; // 아바타 캐시 무효화용 타임스탬프. null이면 기본(회색) 아바타
   bannerVersion: number | null; // 배너 캐시 무효화용. null이면 배너 없음
   solvedCount: number;
@@ -475,6 +477,11 @@ export interface MentionUser {
 
 export interface ServerInfo {
   lanIp: string | null;
+  agentConfigured: boolean;
+  agentOnline: boolean;
+  uptimeSec: number;
+  nodeVersion: string;
+  serverTime: string;
 }
 
 export interface DeployStepResult {

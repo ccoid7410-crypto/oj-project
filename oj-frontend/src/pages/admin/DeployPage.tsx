@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../../api/client';
-import type { DeployStatus, ServerInfo } from '../../api/types';
+import type { DeployStatus } from '../../api/types';
 
 const POLL_INTERVAL_MS = 3000;
 
 export function DeployPage() {
-  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
   const [password, setPassword] = useState('');
   const [starting, setStarting] = useState(false);
   const [status, setStatus] = useState<DeployStatus | null>(null);
@@ -28,7 +27,6 @@ export function DeployPage() {
   }, []);
 
   useEffect(() => {
-    api.get<ServerInfo>('/admin/deploy/server-info').then(setServerInfo).catch(() => undefined);
     // 눌러놓고 화면을 나갔다 들어와도 진행 중인 배포를 이어서 보여준다.
     void poll();
     return () => {
@@ -63,13 +61,7 @@ export function DeployPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h2 className="text-lg font-bold">서버 정보</h2>
-      <div className="mt-2 rounded border border-ink-500 p-3 text-sm">
-        <p className="text-fg-muted">내부(LAN) IP</p>
-        <p className="mt-1 font-mono text-base">{serverInfo?.lanIp ?? '알 수 없음'}</p>
-      </div>
-
-      <h2 className="mt-8 text-lg font-bold">배포</h2>
+      <h2 className="text-lg font-bold">배포</h2>
       <p className="mt-1 text-sm text-fg-muted">
         최신 커밋을 받아(git pull) 이미지를 다시 빌드하고 컨테이너를 재기동합니다. 비밀번호로 본인
         확인 후 진행됩니다. 마지막 단계에서 서버가 잠깐 재시작되니, 화면이 끊겨도 기다리면 결과가

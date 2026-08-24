@@ -20,7 +20,8 @@ const ADMIN_TABS = [
   { to: '/admin/club-schedules', label: '동아리 일정' },
   { to: '/admin/api-keys', label: 'API 키' },
   { to: '/admin/notifications', label: '알림' },
-  { to: '/admin/deploy', label: '배포/서버 정보' },
+  { to: '/admin/server', label: '서버 정보' },
+  { to: '/admin/deploy', label: '배포' },
 ];
 
 // 선생님은 부분 권한만 있다: 수업 관리 + 문제 검수/승인 + 학생 계정 관리(정지/해제). 그 외
@@ -34,7 +35,10 @@ const TEACHER_TABS = [
 
 // 개발자는 배포 트리거 + 서버 정보 열람 권한만 있다. 그 외 관리자 화면은 안 보여준다
 // (TEACHER_TABS와 동일한 패턴 - 백엔드도 어차피 막지만 눌러서 403 보는 것보다 낫다).
-const DEV_TABS = [{ to: '/admin/deploy', label: '배포/서버 정보' }];
+const DEV_TABS = [
+  { to: '/admin/server', label: '서버 정보' },
+  { to: '/admin/deploy', label: '배포' },
+];
 
 export function AdminLayout() {
   const { user } = useAuth();
