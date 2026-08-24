@@ -74,10 +74,10 @@ mountThemeToggle();
 /* ===== 헤더 설정(톱니) 아이콘 =====
    OJ 헤더와 같은 위치(종 아이콘 오른쪽)에 두고, 누르면 OJ의 설정 페이지(/settings)로 간다.
    설정 페이지는 OJ 앱에 있고 홈페이지와 같은 origin이라 절대 경로로 바로 연결된다.
-   로그인했을 때만 보인다(종 아이콘과 동일). */
+   로그인 여부와 무관하게 항상 보이고, 비로그인으로 들어가면 설정 페이지가 안내 화면을 띄운다. */
 function mountSettingsGear() {
   const actions = document.querySelector(".header-actions");
-  if (!actions || !localStorage.getItem("oj_token")) return;
+  if (!actions) return;
 
   const link = document.createElement("a");
   link.href = "/settings";

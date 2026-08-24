@@ -82,9 +82,9 @@ export default function App() {
             <Route path="/problems/mine" element={<AccessGate level="login"><MyProblemsPage /></AccessGate>} />
             <Route path="/classes" element={<AccessGate level="login"><ClassListPage /></AccessGate>} />
             <Route path="/classes/:slug" element={<AccessGate level="login"><ClassDetailPage /></AccessGate>} />
+            <Route path="/settings" element={<AccessGate level="login"><SettingsPage /></AccessGate>} />
             <Route element={<ProtectedRoute />}>
               <Route path="/change-password" element={<ChangePasswordPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/register-name" element={<RegisterNamePage />} />
               <Route path="/community/new" element={<NewCommunityPostPage />} />
               <Route path="/problems/new" element={<NewProblemPage />} />
