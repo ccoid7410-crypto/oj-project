@@ -1770,7 +1770,7 @@ body.gate-pending .site-footer {
 .c-comment-top { display: flex; align-items: center; justify-content: space-between; }
 .c-comment-author { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; }
 .c-comment-date { font-size: 0.72rem; color: var(--color-fg-muted); }
-.c-comment-body { margin: 6px 0 8px; font-size: 0.9rem; }
+.c-comment-body { margin: 6px 0 8px; font-size: 0.9rem; overflow-wrap: anywhere; word-break: break-word; }
 /* 댓글도 마크다운으로 그리므로 본문 안의 이미지는 폭에 맞춰 줄인다. */
 .c-comment-body img { max-width: 100%; }
 .c-comment-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; }
