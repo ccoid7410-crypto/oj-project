@@ -21,6 +21,8 @@ export function Layout() {
   // 헤더 종 아이콘에 표시할 내 알림 개수(신고 결과·멘션·관리자 알림).
   const [notifCount, setNotifCount] = useState(0);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  // 숨겨진 팰린드롬 버튼으로 화면 전체를 좌우 반전(글자가 거꾸로)시킨다.
+  const [flipped, setFlipped] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isRainbowMode, setIsRainbowMode] = useState(false);
@@ -137,7 +139,7 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-page-bg)]">
+    <div className={`min-h-screen bg-[var(--color-page-bg)] ${flipped ? 'palindrome-flip' : ''}`}>
       <header
         className="relative bg-[var(--color-header-bg)] border-b border-[var(--color-header-line)]"
         onMouseLeave={scheduleClose}
@@ -260,6 +262,16 @@ export function Layout() {
         <Outlet />
       </main>
       <BonobonoEasterEgg active={isRainbowMode} />
+      {/* 숨겨진 팰린드롬 버튼. 누르면 화면 전체가 좌우로 뒤집혀(글자가 거꾸로) 보인다.
+          평소엔 거의 안 보이게 아주 흐리게 두고, 마우스를 올리면 드러난다. */}
+      <button
+        type="button"
+        onClick={() => setFlipped((v) => !v)}
+        className="fixed bottom-2 right-2 z-50 select-none text-[10px] text-fg-muted opacity-10 transition-opacity hover:opacity-100"
+        title="팰린드롬?????"
+      >
+        팰린드롬?????
+      </button>
     </div>
   );
 }

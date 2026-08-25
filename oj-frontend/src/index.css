@@ -274,3 +274,8 @@ body {
 .ProseMirror .oj-image-node:has([data-align='right']) {
   margin-right: 0;
 }
+
+/* 숨겨진 팰린드롬 버튼용. 화면 전체를 좌우로 뒤집어 모든 글자가 거꾸로 보이게 한다. */
+.palindrome-flip {
+  transform: scaleX(-1);
+}
