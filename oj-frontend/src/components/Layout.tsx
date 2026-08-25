@@ -126,6 +126,19 @@ export function Layout() {
     { key: 'ranking', label: '랭킹', items: [{ to: '/ranking', label: '랭킹' }] },
     { key: 'classes', label: '수업', items: [{ to: '/classes', label: '수업' }] },
     { key: 'community', label: '커뮤니티', items: [{ to: '/community', label: '커뮤니티' }] },
+    // 동아리 홈페이지(예전엔 별도 정적 사이트 /home/*였던 것을 이 앱 라우트로 통합했다).
+    {
+      key: 'club',
+      label: '동아리 홈페이지',
+      items: [
+        { to: '/home', label: '홈' },
+        { to: '/home/calendar', label: '일정' },
+        { to: '/home/community', label: '공개 게시판' },
+        { to: '/home/club-board', label: '동아리 게시판' },
+        { to: '/home/exam-scope', label: '시험범위' },
+        { to: '/home/hall-of-fame', label: '명예의 전당' },
+      ],
+    },
   ];
   const cancelClose = () => {
     if (closeTimer.current) {
@@ -179,13 +192,15 @@ export function Layout() {
                 )}
               </Link>
             )}
-            {/* 동아리 홈페이지로 이동. React 밖의 정적 사이트라 Link 대신 일반 앵커를 쓴다.
-                홈페이지의 OJ 링크(.nav-oj)와 같이 다른 사이트로 나가는 링크는 파란색으로 구분한다. */}
+            {/* 동아리 홈페이지 자체 메뉴(위 club 메가메뉴)에 흡수됐던 CBGPU 외부 링크.
+                club-homepage 헤더 nav에 있던 것과 동일하게 여기로 옮겨왔다. */}
             <a
-              href="/home/"
+              href="https://cbgpu.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${navLinkBase} text-[var(--color-brand)] hover:text-[var(--color-brand-dim)]`}
             >
-              Durunuri ↗
+              CBGPU ↗
             </a>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-3 py-3 text-[12px] text-[var(--color-header-fg)]">

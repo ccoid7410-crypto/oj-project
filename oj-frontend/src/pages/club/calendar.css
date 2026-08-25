@@ -1,0 +1,611 @@
+/*
+ * club-homepage/css/style.css의 calendar/legend/schedule/field 관련 규칙을
+ * 그대로 옮긴 것이다(값 재해석 없이 1:1 포팅). 동아리 홈페이지의 --color-bg는
+ * 이 앱의 --color-surface(콘텐츠 박스 배경)에 대응해 그렇게만 치환했다.
+ * ClubCalendarPage.tsx에서만 import하므로 다른 페이지에는 영향이 없다.
+ */
+
+.calendar-section {
+  padding-top: 32px;
+}
+
+.calendar-section [hidden] {
+  display: none !important;
+}
+
+.calendar-page-header,
+.calendar-month-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-page-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-ink-600);
+}
+
+.calendar-page-header h2 {
+  margin-bottom: 4px;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.calendar-page-header p,
+.calendar-empty p,
+.calendar-panel-heading p {
+  color: var(--color-fg-muted);
+  font-size: 0.875rem;
+}
+
+.calendar-proposal-panel,
+.calendar-approval-panel {
+  margin-top: 20px;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--color-ink-700) 35%, var(--color-surface));
+}
+
+.calendar-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-panel-heading h3 {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.calendar-proposal-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.calendar-proposal-form[hidden],
+.calendar-field[hidden] {
+  display: none;
+}
+
+.calendar-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.calendar-field-wide {
+  grid-column: 1 / -1;
+}
+
+.calendar-class-picker {
+  display: flex;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.calendar-class-picker legend {
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.calendar-class-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-fg-muted);
+}
+
+.calendar-proposal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendar-proposal-actions p {
+  color: var(--color-fg-muted);
+  font-size: 0.8rem;
+}
+
+.calendar-proposal-actions p.success {
+  color: #2fa84f;
+}
+
+.calendar-proposal-actions p.error {
+  color: #e5484d;
+}
+
+.calendar-approval-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.calendar-approval-card {
+  border: 1px solid var(--color-ink-600);
+  border-radius: 4px;
+  padding: 14px;
+  background: var(--color-surface);
+}
+
+.calendar-approval-card h4 {
+  margin: 7px 0 5px;
+  font-size: 0.95rem;
+}
+
+.calendar-approval-meta,
+.calendar-approval-detail {
+  color: var(--color-fg-muted);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.calendar-approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calendar-class-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.calendar-class-tag {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--color-ink-600);
+  color: var(--color-fg-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.calendar-controls {
+  display: flex;
+}
+
+.calendar-controls button {
+  height: 32px;
+  min-width: 36px;
+  border: 1px solid var(--color-ink-500);
+  border-right: 0;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calendar-controls button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.calendar-controls button:last-child {
+  border-right: 1px solid var(--color-ink-500);
+  border-radius: 0 4px 4px 0;
+}
+
+.calendar-controls button:hover {
+  color: var(--color-brand);
+  background: var(--color-ink-700);
+}
+
+.calendar-month-row {
+  margin-top: 20px;
+  align-items: center;
+}
+
+.calendar-month-row h3 {
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-assessment {
+  background: var(--color-brand);
+}
+
+.legend-exam {
+  background: #e08423;
+}
+
+.legend-event {
+  background: #2b9a66;
+}
+
+.legend-other {
+  background: #7b61c9;
+}
+
+.legend-vacation {
+  background: #c6538c;
+}
+
+.calendar-scroll {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.calendar {
+  min-width: 700px;
+  overflow: hidden;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--color-ink-700);
+}
+
+/* 달력 본체는 주(week) 단위 행을 세로로 쌓는다. 각 주 행 위에 여러 날에 걸친
+   일정 바를 겹쳐 그리기 위해 position: relative 컨테이너로 둔다. */
+.calendar-week {
+  position: relative;
+}
+
+.calendar-week-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+/* 일정 바가 놓이는 오버레이. 날짜 숫자(위) 아래에서 시작한다. */
+.calendar-week-bars {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34px;
+  height: 0;
+}
+
+.calendar-bar {
+  position: absolute;
+  height: 19px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 6px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 19px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background: var(--schedule-color);
+}
+
+.calendar-bar:hover {
+  filter: brightness(0.9);
+}
+
+/* 주 경계를 넘어 이어지는 쪽 끝은 각지게 해서 "계속됨"을 표현한다. */
+.calendar-bar.bar-continues-left {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.calendar-bar.bar-continues-right {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.calendar-weekdays span {
+  padding: 8px;
+  border-right: 1px solid var(--color-ink-600);
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendar-weekdays span:first-child,
+.calendar-day-sunday:not(.calendar-day-outside) .calendar-day-number {
+  color: #e0393e;
+}
+
+.calendar-weekdays span:last-child,
+.calendar-day-saturday:not(.calendar-day-outside) .calendar-day-number {
+  color: var(--color-brand);
+}
+
+.calendar-weekdays span:last-child {
+  border-right: 0;
+}
+
+.calendar-day {
+  /* 그 주에 놓인 일정 바 개수(--lanes)만큼 아래 공간을 확보한다. */
+  min-height: calc(64px + var(--lanes, 0) * 22px);
+  padding: 8px;
+  border-top: 1px solid var(--color-ink-600);
+  border-right: 1px solid var(--color-ink-600);
+  background: var(--color-surface);
+}
+
+.calendar-week-days .calendar-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.calendar-day-outside {
+  background: color-mix(in srgb, var(--color-ink-700) 55%, var(--color-surface));
+}
+
+.calendar-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.calendar-day-outside .calendar-day-number {
+  color: color-mix(in srgb, var(--color-fg-muted) 45%, transparent);
+}
+
+.calendar-day-today,
+.calendar-day-outside .calendar-day-today {
+  background: var(--color-brand);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* 오늘이 토요일이면 날짜 글자색(파랑)과 오늘 하이라이트 배경(파랑)이 같아져서 숫자가 안 보인다.
+   요일 색 규칙이 더 구체적이라 위 흰색이 밀리므로, 오늘 표시에는 요일 색보다 우선하게 다시 준다.
+   (일요일은 빨강 + 파랑이라 그대로 둬도 잘 보인다.) */
+.calendar-day-saturday:not(.calendar-day-outside) .calendar-day-number.calendar-day-today {
+  color: #ffffff;
+}
+
+.schedule-assessment {
+  --schedule-color: var(--color-brand);
+}
+
+.schedule-exam {
+  --schedule-color: #e08423;
+}
+
+.schedule-event {
+  --schedule-color: #2b9a66;
+}
+
+.schedule-other {
+  --schedule-color: #7b61c9;
+}
+
+.schedule-vacation {
+  --schedule-color: #c6538c;
+}
+
+/* 사용자 정의 종류. 실제 색은 ClubCalendarPage.tsx가 이름 해시로 정해 인라인으로 덮어쓴다. */
+.schedule-custom {
+  --schedule-color: #607d8b;
+}
+
+.calendar-schedule-list {
+  margin-top: 24px;
+}
+
+.calendar-list-heading {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.calendar-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.calendar-schedule-card {
+  border: 1px solid var(--color-ink-600);
+  border-left: 4px solid var(--schedule-color);
+  border-radius: 4px;
+  padding: 14px;
+  background: var(--color-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-schedule-card.calendar-schedule-active {
+  border-color: var(--schedule-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--schedule-color) 20%, transparent);
+}
+
+.calendar-schedule-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-fg-muted);
+  font-size: 0.72rem;
+}
+
+.calendar-schedule-badge {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--schedule-color) 14%, transparent);
+  color: var(--schedule-color);
+  font-weight: 700;
+}
+
+.calendar-schedule-card h4 {
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.calendar-schedule-scope,
+.calendar-schedule-description {
+  margin-top: 8px;
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+}
+
+.calendar-schedule-scope {
+  color: var(--color-fg);
+}
+
+.calendar-schedule-description {
+  color: var(--color-fg-muted);
+}
+
+.calendar-schedule-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calendar-empty {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px dashed var(--color-ink-500);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-ink-700) 45%, transparent);
+  text-align: center;
+}
+
+.calendar-empty p {
+  margin-top: 4px;
+}
+
+/* ---- 제안 폼 필드 (club-homepage의 .field-* 그대로) ---- */
+.field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  margin-bottom: 4px;
+}
+
+.field-input,
+.field-textarea,
+.field-select {
+  width: 100%;
+  border: 1px solid var(--color-ink-500);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.field-input:focus,
+.field-textarea:focus,
+.field-select:focus {
+  border-color: var(--color-brand);
+}
+
+.field-textarea {
+  resize: vertical;
+}
+
+/* ---- club-homepage의 .btn* / .loading·.error·.empty 중 이 페이지가 쓰는 것만 ---- */
+.calendar-section .btn {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  background-color: transparent;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  border: none;
+}
+
+.calendar-section .btn-primary {
+  background-color: var(--color-brand);
+  color: #ffffff;
+}
+
+.calendar-section .btn-primary:hover {
+  background-color: var(--color-brand-dim);
+}
+
+.calendar-section .btn-ghost {
+  border: 1px solid var(--color-ink-500);
+  color: var(--color-fg);
+}
+
+.calendar-section .btn-ghost:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+.calendar-section .btn-danger {
+  border: none;
+  background: #e0393e;
+  color: #fff;
+  font-weight: 700;
+}
+
+.calendar-section .btn-danger:hover {
+  opacity: 0.88;
+}
+
+.calendar-section .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.calendar-section .loading,
+.calendar-section .error,
+.calendar-section .empty {
+  color: var(--color-fg-muted);
+}
+
+@media (max-width: 640px) {
+  .calendar-page-header,
+  .calendar-month-row,
+  .calendar-panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calendar-proposal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-field-wide {
+    grid-column: auto;
+  }
+
+  .calendar-day {
+    min-height: 80px;
+  }
+}

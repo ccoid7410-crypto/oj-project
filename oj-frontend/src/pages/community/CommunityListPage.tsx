@@ -1,23 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
-import type { CommunityPostSummary } from '../../api/types';
+import type { CommunityBoard, CommunityPostSummary } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../../components/Avatar';
 import { UserTitleBadge } from '../../components/UserTitleBadge';
 import { PostTypeBadge, postTitleColorClass } from '../../components/CommunityPostType';
 
-export function CommunityListPage() {
+export interface CommunityListPageProps {
+  /** 어느 게시판을 보여줄지. 동아리 홈페이지의 공개/동아리 게시판도 이 컴포넌트를 그대로 쓴다. */
+  board?: CommunityBoard;
+  /** 링크 목적지(글쓰기/상세) 기준 경로. board별로 라우트가 다르므로 하드코딩하지 않는다. */
+  basePath?: string;
+}
+
+export function CommunityListPage({ board = 'OJ', basePath = '/community' }: CommunityListPageProps = {}) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<CommunityPostSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setPosts(null);
     api
-      .get<CommunityPostSummary[]>('/community/posts?board=OJ')
+      .get<CommunityPostSummary[]>(`/community/posts?board=${board}`)
       .then(setPosts)
       .catch(() => setError('게시글을 불러오지 못했습니다.'));
-  }, []);
+  }, [board]);
 
   return (
     <div>
@@ -25,13 +33,16 @@ export function CommunityListPage() {
         <h1 className="text-2xl font-bold">커뮤니티</h1>
         {user ? (
           <Link
-            to="/community/new"
+            to={`${basePath}/new`}
             className="rounded bg-[var(--color-brand)] px-3 py-1.5 text-sm font-bold text-white hover:bg-[var(--color-brand-dim)]"
           >
             글쓰기
           </Link>
         ) : (
-          <Link to="/login?redirect=/community" className="text-sm text-fg-muted hover:text-[var(--color-brand)]">
+          <Link
+            to={`/login?redirect=${encodeURIComponent(basePath)}`}
+            className="text-sm text-fg-muted hover:text-[var(--color-brand)]"
+          >
             로그인하고 글쓰기
           </Link>
         )}
@@ -46,7 +57,7 @@ export function CommunityListPage() {
         <ul className="mt-4 divide-y divide-ink-500 border-y border-ink-500">
           {posts.map((p) => (
             <li key={p.id} className={p.type === 'NOTICE' ? 'bg-[var(--color-wa)]/5 py-3' : 'py-3'}>
-              <Link to={`/community/${p.id}`} className="group flex items-start justify-between gap-3">
+              <Link to={`${basePath}/${p.id}`} className="group flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="flex items-center">
                     <PostTypeBadge type={p.type} />

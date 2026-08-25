@@ -15,7 +15,11 @@ const MarkdownView = lazy(() =>
   import('../../components/MarkdownView').then((m) => ({ default: m.MarkdownView })),
 );
 
-export function CommunityPostPage() {
+export interface CommunityPostPageProps {
+  basePath?: string;
+}
+
+export function CommunityPostPage({ basePath = '/community' }: CommunityPostPageProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,7 +51,7 @@ export function CommunityPostPage() {
     if (!confirm('이 게시글을 삭제할까요? 되돌릴 수 없습니다.')) return;
     try {
       await api.delete(`/community/posts/${post.id}`);
-      navigate('/community');
+      navigate(basePath);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '삭제에 실패했습니다.');
     }
@@ -60,7 +64,7 @@ export function CommunityPostPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to="/community" className="text-xs text-fg-muted hover:text-[var(--color-brand)]">
+      <Link to={basePath} className="text-xs text-fg-muted hover:text-[var(--color-brand)]">
         ← 커뮤니티
       </Link>
 

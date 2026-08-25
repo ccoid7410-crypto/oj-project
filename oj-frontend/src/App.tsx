@@ -5,6 +5,11 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AccessGate } from './components/AccessGate';
 import { AdminRoute } from './components/AdminRoute';
 import { HomePage } from './pages/HomePage';
+import { ClubHomePage } from './pages/club/ClubHomePage';
+import { ClubCalendarPage } from './pages/club/ClubCalendarPage';
+import { HallOfFamePage } from './pages/club/HallOfFamePage';
+import { ExamScopePage } from './pages/club/ExamScopePage';
+import { ClubNotificationsPage, ClubNotificationDetailPage } from './pages/club/ClubNotificationsPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -61,6 +66,89 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
+            {/* 동아리 홈페이지 마이그레이션(club-homepage → 이 앱). 진행 중에는 nginx가 아직
+                /home/*를 옛 정적 사이트 컨테이너로 프록시하므로, 배포 전환(인프라 마지막 단계)
+                전까지는 로컬 개발 서버에서만 이 라우트로 들어올 수 있다. */}
+            <Route path="/home" element={<ClubHomePage />} />
+            <Route path="/home/calendar" element={<ClubCalendarPage />} />
+            {/* 공개 게시판(HOME 보드): club-homepage/community.html과 같은 기준(로그인만 필요). */}
+            <Route
+              path="/home/community"
+              element={
+                <AccessGate level="login">
+                  <CommunityListPage board="HOME" basePath="/home/community" />
+                </AccessGate>
+              }
+            />
+            <Route
+              path="/home/community/new"
+              element={
+                <AccessGate level="login">
+                  <NewCommunityPostPage board="HOME" basePath="/home/community" />
+                </AccessGate>
+              }
+            />
+            <Route
+              path="/home/community/:id"
+              element={
+                <AccessGate level="login">
+                  <CommunityPostPage basePath="/home/community" />
+                </AccessGate>
+              }
+            />
+            {/* 동아리 게시판(CLUB 보드): club-board.html과 같은 기준(로그인 + 부원). */}
+            <Route
+              path="/home/club-board"
+              element={
+                <AccessGate level="member">
+                  <CommunityListPage board="CLUB" basePath="/home/club-board" />
+                </AccessGate>
+              }
+            />
+            <Route
+              path="/home/club-board/new"
+              element={
+                <AccessGate level="member">
+                  <NewCommunityPostPage board="CLUB" basePath="/home/club-board" />
+                </AccessGate>
+              }
+            />
+            <Route
+              path="/home/club-board/:id"
+              element={
+                <AccessGate level="member">
+                  <CommunityPostPage basePath="/home/club-board" />
+                </AccessGate>
+              }
+            />
+            {/* 명예의 전당: 백엔드(GET /users/hall-of-fame)가 로그인만 요구한다(부원 불필요). */}
+            <Route
+              path="/home/hall-of-fame"
+              element={
+                <AccessGate level="login">
+                  <HallOfFamePage />
+                </AccessGate>
+              }
+            />
+            {/* 시험범위: GET /api/exam-scopes는 가드가 없어 완전 공개다. */}
+            <Route path="/home/exam-scope" element={<ExamScopePage />} />
+            {/* 알림: 본인 것만 보이므로 로그인 필요. OJ 자체 /notifications와는 의도적으로 분리. */}
+            <Route
+              path="/home/notifications"
+              element={
+                <AccessGate level="login">
+                  <ClubNotificationsPage />
+                </AccessGate>
+              }
+            />
+            <Route
+              path="/home/notifications/:id"
+              element={
+                <AccessGate level="login">
+                  <ClubNotificationDetailPage />
+                </AccessGate>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />

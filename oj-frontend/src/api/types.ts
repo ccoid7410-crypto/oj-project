@@ -427,6 +427,9 @@ export interface VoteSummary {
 
 export type CommunityPostType = 'NORMAL' | 'UPDATE_LOG' | 'NOTICE';
 
+/** 백엔드 BOARDS(oj-backend/src/community/dto/community.dto.ts)와 같은 목록. */
+export type CommunityBoard = 'OJ' | 'HOME' | 'CLUB';
+
 export interface CommunityPostSummary {
   id: string;
   type: CommunityPostType;

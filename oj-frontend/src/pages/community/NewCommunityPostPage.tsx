@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import type { CommunityPostType, MentionUser } from '../../api/types';
+import type { CommunityBoard, CommunityPostType, MentionUser } from '../../api/types';
 import { useAuth } from '../../context/AuthContext';
 import { CommunityTagPicker } from '../../components/CommunityTagPicker';
 import { applyMentionChips } from '../../components/MentionText';
@@ -31,7 +31,12 @@ function renderPreviewWithMentions(content: string, container: HTMLElement) {
   });
 }
 
-export function NewCommunityPostPage() {
+export interface NewCommunityPostPageProps {
+  board?: CommunityBoard;
+  basePath?: string;
+}
+
+export function NewCommunityPostPage({ board = 'OJ', basePath = '/community' }: NewCommunityPostPageProps = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -57,13 +62,13 @@ export function NewCommunityPostPage() {
     setError(null);
     try {
       const created = await api.post<{ id: string }>('/community/posts', {
-        board: 'OJ',
+        board,
         title,
         content,
         type,
         tags,
       });
-      navigate(`/community/${created.id}`);
+      navigate(`${basePath}/${created.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '게시글 등록에 실패했습니다.');
     } finally {
@@ -110,7 +115,7 @@ export function NewCommunityPostPage() {
           </div>
         </div>
 
-        <CommunityTagPicker board="OJ" value={tags} onChange={setTags} />
+        <CommunityTagPicker board={board} value={tags} onChange={setTags} />
 
         <div className="flex flex-col gap-1 text-sm">
           <span>내용</span>
@@ -138,7 +143,7 @@ export function NewCommunityPostPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/community')}
+            onClick={() => navigate(basePath)}
             className="rounded border border-ink-500 px-4 py-2 text-sm text-fg hover:border-[var(--color-brand)]"
           >
             취소
