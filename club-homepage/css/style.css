@@ -1378,7 +1378,7 @@ body.gate-pending .site-footer {
   padding-left: 24px; /* pl-6 */
   padding-top: 8px;
   padding-bottom: 8px; /* py-2 */
-  border-left: 2px solid var(--color-ink-500); /* border-l-2 border-ink-200 */
+  border-left: 2px solid currentColor; /* border-l-2 border-ink-200: 정의 안 된 토큰이라 OJ에서도 글자색으로 뜬다 */
 }
 
 .pn-skeleton-bar {
