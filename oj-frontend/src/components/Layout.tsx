@@ -139,7 +139,7 @@ export function Layout() {
   };
 
   return (
-    <div className={`min-h-screen bg-[var(--color-page-bg)] ${flipped ? 'palindrome-flip' : ''}`}>
+    <div className={`flex min-h-screen flex-col bg-[var(--color-page-bg)] ${flipped ? 'palindrome-flip' : ''}`}>
       <header
         className="relative bg-[var(--color-header-bg)] border-b border-[var(--color-header-line)]"
         onMouseLeave={scheduleClose}
@@ -255,7 +255,7 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl border-x border-ink-600 bg-[var(--color-surface)] px-6 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 border-x border-ink-600 bg-[var(--color-surface)] px-6 py-6">
         <Outlet />
       </main>
       <BonobonoEasterEgg active={isRainbowMode} />

@@ -39,7 +39,7 @@ export function ClubLayout() {
   const inCommunitySection = location.pathname.startsWith('/home/community') || location.pathname.startsWith('/home/club-board') || location.pathname === '/home/exam-scope';
 
   return (
-    <div>
+    <div className="club-page">
       <header className="site-header">
         <div className="site-header-bar">
           <Link to="/home" className="logo">
@@ -118,7 +118,7 @@ export function ClubLayout() {
         </div>
       </header>
 
-      <main className="club-container" style={{ paddingTop: 24, paddingBottom: 40 }}>
+      <main className="club-container club-main" style={{ paddingTop: 24, paddingBottom: 40 }}>
         <Outlet />
       </main>
 

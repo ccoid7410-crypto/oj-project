@@ -12,6 +12,23 @@
   padding-right: 24px;
 }
 
+/* OJ의 Layout.tsx와 같은 구조: 바깥은 옅은 회색 페이지 배경, 그 위에 흰(서페이스)
+   콘텐츠 기둥이 화면 끝까지 채워지도록 한다(콘텐츠가 짧으면 회색이 아래로 드러나
+   보이던 문제 수정 - OJ 쪽도 같이 고쳤다). */
+.club-page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.club-main {
+  flex: 1;
+  width: 100%;
+  border-left: 1px solid var(--color-ink-600);
+  border-right: 1px solid var(--color-ink-600);
+  background: var(--color-surface);
+}
+
 .site-header {
   position: relative;
   z-index: 20;
