@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Layout } from './components/Layout';
+import { ClubLayout } from './pages/club/ClubLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AccessGate } from './components/AccessGate';
 import { AdminRoute } from './components/AdminRoute';
@@ -64,11 +65,11 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-            {/* 동아리 홈페이지 마이그레이션(club-homepage → 이 앱). 진행 중에는 nginx가 아직
-                /home/*를 옛 정적 사이트 컨테이너로 프록시하므로, 배포 전환(인프라 마지막 단계)
-                전까지는 로컬 개발 서버에서만 이 라우트로 들어올 수 있다. */}
+          {/* 동아리 홈페이지 마이그레이션(club-homepage → 이 앱). OJ 공용 Layout이 아니라
+              자체 헤더(ClubLayout, 예전 club-homepage 헤더를 그대로 옮김)를 쓴다.
+              진행 중에는 nginx가 아직 /home/*를 옛 정적 사이트 컨테이너로 프록시하므로,
+              배포 전환(인프라 마지막 단계) 전까지는 로컬 개발 서버에서만 들어올 수 있다. */}
+          <Route element={<ClubLayout />}>
             <Route path="/home" element={<ClubHomePage />} />
             <Route path="/home/calendar" element={<ClubCalendarPage />} />
             {/* 공개 게시판(HOME 보드): club-homepage/community.html과 같은 기준(로그인만 필요). */}
@@ -149,6 +150,9 @@ export default function App() {
                 </AccessGate>
               }
             />
+          </Route>
+          <Route element={<Layout />}>
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />

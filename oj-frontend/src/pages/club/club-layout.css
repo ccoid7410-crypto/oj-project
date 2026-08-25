@@ -1,0 +1,228 @@
+/*
+ * club-homepage/css/style.css의 헤더(.site-header 계열) + .container + .site-footer를
+ * 그대로 옮긴 것이다. 동아리 홈페이지 라우트(/home/*)는 OJ의 공용 Layout 헤더 대신
+ * 이 헤더를 써서, 예전처럼 독립된 사이트처럼 보이게 한다.
+ * --color-bg는 이 앱의 --color-surface(콘텐츠 박스 배경)에 대응해 그렇게만 치환했다.
+ */
+
+.club-container {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.site-header {
+  position: relative;
+  z-index: 20;
+  border-bottom: 1px solid var(--color-ink-500);
+  background: var(--color-surface);
+}
+
+.site-header-bar {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 0 24px;
+  min-height: 48px;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.logo-title {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: var(--color-logo);
+}
+
+.logo-accent {
+  color: var(--color-brand);
+}
+
+.logo-subtitle {
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--color-fg-muted);
+}
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--color-fg-muted);
+}
+
+.auth-area {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-area a {
+  color: var(--color-fg-muted);
+  text-decoration: none;
+}
+
+.auth-area button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.auth-area a:hover,
+.auth-area button:hover {
+  color: var(--color-brand);
+}
+
+.auth-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.header-nav > a,
+.header-nav-trigger {
+  padding: 8px 0;
+  color: var(--color-fg);
+  text-decoration: none;
+}
+
+.header-nav > a:hover,
+.header-nav-trigger:hover {
+  color: var(--color-brand);
+}
+
+.header-nav-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.header-nav-trigger span {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 9px;
+  vertical-align: 1px;
+}
+
+.header-mega-menu {
+  position: absolute;
+  top: 100%;
+  left: -12px;
+  overflow: hidden;
+  padding-bottom: 14px;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.header-mega-inner {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 4px 0;
+  border: 1px solid var(--color-ink-500);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--color-surface);
+  transform: translateY(-100%);
+  transition: transform 0.18s ease;
+}
+
+.header-nav-menu:hover .header-mega-inner,
+.header-nav-menu:focus-within .header-mega-inner {
+  transform: translateY(0);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+.header-mega-inner a {
+  padding: 6px 12px;
+  white-space: nowrap;
+  color: var(--color-fg);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.header-mega-inner a:hover,
+.header-mega-inner a[aria-current='page'] {
+  color: var(--color-brand);
+  background: var(--color-ink-700);
+}
+
+.nav-oj {
+  color: var(--color-brand) !important;
+}
+
+.header-nav > a[aria-current='page'],
+.header-nav-trigger[aria-current='page'] {
+  color: var(--color-brand);
+  font-weight: 700;
+}
+
+.notif-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-fg-muted);
+}
+
+.notif-bell:hover {
+  color: var(--color-brand);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 14px;
+  border-radius: 999px;
+  padding: 0 3px;
+  background: #e0393e;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.site-footer {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+}
